@@ -1,0 +1,40 @@
+# RewriteEngine On
+# RewriteBase /ci/
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)$ index.php/$1 [L]
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /ci/
+
+#     # If the requested file or directory exists, serve it directly
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+
+#     # Otherwise, redirect to index.php
+#     RewriteRule ^(.*)$ index.php/$1 [L]
+# </IfModule>
+
+
+# all 3 methods 
+# RewriteEngine On
+# RewriteBase /ci/
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)$ index.php/$1 [L]
+
+# # Optional: Remove trailing slashes
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)/$ /$1 [R=301,L]
+# all 3 methods end
+
+RewriteEngine On
+RewriteBase /ci/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Optional: Force HTTPS (uncomment if needed)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

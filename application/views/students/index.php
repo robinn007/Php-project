@@ -152,7 +152,7 @@
             </div>
         <?php endif; ?>
         
-        <a href="<?php echo site_url('students/add'); ?>" class="btn btn-add">
+        <a href="<?php echo site_url('students/manage/add'); ?>" class="btn btn-add">
             Add New Student
         </a>
         
@@ -177,7 +177,7 @@
                         <td><?php echo htmlspecialchars($student->phone ?? 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($student->address ?? 'N/A'); ?></td>
                         <td>
-                            <a href="<?php echo site_url('students/edit/'.$student->id); ?>" 
+                            <a href="<?php echo site_url('students/manage/edit/'.$student->id); ?>" 
                                class="btn btn-edit" title="Edit Student">Edit</a>
                             <button class="btn btn-delete js-delete-btn" 
                                     data-id="<?php echo $student->id; ?>" 
@@ -190,7 +190,7 @@
         <?php else: ?>
             <div class="no-data">
                 <h3>No students found</h3>
-                <p>Get started by <a href="<?php echo site_url('students/add'); ?>">adding the first student</a></p>
+                <p>Get started by <a href="<?php echo site_url('students/manage/add'); ?>">adding the first student</a></p>
             </div>
         <?php endif; ?>
     </div>

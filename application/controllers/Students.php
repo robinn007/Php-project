@@ -28,15 +28,58 @@ class Students extends CI_Controller {
         $this->load->view('students/index', $data);
     }
     
-    // Separate method for adding students
-    public function add() {
+    // Combined method for adding and editing students
+    public function manage($action = 'add', $id = null) {
+        log_message('debug', "Manage method called with action='$action', id='$id'");
+        
+        // Handle URL segments if parameters are empty
+        if (empty($action)) {
+            $action = $this->uri->segment(3, 'add'); // Get 3rd segment (students/manage/ADD)
+        }
+        if (empty($id) && $action === 'edit') {
+            $id = $this->uri->segment(4); // Get 4th segment (students/manage/edit/ID)
+        }
+        
+        log_message('debug', "Final action='$action', id='$id'");
+        
+        // Set form validation rules
         $this->form_validation->set_rules('name', 'Name', 'required|trim');
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
         $this->form_validation->set_rules('phone', 'Phone', 'trim');
         
+        // Initialize data array
+        $data = array();
+        
+        // Handle edit action - verify student exists
+        if ($action === 'edit') {
+            if (!$id) {
+                log_message('error', 'Edit action called without ID');
+                show_404('Student ID is required for edit operation');
+            }
+            
+            $student = $this->student_model->get_student($id);
+            if (!$student) {
+                log_message('error', "Student not found for edit: id=$id");
+                show_404('Student not found');
+            }
+            
+            $data['student'] = $student;
+            $data['id'] = $id;
+        } else {
+            // For add action, create empty student object
+            $action = 'add'; // Ensure action is always 'add' if not 'edit'
+            $data['student'] = (object) array('id' => '', 'name' => '', 'email' => '', 'phone' => '', 'address' => '');
+        }
+        
+        $data['action'] = $action;
+        
+        // Handle form submission
         if ($this->input->post()) {
+            log_message('debug', "Form submitted for action='$action' with data: " . json_encode($this->input->post()));
+            
             if ($this->form_validation->run() === FALSE) {
                 $data['error'] = validation_errors();
+                log_message('debug', 'Form validation failed: ' . validation_errors());
             } else {
                 $student_data = array(
                     'name' => $this->input->post('name'),
@@ -45,59 +88,41 @@ class Students extends CI_Controller {
                     'address' => $this->input->post('address') ?: null
                 );
                 
-                if ($this->student_model->manage_student('add', null, $student_data)) {
-                    $this->session->set_flashdata('success', 'Student added successfully!');
+                $success = false;
+                $success_message = '';
+                
+                if ($action === 'add') {
+                    $success = $this->student_model->manage_student('add', null, $student_data);
+                    $success_message = 'Student added successfully!';
+                    log_message('debug', 'Add operation result: ' . ($success ? 'SUCCESS' : 'FAILED'));
+                } elseif ($action === 'edit' && $id) {
+                    $success = $this->student_model->manage_student('edit', $id, $student_data);
+                    $success_message = 'Student updated successfully!';
+                    log_message('debug', "Edit operation result for id=$id: " . ($success ? 'SUCCESS' : 'FAILED'));
+                }
+                
+                if ($success) {
+                    $this->session->set_flashdata('success', $success_message);
                     redirect('students');
                 } else {
-                    $data['error'] = 'Failed to add student. Please try again.';
+                    $data['error'] = 'Operation failed. Please try again.';
+                    log_message('error', "Operation failed: action=$action, id=$id");
                 }
             }
         }
         
-        $data['action'] = 'add';
-        $data['student'] = (object) array('id' => '', 'name' => '', 'email' => '', 'phone' => '', 'address' => '');
+        // Load the manage view
+        log_message('debug', "Loading manage view with action='$action'");
         $this->load->view('students/manage', $data);
     }
     
-    // Separate method for editing students
+    // Convenience methods that redirect to manage
+    public function add() {
+        $this->manage('add');
+    }
+    
     public function edit($id = null) {
-        if (!$id) {
-            show_404();
-        }
-        
-        $student = $this->student_model->get_student($id);
-        if (!$student) {
-            show_404();
-        }
-        
-        $this->form_validation->set_rules('name', 'Name', 'required|trim');
-        $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
-        $this->form_validation->set_rules('phone', 'Phone', 'trim');
-        
-        if ($this->input->post()) {
-            if ($this->form_validation->run() === FALSE) {
-                $data['error'] = validation_errors();
-            } else {
-                $student_data = array(
-                    'name' => $this->input->post('name'),
-                    'email' => $this->input->post('email'),
-                    'phone' => $this->input->post('phone') ?: null,
-                    'address' => $this->input->post('address') ?: null
-                );
-                
-                if ($this->student_model->manage_student('edit', $id, $student_data)) {
-                    $this->session->set_flashdata('success', 'Student updated successfully!');
-                    redirect('students');
-                } else {
-                    $data['error'] = 'Failed to update student. Please try again.';
-                }
-            }
-        }
-        
-        $data['action'] = 'edit';
-        $data['student'] = $student;
-        $data['id'] = $id;
-        $this->load->view('students/manage', $data);
+        $this->manage('edit', $id);
     }
     
     // AJAX method for deleting students

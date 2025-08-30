@@ -147,7 +147,12 @@
         <div id="loading" class="loading">Processing...</div>
         
         <?php 
-        $form_action = ($action === 'edit') ? 'students/edit/' . (isset($id) ? $id : '') : 'students/add';
+        // Dynamic form action based on the current action
+        if ($action === 'edit' && isset($id)) {
+            $form_action = 'students/manage/edit/' . $id;
+        } else {
+            $form_action = 'students/manage/add';
+        }
         echo form_open($form_action, array('id' => 'student-form', 'novalidate' => 'novalidate')); 
         ?>
             <div class="form-group">

@@ -41,6 +41,7 @@
 
 $route['default_controller'] = 'students';
 $route['404_override'] = '';
+$route['translate_uri_dashes'] = FALSE;
 
 // Student routes
 // Student routes
@@ -72,17 +73,22 @@ $route['logout'] = 'auth/logout';
 // Dashboard
 $route['dashboard'] = 'students/dashboard';
 
-// Students routes
-$route['students'] = 'students/index';
-$route['students/add'] = 'students/add';
-$route['students/edit/(:num)'] = 'students/edit/$1';
-$route['students/delete'] = 'students/delete'; // AJAX only
+
+// Students routes - Most specific first!
+$route['students/manage/add'] = 'students/manage/add';
+$route['students/manage/edit/(:num)'] = 'students/manage/edit/$1';
+$route['students/manage/delete'] = 'students/delete';
 $route['students/test_db'] = 'students/test_db';
 $route['students/setup_database'] = 'students/setup_database';
+$route['students/delete'] = 'students/delete';
+$route['students/add'] = 'students/manage/add'; // Convenience alias
+$route['students/edit/(:num)'] = 'students/manage/edit/$1'; // Convenience alias
+$route['students'] = 'students/index';
 
 // Migration routes
 $route['migrate'] = 'migrate/index';
 $route['migrate/rollback/(:num)'] = 'migrate/rollback/$1';
+
 
 
 // // Default routes

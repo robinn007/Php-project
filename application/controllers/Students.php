@@ -28,20 +28,118 @@ class Students extends CI_Controller {
         $this->load->view('students/index', $data);
     }
     
-    // Combined method for adding and editing students
-    public function manage($action = 'add', $id = null) {
-        log_message('debug', "Manage method called with action='$action', id='$id'");
+    // Combined method for adding, editing, and deleting students
+    public function manage() {
+        // Get action and id from URI segments or POST data
+        $action = $this->uri->segment(3, 'add'); // Default to 'add'
+        $id = $this->uri->segment(4); // Get ID for edit/delete operations
         
-        // Handle URL segments if parameters are empty
-        if (empty($action)) {
-            $action = $this->uri->segment(3, 'add'); // Get 3rd segment (students/manage/ADD)
+        // Override with POST data if available (for AJAX requests)
+        if ($this->input->post('action')) {
+            $action = $this->input->post('action');
         }
-        if (empty($id) && $action === 'edit') {
-            $id = $this->uri->segment(4); // Get 4th segment (students/manage/edit/ID)
+        if ($this->input->post('id')) {
+            $id = $this->input->post('id');
         }
         
-        log_message('debug', "Final action='$action', id='$id'");
+        log_message('debug', "Manage method called: action='$action', id='$id', is_ajax=" . ($this->input->is_ajax_request() ? 'YES' : 'NO'));
         
+        // Handle AJAX requests (mainly for delete)
+        if ($this->input->is_ajax_request()) {
+            return $this->handle_ajax_request($action, $id);
+        }
+        
+        // Handle non-AJAX requests (add/edit forms)
+        return $this->handle_form_request($action, $id);
+    }
+    
+    private function handle_ajax_request($action, $id) {
+        // Prevent any output buffering issues
+        ob_clean();
+        
+        // Force JSON response
+        $this->output->set_content_type('application/json');
+        
+        $response = array('success' => false, 'message' => '');
+        
+        try {
+            switch ($action) {
+                case 'delete':
+                    if (!$id) {
+                        $response['message'] = 'Student ID is required.';
+                    } else {
+                        // Check if student exists
+                        $student = $this->student_model->get_student($id);
+                        if (!$student) {
+                            $response['message'] = 'Student not found.';
+                            log_message('debug', 'Student not found with ID: ' . $id);
+                        } else {
+                            // Attempt to delete
+                            if ($this->student_model->manage_student('delete', $id)) {
+                                $response['success'] = true;
+                                $response['message'] = 'Student deleted successfully.';
+                                log_message('debug', 'Student deleted successfully: ' . $id);
+                            } else {
+                                $response['message'] = 'Failed to delete student. Database error.';
+                                log_message('error', 'Failed to delete student: ' . $id);
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'add':
+                case 'edit':
+                    // Set form validation for AJAX add/edit (if you want to support this)
+                    $this->form_validation->set_rules('name', 'Name', 'required|trim');
+                    $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
+                    $this->form_validation->set_rules('phone', 'Phone', 'trim');
+                    
+                    if ($this->form_validation->run() === FALSE) {
+                        $response['message'] = strip_tags(validation_errors());
+                    } else {
+                        $student_data = array(
+                            'name' => $this->input->post('name'),
+                            'email' => $this->input->post('email'),
+                            'phone' => $this->input->post('phone') ?: null,
+                            'address' => $this->input->post('address') ?: null
+                        );
+                        
+                        if ($action === 'add') {
+                            if ($this->student_model->manage_student('add', null, $student_data)) {
+                                $response['success'] = true;
+                                $response['message'] = 'Student added successfully.';
+                            } else {
+                                $response['message'] = 'Failed to add student.';
+                            }
+                        } elseif ($action === 'edit' && $id) {
+                            if ($this->student_model->manage_student('edit', $id, $student_data)) {
+                                $response['success'] = true;
+                                $response['message'] = 'Student updated successfully.';
+                            } else {
+                                $response['message'] = 'Failed to update student.';
+                            }
+                        }
+                    }
+                    break;
+                    
+                default:
+                    $response['message'] = 'Invalid action specified.';
+            }
+            
+            // Always include CSRF token
+            $response['csrf_token'] = $this->security->get_csrf_hash();
+            
+        } catch (Exception $e) {
+            log_message('error', 'Exception in AJAX manage method: ' . $e->getMessage());
+            $response['message'] = 'An error occurred while processing your request.';
+        }
+        
+        // Output the JSON response
+        echo json_encode($response);
+        exit();
+    }
+    
+    private function handle_form_request($action, $id) {
         // Set form validation rules
         $this->form_validation->set_rules('name', 'Name', 'required|trim');
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
@@ -49,6 +147,7 @@ class Students extends CI_Controller {
         
         // Initialize data array
         $data = array();
+        $data['action'] = $action;
         
         // Handle edit action - verify student exists
         if ($action === 'edit') {
@@ -67,19 +166,18 @@ class Students extends CI_Controller {
             $data['id'] = $id;
         } else {
             // For add action, create empty student object
-            $action = 'add'; // Ensure action is always 'add' if not 'edit'
+            $action = 'add';
+            $data['action'] = 'add';
             $data['student'] = (object) array('id' => '', 'name' => '', 'email' => '', 'phone' => '', 'address' => '');
         }
         
-        $data['action'] = $action;
-        
         // Handle form submission
         if ($this->input->post()) {
-            log_message('debug', "Form submitted for action='$action' with data: " . json_encode($this->input->post()));
+            log_message('debug', "Form submitted for action='$action'");
             
             if ($this->form_validation->run() === FALSE) {
                 $data['error'] = validation_errors();
-                log_message('debug', 'Form validation failed: ' . validation_errors());
+                log_message('debug', 'Form validation failed: ' . strip_tags(validation_errors()));
             } else {
                 $student_data = array(
                     'name' => $this->input->post('name'),
@@ -116,62 +214,22 @@ class Students extends CI_Controller {
         $this->load->view('students/manage', $data);
     }
     
-    // Convenience methods that redirect to manage
+    // Convenience methods for backward compatibility
     public function add() {
-        $this->manage('add');
+        redirect('students/manage/add');
     }
     
     public function edit($id = null) {
-        $this->manage('edit', $id);
+        if (!$id) {
+            show_404('Student ID is required');
+        }
+        redirect('students/manage/edit/' . $id);
     }
     
-    // AJAX method for deleting students
     public function delete() {
-        // Prevent any output buffering issues
-        ob_clean();
-        
-        // Force JSON response
-        $this->output->set_content_type('application/json');
-        
-        $response = array('success' => false, 'message' => '');
-        
-        try {
-            $id = $this->input->post('id');
-            
-            log_message('debug', 'Delete request received for ID: ' . $id);
-            
-            if (!$id) {
-                $response['message'] = 'Student ID is required.';
-            } else {
-                // Check if student exists
-                $student = $this->student_model->get_student($id);
-                if (!$student) {
-                    $response['message'] = 'Student not found.';
-                    log_message('debug', 'Student not found with ID: ' . $id);
-                } else {
-                    // Attempt to delete
-                    if ($this->student_model->manage_student('delete', $id)) {
-                        $response['success'] = true;
-                        $response['message'] = 'Student deleted successfully.';
-                        log_message('debug', 'Student deleted successfully: ' . $id);
-                    } else {
-                        $response['message'] = 'Failed to delete student. Database error.';
-                        log_message('error', 'Failed to delete student: ' . $id);
-                    }
-                }
-            }
-            
-            // Always include CSRF token
-            $response['csrf_token'] = $this->security->get_csrf_hash();
-            
-        } catch (Exception $e) {
-            log_message('error', 'Exception in delete method: ' . $e->getMessage());
-            $response['message'] = 'An error occurred while deleting the student.';
-        }
-        
-        // Output the JSON response
-        echo json_encode($response);
-        exit();
+        // This method is just an alias for manage with delete action
+        $_POST['action'] = 'delete';
+        $this->manage();
     }
 
     public function test_db() {

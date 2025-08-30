@@ -124,8 +124,8 @@
 <body>
     <div class="container">
         <div class="header-actions">
-            <a href="<?php echo site_url('dashboard'); ?>" class="clickable-heading">
-                <h1>Student Management System...</h1>
+            <a href="<?php echo site_url('students'); ?>" class="clickable-heading">
+                <h1>Student Management System</h1>
             </a>
             <a href="<?php echo site_url('auth/logout'); ?>" class="btn btn-logout">
                 Logout
@@ -222,14 +222,15 @@
                 
                 // Create form data
                 const formData = new FormData();
+                formData.append('action', 'delete');
                 formData.append('id', id);
                 formData.append('<?php echo $this->config->item('csrf_token_name'); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
 
                 console.log('Deleting student with ID:', id);
-                console.log('Sending to URL:', '<?php echo site_url("students/delete"); ?>');
+                console.log('Sending to URL:', '<?php echo site_url("students/manage"); ?>');
                 
                 // Make the AJAX request
-                fetch('<?php echo site_url("students/delete"); ?>', {
+                fetch('<?php echo site_url("students/manage"); ?>', {
                     method: 'POST',
                     body: formData,
                     headers: {

@@ -41,7 +41,7 @@
 
 $route['default_controller'] = 'students';
 $route['404_override'] = '';
-$route['translate_uri_dashes'] = FALSE;
+//$route['translate_uri_dashes'] = FALSE;
 
 // Student routes
 // Student routes
@@ -67,22 +67,26 @@ $route['translate_uri_dashes'] = FALSE;
 
 // Authentication routes
 $route['login'] = 'auth/login';
-$route['signup'] = 'auth/signup';
+$route['signup'] = 'auth/signup';  
 $route['logout'] = 'auth/logout';
 
 // Dashboard
 $route['dashboard'] = 'students/dashboard';
 
+// Students routes - Using unified manage method
+$route['students/manage/add'] = 'students/manage';
+$route['students/manage/edit/(:num)'] = 'students/manage';
+$route['students/manage/delete'] = 'students/manage';
+$route['students/manage'] = 'students/manage';
 
-// Students routes - Most specific first!
-$route['students/manage/add'] = 'students/manage/add';
-$route['students/manage/edit/(:num)'] = 'students/manage/edit/$1';
-$route['students/manage/delete'] = 'students/delete';
+// Convenience aliases
+$route['students/add'] = 'students/manage';
+$route['students/edit/(:num)'] = 'students/manage';  
+$route['students/delete'] = 'students/manage';
+
+// Other student routes
 $route['students/test_db'] = 'students/test_db';
 $route['students/setup_database'] = 'students/setup_database';
-$route['students/delete'] = 'students/delete';
-$route['students/add'] = 'students/manage/add'; // Convenience alias
-$route['students/edit/(:num)'] = 'students/manage/edit/$1'; // Convenience alias
 $route['students'] = 'students/index';
 
 // Migration routes

@@ -20,11 +20,12 @@
  * NOTE: If you change these, also change the error_reporting() code below
  *
  */
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(E_ALL);
+// ini_set('display_errors', 0);
+// ini_set('display_startup_errors', 0);
+// error_reporting(E_ALL);
 
-define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
+// define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
+define('ENVIRONMENT', 'development');
 /*
  *---------------------------------------------------------------
  * ERROR REPORTING

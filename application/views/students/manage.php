@@ -47,7 +47,7 @@
         .required {
             color: #e74c3c;
         }
-        input[type="text"], input[type="email"], input[type="hidden"], textarea { 
+        input[type="text"], input[type="email"], textarea { 
             width: 100%; 
             max-width: 400px;
             padding: 12px; 
@@ -61,6 +61,10 @@
             border-color: #4CAF50;
             outline: none;
             box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
         }
         .btn { 
             padding: 12px 24px; 
@@ -80,6 +84,11 @@
         .btn-submit:hover {
             background-color: #45a049;
             transform: translateY(-1px);
+        }
+        .btn-submit:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
         }
         .btn-cancel { 
             background-color: #f44336; 
@@ -112,13 +121,16 @@
             padding-top: 20px;
             border-top: 1px solid #eee;
         }
+        .loading {
+            display: none;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="breadcrumb">
-            <a href="<?php echo site_url('/'); ?>">Home..</a> 
-            <span> / </span>
             <a href="<?php echo site_url('students'); ?>">Students</a>
             <span> / <?php echo ($action === 'edit' ? 'Edit' : 'Add'); ?> Student</span>
         </div>
@@ -127,17 +139,17 @@
         
         <?php if (isset($error)): ?>
             <div class="error">
-                <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
+                <strong>Error:</strong> <?php echo $error; ?>
             </div>
         <?php endif; ?>
         
         <div id="response-message" style="display: none;"></div>
+        <div id="loading" class="loading">Processing...</div>
         
-        <?php echo form_open('', array('id' => 'student-form', 'novalidate' => 'novalidate')); ?>
-            <input type="hidden" name="<?php echo $this->config->item('csrf_token_name'); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-            <input type="hidden" name="action" value="<?php echo htmlspecialchars($action); ?>">
-            <input type="hidden" name="id" value="<?php echo htmlspecialchars($student->id ?? ''); ?>">
-            
+        <?php 
+        $form_action = ($action === 'edit') ? 'students/edit/' . (isset($id) ? $id : '') : 'students/add';
+        echo form_open($form_action, array('id' => 'student-form', 'novalidate' => 'novalidate')); 
+        ?>
             <div class="form-group">
                 <label for="name">
                     Full Name <span class="required">*</span>
@@ -145,7 +157,7 @@
                 <input type="text" 
                        name="name" 
                        id="name" 
-                       value="<?php echo set_value('name', htmlspecialchars($student->name ?? '')); ?>" 
+                       value="<?php echo set_value('name', isset($student->name) ? $student->name : ''); ?>" 
                        required
                        placeholder="Enter student's full name"
                        maxlength="100">
@@ -158,7 +170,7 @@
                 <input type="email" 
                        name="email" 
                        id="email" 
-                       value="<?php echo set_value('email', htmlspecialchars($student->email ?? '')); ?>" 
+                       value="<?php echo set_value('email', isset($student->email) ? $student->email : ''); ?>" 
                        required
                        placeholder="Enter email address"
                        maxlength="100">
@@ -171,7 +183,7 @@
                 <input type="text" 
                        name="phone" 
                        id="phone" 
-                       value="<?php echo set_value('phone', htmlspecialchars($student->phone ?? '')); ?>"
+                       value="<?php echo set_value('phone', isset($student->phone) ? $student->phone : ''); ?>"
                        placeholder="Enter phone number (optional)"
                        maxlength="20">
             </div>
@@ -182,11 +194,11 @@
                 </label>
                 <textarea name="address" 
                           id="address" 
-                          placeholder="Enter address (optional)"><?php echo set_value('address', htmlspecialchars($student->address ?? '')); ?></textarea>
+                          placeholder="Enter address (optional)"><?php echo set_value('address', isset($student->address) ? $student->address : ''); ?></textarea>
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-submit">
+                <button type="submit" class="btn btn-submit" id="submit-btn">
                     <?php echo ($action === 'edit' ? 'Update' : 'Add'); ?> Student
                 </button>
                 <a href="<?php echo site_url('students'); ?>" class="btn btn-cancel">
@@ -201,82 +213,49 @@
     </div>
 
     <script>
-        document.getElementById('student-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('student-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            const responseMessage = document.getElementById('response-message');
             
-            const form = this;
-            const formData = new FormData(form);
-            const action = form.querySelector('input[name="action"]').value;
-            const id = form.querySelector('input[name="id"]').value;
+            form.addEventListener('submit', function(e) {
+                // Basic client-side validation
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                
+                if (!name || !email) {
+                    e.preventDefault();
+                    showMessage('error', 'Please fill in all required fields.');
+                    return false;
+                }
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    e.preventDefault();
+                    showMessage('error', 'Please enter a valid email address.');
+                    return false;
+                }
+                
+                // Show loading state
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing...';
+                loading.style.display = 'block';
+                hideMessage();
+            });
             
-            let url = '<?php echo site_url("students/manage"); ?>';
-            if (action === 'edit' && id) {
-                url += '/edit/' + id;
-            } else if (action === 'add') {
-                url += '/add';
+            function showMessage(type, message) {
+                responseMessage.className = type;
+                responseMessage.innerHTML = '<strong>' + (type === 'error' ? 'Error:' : 'Success:') + '</strong> ' + message;
+                responseMessage.style.display = 'block';
+                
+                // Scroll to message
+                responseMessage.scrollIntoView({ behavior: 'smooth' });
             }
             
-            console.log('Submitting form to:', url);
-            console.log('Form data:', Object.fromEntries(formData));
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.text().then(text => {
-                    console.log('Raw response:', text);
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok: ' + response.status);
-                    }
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        throw new Error('Invalid JSON: ' + text);
-                    }
-                });
-            })
-            .then(data => {
-                const responseMessage = document.getElementById('response-message');
-                responseMessage.classList.remove('error', 'success');
+            function hideMessage() {
                 responseMessage.style.display = 'none';
-                
-                if (data.success) {
-                    responseMessage.classList.add('success');
-                    responseMessage.textContent = data.message;
-                    responseMessage.style.display = 'block';
-                    
-                    // Update CSRF token
-                    const csrfInput = document.querySelector('input[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
-                    if (csrfInput && data.csrf_token) {
-                        csrfInput.value = data.csrf_token;
-                    }
-                    
-                    // Redirect after successful submission
-                    setTimeout(() => {
-                        window.location.href = '<?php echo site_url('students'); ?>';
-                    }, 1500);
-                } else {
-                    responseMessage.classList.add('error');
-                    responseMessage.innerHTML = '<strong>Error:</strong> ' + data.message;
-                    responseMessage.style.display = 'block';
-                    
-                    // Update CSRF token
-                    const csrfInput = document.querySelector('input[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
-                    if (csrfInput && data.csrf_token) {
-                        csrfInput.value = data.csrf_token;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                const responseMessage = document.getElementById('response-message');
-                responseMessage.classList.remove('error', 'success');
-                responseMessage.classList.add('error');
-                responseMessage.innerHTML = '<strong>Error:</strong> An unexpected error occurred: ' + error.message;
-                responseMessage.style.display = 'block';
-            });
+            }
         });
     </script>
 </body>

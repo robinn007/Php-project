@@ -28,160 +28,126 @@ class Students extends CI_Controller {
         $this->load->view('students/index', $data);
     }
     
-   public function manage($action = 'add', $id = null) {
-    ob_start();
-    
-    $this->form_validation->set_rules('name', 'Name', 'required|trim');
-    $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
-    $this->form_validation->set_rules('phone', 'Phone', 'trim');
-    
-    if ($this->input->is_ajax_request()) {
-        $action = $this->input->post('action') ?: $action;
-        $id = $this->input->post('id') ?: $id;
+    // Separate method for adding students
+    public function add() {
+        $this->form_validation->set_rules('name', 'Name', 'required|trim');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
+        $this->form_validation->set_rules('phone', 'Phone', 'trim');
         
-        log_message('debug', "Manage AJAX request: action=$action, id=$id, post_data=" . json_encode($this->input->post()));
+        if ($this->input->post()) {
+            if ($this->form_validation->run() === FALSE) {
+                $data['error'] = validation_errors();
+            } else {
+                $student_data = array(
+                    'name' => $this->input->post('name'),
+                    'email' => $this->input->post('email'),
+                    'phone' => $this->input->post('phone') ?: null,
+                    'address' => $this->input->post('address') ?: null
+                );
+                
+                if ($this->student_model->manage_student('add', null, $student_data)) {
+                    $this->session->set_flashdata('success', 'Student added successfully!');
+                    redirect('students');
+                } else {
+                    $data['error'] = 'Failed to add student. Please try again.';
+                }
+            }
+        }
         
-        $response = array('success' => false, 'message' => '', 'data' => array());
+        $data['action'] = 'add';
+        $data['student'] = (object) array('id' => '', 'name' => '', 'email' => '', 'phone' => '', 'address' => '');
+        $this->load->view('students/manage', $data);
+    }
+    
+    // Separate method for editing students
+    public function edit($id = null) {
+        if (!$id) {
+            show_404();
+        }
+        
+        $student = $this->student_model->get_student($id);
+        if (!$student) {
+            show_404();
+        }
+        
+        $this->form_validation->set_rules('name', 'Name', 'required|trim');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
+        $this->form_validation->set_rules('phone', 'Phone', 'trim');
+        
+        if ($this->input->post()) {
+            if ($this->form_validation->run() === FALSE) {
+                $data['error'] = validation_errors();
+            } else {
+                $student_data = array(
+                    'name' => $this->input->post('name'),
+                    'email' => $this->input->post('email'),
+                    'phone' => $this->input->post('phone') ?: null,
+                    'address' => $this->input->post('address') ?: null
+                );
+                
+                if ($this->student_model->manage_student('edit', $id, $student_data)) {
+                    $this->session->set_flashdata('success', 'Student updated successfully!');
+                    redirect('students');
+                } else {
+                    $data['error'] = 'Failed to update student. Please try again.';
+                }
+            }
+        }
+        
+        $data['action'] = 'edit';
+        $data['student'] = $student;
+        $data['id'] = $id;
+        $this->load->view('students/manage', $data);
+    }
+    
+    // AJAX method for deleting students
+    public function delete() {
+        // Prevent any output buffering issues
+        ob_clean();
+        
+        // Force JSON response
+        $this->output->set_content_type('application/json');
+        
+        $response = array('success' => false, 'message' => '');
         
         try {
-            switch ($action) {
-                case 'add':
-                    if ($this->form_validation->run() === FALSE) {
-                        $response['message'] = validation_errors();
+            $id = $this->input->post('id');
+            
+            log_message('debug', 'Delete request received for ID: ' . $id);
+            
+            if (!$id) {
+                $response['message'] = 'Student ID is required.';
+            } else {
+                // Check if student exists
+                $student = $this->student_model->get_student($id);
+                if (!$student) {
+                    $response['message'] = 'Student not found.';
+                    log_message('debug', 'Student not found with ID: ' . $id);
+                } else {
+                    // Attempt to delete
+                    if ($this->student_model->manage_student('delete', $id)) {
+                        $response['success'] = true;
+                        $response['message'] = 'Student deleted successfully.';
+                        log_message('debug', 'Student deleted successfully: ' . $id);
                     } else {
-                        $data = array(
-                            'name' => $this->input->post('name'),
-                            'email' => $this->input->post('email'),
-                            'phone' => $this->input->post('phone') ?: null,
-                            'address' => $this->input->post('address') ?: null
-                        );
-                        if ($this->student_model->manage_student('add', null, $data)) {
-                            $response['success'] = true;
-                            $response['message'] = 'Student added successfully.';
-                        } else {
-                            $response['message'] = 'Failed to add student.';
-                            log_message('error', 'Add operation failed: ' . $this->db->last_query());
-                        }
+                        $response['message'] = 'Failed to delete student. Database error.';
+                        log_message('error', 'Failed to delete student: ' . $id);
                     }
-                    break;
-                    
-                case 'edit':
-                    if (!$id || !$this->student_model->get_student($id)) {
-                        $response['message'] = 'Invalid student ID.';
-                    } elseif ($this->form_validation->run() === FALSE) {
-                        $response['message'] = validation_errors();
-                    } else {
-                        $data = array(
-                            'name' => $this->input->post('name'),
-                            'email' => $this->input->post('email'),
-                            'phone' => $this->input->post('phone') ?: null,
-                            'address' => $this->input->post('address') ?: null
-                        );
-                        if ($this->student_model->manage_student('edit', $id, $data)) {
-                            $response['success'] = true;
-                            $response['message'] = 'Student updated successfully.';
-                        } else {
-                            $response['message'] = 'Failed to update student.';
-                            log_message('error', 'Edit operation failed: ' . $this->db->last_query());
-                        }
-                    }
-                    break;
-                    
-                case 'delete':
-                    if (!$id || !$this->student_model->get_student($id)) {
-                        $response['message'] = 'Invalid student ID.';
-                    } else {
-                        if ($this->student_model->manage_student('delete', $id)) {
-                            $response['success'] = true;
-                            $response['message'] = 'Student deleted successfully.';
-                        } else {
-                            $response['message'] = 'Failed to delete student.';
-                            log_message('error', 'Delete operation failed: ' . $this->db->last_query());
-                        }
-                    }
-                    break;
-                    
-                default:
-                    $response['message'] = 'Invalid action.';
+                }
             }
             
+            // Always include CSRF token
             $response['csrf_token'] = $this->security->get_csrf_hash();
             
-            $buffered_output = ob_get_clean();
-            if ($buffered_output) {
-                log_message('error', 'Unexpected output in manage method: ' . $buffered_output);
-            }
-            
-            $this->output
-                ->set_status_header(200)
-                ->set_content_type('application/json')
-                ->set_output(json_encode($response));
         } catch (Exception $e) {
-            $response['message'] = 'Server error: ' . $e->getMessage();
-            log_message('error', "Exception in manage action=$action, id=$id: " . $e->getMessage());
-            $buffered_output = ob_get_clean();
-            if ($buffered_output) {
-                log_message('error', 'Unexpected output in manage method: ' . $buffered_output);
-            }
-            $this->output
-                ->set_status_header(500)
-                ->set_content_type('application/json')
-                ->set_output(json_encode($response));
+            log_message('error', 'Exception in delete method: ' . $e->getMessage());
+            $response['message'] = 'An error occurred while deleting the student.';
         }
-    } else {
-       try {
-            if ($this->input->post()) {
-                if ($this->form_validation->run() === FALSE) {
-                    $data['error'] = validation_errors();
-                } else {
-                    $data = array(
-                        'name' => $this->input->post('name'),
-                        'email' => $this->input->post('email'),
-                        'phone' => $this->input->post('phone') ?: null,
-                        'address' => $this->input->post('address') ?: null
-                    );
-                    if ($action === 'add' && $this->student_model->manage_student('add', null, $data)) {
-                        redirect('students');
-                    } elseif ($action === 'edit' && $id && $this->student_model->manage_student('edit', $id, $data)) {
-                        redirect('students');
-                    } elseif ($action === 'delete' && $id && $this->student_model->manage_student('delete', $id)) {
-                        redirect('students');
-                    } else {
-                        $data['error'] = 'Operation failed.';
-                        log_message('error', "Non-AJAX operation failed: action=$action, id=$id, query=" . $this->db->last_query());
-                    }
-                }
-            }
-            
-            if ($action === 'edit' && $id) {
-                $data['student'] = $this->student_model->get_student($id);
-                if (!$data['student']) {
-                    log_message('error', "Student not found for edit: id=$id");
-                    show_404();
-                }
-                $data['action'] = 'edit';
-                $data['id'] = $id;
-            } else {
-                $data['action'] = 'add';
-                $data['student'] = (object) array('id' => '', 'name' => '', 'email' => '', 'phone' => '', 'address' => '');
-            }
-            
-            $buffered_output = ob_get_clean();
-            if ($buffered_output) {
-                log_message('error', 'Unexpected output in manage method (non-AJAX): ' . $buffered_output);
-            }
-            
-            $this->load->view('students/manage', $data);
-        } catch (Exception $e) {
-            log_message('error', "Exception in manage (non-AJAX) action=$action, id=$id: " . $e->getMessage());
-            $buffered_output = ob_get_clean();
-            if ($buffered_output) {
-                log_message('error', 'Unexpected output in manage method (non-AJAX): ' . $buffered_output);
-            }
-            show_error('Server error: ' . $e->getMessage(), 500);
-        }
+        
+        // Output the JSON response
+        echo json_encode($response);
+        exit();
     }
-}
 
     public function test_db() {
         $this->load->database();

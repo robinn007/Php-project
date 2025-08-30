@@ -39,11 +39,18 @@
             border-radius: 4px; 
             display: inline-block; 
             transition: all 0.3s ease; 
+            border: none;
+            cursor: pointer;
         }
         .btn-add { 
             background-color: #4CAF50; 
             color: white; 
             margin-bottom: 20px; 
+        }
+        .btn-logout { 
+            background-color: #ff9800; 
+            color: white; 
+            float: right;
         }
         .btn-edit { 
             background-color: #008CBA; 
@@ -52,7 +59,6 @@
         .btn-delete { 
             background-color: #f44336; 
             color: white; 
-            cursor: pointer;
         }
         .btn:hover { 
             opacity: 0.8; 
@@ -105,21 +111,40 @@
         }
         @keyframes fadeOut {
             from { opacity: 1; }
-            to { opacity: 0; display: none; }
+            to { opacity: 0; }
+        }
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="<?php echo site_url('dashboard'); ?>" class="clickable-heading">
-            <h1>Student Management System</h1>
-        </a>
-
-        <a href="<?php echo site_url('auth/logout'); ?>" class="btn btn-logout">
-            Logout
-        </a>
+        <div class="header-actions">
+            <a href="<?php echo site_url('dashboard'); ?>" class="clickable-heading">
+                <h1>Student Management System...</h1>
+            </a>
+            <a href="<?php echo site_url('auth/logout'); ?>" class="btn btn-logout">
+                Logout
+            </a>
+        </div>
         
         <div id="response-message" style="display: none;"></div>
+        
+        <?php if ($this->session->flashdata('success')): ?>
+            <div class="success">
+                <?php echo $this->session->flashdata('success'); ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($this->session->flashdata('error')): ?>
+            <div class="error">
+                <?php echo $this->session->flashdata('error'); ?>
+            </div>
+        <?php endif; ?>
         
         <?php if (isset($students) && !empty($students)): ?>
             <div class="stats">
@@ -127,7 +152,7 @@
             </div>
         <?php endif; ?>
         
-        <a href="<?php echo site_url('students/manage/add'); ?>" class="btn btn-add">
+        <a href="<?php echo site_url('students/add'); ?>" class="btn btn-add">
             Add New Student
         </a>
         
@@ -152,7 +177,7 @@
                         <td><?php echo htmlspecialchars($student->phone ?? 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($student->address ?? 'N/A'); ?></td>
                         <td>
-                            <a href="<?php echo site_url('students/manage/edit/'.$student->id); ?>" 
+                            <a href="<?php echo site_url('students/edit/'.$student->id); ?>" 
                                class="btn btn-edit" title="Edit Student">Edit</a>
                             <button class="btn btn-delete js-delete-btn" 
                                     data-id="<?php echo $student->id; ?>" 
@@ -165,13 +190,12 @@
         <?php else: ?>
             <div class="no-data">
                 <h3>No students found</h3>
-                <p>Get started by <a href="<?php echo site_url('students/manage/add'); ?>">adding the first student</a></p>
+                <p>Get started by <a href="<?php echo site_url('students/add'); ?>">adding the first student</a></p>
             </div>
         <?php endif; ?>
     </div>
 
     <script>
-       // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Add event listeners to all delete buttons
             const deleteButtons = document.querySelectorAll('.js-delete-btn');
@@ -183,79 +207,145 @@
                 });
             });
             
-            // Define the deleteStudent function
+            // Delete student function
             window.deleteStudent = function(id) {
-                if (confirm('Are you sure you want to delete this student?')) {
-                    const formData = new FormData();
-                    formData.append('action', 'delete');
-                    formData.append('id', id);
-                    formData.append('<?php echo $this->config->item('csrf_token_name'); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+                if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+                    return;
+                }
+                
+                // Disable the delete button to prevent multiple clicks
+                const deleteBtn = document.querySelector('[data-id="' + id + '"]');
+                if (deleteBtn) {
+                    deleteBtn.disabled = true;
+                    deleteBtn.textContent = 'Deleting...';
+                }
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('<?php echo $this->config->item('csrf_token_name'); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
 
-                    console.log('Deleting student with ID:', id);
+                console.log('Deleting student with ID:', id);
+                console.log('Sending to URL:', '<?php echo site_url("students/delete"); ?>');
+                
+                // Make the AJAX request
+                fetch('<?php echo site_url("students/delete"); ?>', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
                     
-                    // Use proper URL construction
-                    const url = '<?php echo site_url("students/manage/delete"); ?>/' + id;
+                    // Get response as text first to check for any errors
+                    return response.text().then(text => {
+                        console.log('Raw response:', text);
+                        
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status + ': ' + text);
+                        }
+                        
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('JSON parse error:', e);
+                            throw new Error('Invalid JSON response: ' + text);
+                        }
+                    });
+                })
+                .then(data => {
+                    console.log('Parsed response data:', data);
                     
-                    console.log('URL:', url);
-                    console.log('Form data:', Object.fromEntries(formData));
-                    
-                    fetch(url, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        console.log('Response status:', response.status);
-                        return response.text().then(text => {
-                            console.log('Raw response:', text);
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok: ' + response.status);
-                            }
-                            try {
-                                return JSON.parse(text);
-                            } catch (e) {
-                                throw new Error('Invalid JSON: ' + text);
-                            }
-                        });
-                    })
-                    .then(data => {
-                        const responseMessage = document.getElementById('response-message');
-                        responseMessage.classList.remove('error', 'success');
-                        responseMessage.style.display = 'none';
+                    const responseMessage = document.getElementById('response-message');
+                    responseMessage.classList.remove('error', 'success');
+                    responseMessage.style.display = 'none';
 
-                        if (data.success) {
-                            const row = document.getElementById('student-' + id);
+                    if (data.success) {
+                        // Show success message
+                        responseMessage.classList.add('success');
+                        responseMessage.innerHTML = '<strong>Success:</strong> ' + data.message;
+                        responseMessage.style.display = 'block';
+                        
+                        // Remove the row with animation
+                        const row = document.getElementById('student-' + id);
+                        if (row) {
                             row.classList.add('fade-out');
                             setTimeout(() => {
-                                row.style.display = 'none';
+                                row.remove();
+                                
+                                // Update student count
+                                const statsDiv = document.querySelector('.stats strong');
+                                if (statsDiv) {
+                                    const currentCount = parseInt(statsDiv.textContent) || 0;
+                                    const newCount = Math.max(0, currentCount - 1);
+                                    statsDiv.textContent = newCount;
+                                    
+                                    // If no students left, show the no-data message
+                                    if (newCount === 0) {
+                                        const tableContainer = document.querySelector('table').parentNode;
+                                        tableContainer.innerHTML = `
+                                            <div class="no-data">
+                                                <h3>No students found</h3>
+                                                <p>Get started by <a href="<?php echo site_url('students/add'); ?>">adding the first student</a></p>
+                                            </div>
+                                        `;
+                                    }
+                                }
                             }, 500);
-                            responseMessage.classList.add('success');
-                            responseMessage.textContent = data.message;
-                            responseMessage.style.display = 'block';
-                            // Update CSRF token
-                            const csrfInput = document.querySelector('input[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
-                            if (csrfInput) {
-                                csrfInput.value = data.csrf_token;
-                            }
-                        } else {
-                            responseMessage.classList.add('error');
-                            responseMessage.innerHTML = '<strong>Error:</strong> ' + data.message;
-                            responseMessage.style.display = 'block';
-                            // Update CSRF token
-                            const csrfInput = document.querySelector('input[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
-                            if (csrfInput) {
-                                csrfInput.value = data.csrf_token;
-                            }
                         }
-                    })
-                    .catch(error => {
-                        console.error('Fetch error:', error);
-                        const responseMessage = document.getElementById('response-message');
-                        responseMessage.classList.remove('error', 'success');
+                        
+                        // Hide success message after 3 seconds
+                        setTimeout(() => {
+                            responseMessage.style.display = 'none';
+                        }, 3000);
+                        
+                    } else {
+                        // Show error message
                         responseMessage.classList.add('error');
-                        responseMessage.innerHTML = '<strong>Error:</strong> An unexpected error occurred: ' + error.message;
+                        responseMessage.innerHTML = '<strong>Error:</strong> ' + (data.message || 'Unknown error occurred');
                         responseMessage.style.display = 'block';
-                    });
-                }
+                        
+                        // Re-enable the delete button
+                        if (deleteBtn) {
+                            deleteBtn.disabled = false;
+                            deleteBtn.textContent = 'Delete';
+                        }
+                    }
+                    
+                    // Update CSRF token if provided
+                    if (data.csrf_token) {
+                        // Update any hidden CSRF inputs
+                        const csrfInputs = document.querySelectorAll('input[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
+                        csrfInputs.forEach(input => {
+                            input.value = data.csrf_token;
+                        });
+                        
+                        // Update meta tag if it exists
+                        const metaTag = document.querySelector('meta[name="<?php echo $this->config->item('csrf_token_name'); ?>"]');
+                        if (metaTag) {
+                            metaTag.setAttribute('content', data.csrf_token);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete request failed:', error);
+                    
+                    const responseMessage = document.getElementById('response-message');
+                    responseMessage.classList.remove('error', 'success');
+                    responseMessage.classList.add('error');
+                    responseMessage.innerHTML = '<strong>Error:</strong> ' + error.message;
+                    responseMessage.style.display = 'block';
+                    
+                    // Re-enable the delete button
+                    if (deleteBtn) {
+                        deleteBtn.disabled = false;
+                        deleteBtn.textContent = 'Delete';
+                    }
+                });
             };
         });
     </script>

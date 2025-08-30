@@ -44,22 +44,45 @@ $route['404_override'] = '';
 
 // Student routes
 // Student routes
-$route['students'] = 'students/index';
+// right routes start
+// $route['students'] = 'students/index';
+// $route['dashboard'] = 'students/dashboard';
+// $route['students/manage/(:any)'] = 'students/manage/$1'; // For add
+// $route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2'; // For edit/delete with ID
+// $route['students/manage'] = 'students/manage/add'; // Default to add
+
+// // Clean URL aliases
+// $route['students/add'] = 'students/manage/add';
+// $route['students/edit/(:num)'] = 'students/manage/edit/$1';
+// $route['students/delete/(:num)'] = 'students/manage/delete/$1';
+
+// // Other routes
+// $route['test-db'] = 'students/test_db';
+// $route['setup-database'] = 'students/setup_database';
+// $route['auth/signup'] = 'auth/signup';
+// $route['auth/login'] = 'auth/login';
+
+// right routes end
+
+// Authentication routes
+$route['login'] = 'auth/login';
+$route['signup'] = 'auth/signup';
+$route['logout'] = 'auth/logout';
+
+// Dashboard
 $route['dashboard'] = 'students/dashboard';
-$route['students/manage/(:any)'] = 'students/manage/$1'; // For add
-$route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2'; // For edit/delete with ID
-$route['students/manage'] = 'students/manage/add'; // Default to add
 
-// Clean URL aliases
-$route['students/add'] = 'students/manage/add';
-$route['students/edit/(:num)'] = 'students/manage/edit/$1';
-$route['students/delete/(:num)'] = 'students/manage/delete/$1';
+// Students routes
+$route['students'] = 'students/index';
+$route['students/add'] = 'students/add';
+$route['students/edit/(:num)'] = 'students/edit/$1';
+$route['students/delete'] = 'students/delete'; // AJAX only
+$route['students/test_db'] = 'students/test_db';
+$route['students/setup_database'] = 'students/setup_database';
 
-// Other routes
-$route['test-db'] = 'students/test_db';
-$route['setup-database'] = 'students/setup_database';
-$route['auth/signup'] = 'auth/signup';
-$route['auth/login'] = 'auth/login';
+// Migration routes
+$route['migrate'] = 'migrate/index';
+$route['migrate/rollback/(:num)'] = 'migrate/rollback/$1';
 
 
 // // Default routes

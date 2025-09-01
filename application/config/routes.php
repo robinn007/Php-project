@@ -41,7 +41,8 @@
 
 $route['default_controller'] = 'students';
 $route['404_override'] = '';
-//$route['translate_uri_dashes'] = FALSE;
+$route['translate_uri_dashes'] = FALSE;
+$route['auth/get_csrf'] = 'auth/get_csrf';
 
 // Student routes
 // Student routes
@@ -65,6 +66,7 @@ $route['404_override'] = '';
 
 // right routes end
 
+
 // Authentication routes
 $route['login'] = 'auth/login';
 $route['signup'] = 'auth/signup';  
@@ -73,16 +75,10 @@ $route['logout'] = 'auth/logout';
 // Dashboard
 $route['dashboard'] = 'students/dashboard';
 
-// Students routes - Using unified manage method
-$route['students/manage/add'] = 'students/manage';
-$route['students/manage/edit/(:num)'] = 'students/manage';
-$route['students/manage/delete'] = 'students/manage';
+// Unified students route - all operations handled through manage method
 $route['students/manage'] = 'students/manage';
-
-// Convenience aliases
-$route['students/add'] = 'students/manage';
-$route['students/edit/(:num)'] = 'students/manage';  
-$route['students/delete'] = 'students/manage';
+$route['students/manage/(:any)'] = 'students/manage/$1';
+$route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2';
 
 // Other student routes
 $route['students/test_db'] = 'students/test_db';
@@ -93,6 +89,19 @@ $route['students'] = 'students/index';
 $route['migrate'] = 'migrate/index';
 $route['migrate/rollback/(:num)'] = 'migrate/rollback/$1';
 
+$route['students/deleted'] = 'students/deleted';
+$route['students/restore/(:num)'] = 'students/restore/$1';
+$route['students/permanent_delete/(:num)'] = 'students/permanent_delete/$1';
+
+$route['auth/get_csrf'] = 'auth/get_csrf';
+
+// Test routes
+$route['test'] = 'test/index';
+$route['test/(:any)'] = 'test/$1';
+
+// Setup routes
+$route['setup'] = 'setup/index';
+$route['setup/database'] = 'setup/database';
 
 
 // // Default routes

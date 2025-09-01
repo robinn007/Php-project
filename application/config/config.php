@@ -202,7 +202,7 @@ $config['directory_trigger']	= 'd'; // experimental not currently in use
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = 2; // 1 is temporary here for checking debug logging and again set to 4
+$config['log_threshold'] = 4; // 1 is temporary here for checking debug logging and again set to 4
 
 /*
 |--------------------------------------------------------------------------
@@ -315,10 +315,12 @@ $config['global_xss_filtering'] = FALSE;
 | 'csrf_cookie_name' = The cookie name
 | 'csrf_expire' = The number in seconds the token should expire.
 */
-$config['csrf_protection'] = TRUE; // Enable CSRF protection FALSE is default to create unified method
+$config['csrf_protection'] = FALSE; // Enable CSRF protection FALSE is default to create unified method // Disabled for debugging
 $config['csrf_token_name'] = 'csrf_test_name';
 $config['csrf_cookie_name'] = 'csrf_cookie_name';
 $config['csrf_expire'] = 7200;
+$config['csrf_regenerate'] = TRUE;
+$config['csrf_exclude_uris'] = array();
 
 /*
 |--------------------------------------------------------------------------

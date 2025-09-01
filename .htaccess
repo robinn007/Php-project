@@ -29,12 +29,45 @@
 # RewriteRule ^(.*)/$ /$1 [R=301,L]
 # all 3 methods end
 
-RewriteEngine On
-RewriteBase /ci/
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php/$1 [L]
+# RewriteEngine On
+# RewriteBase /ci/
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)$ index.php/$1 [L]
 
 # Optional: Force HTTPS (uncomment if needed)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /ci/
+
+#     # Serve static files in ang/ directly
+#     RewriteCond %{REQUEST_URI} ^/ang/.*\.(html|css|js|png|jpg|jpeg|gif|ico) [NC]
+#     RewriteCond %{REQUEST_FILENAME} -f
+#     RewriteRule ^ - [L]
+
+#     # Route all other requests to CodeIgniter
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteRule ^(.*)$ index.php?/$1 [L]
+# </IfModule>
+
+# <IfModule !mod_rewrite.c>
+#     ErrorDocument 404 /index.php
+# </IfModule>
+
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /ci/
+
+    # Prevent direct access to application folder
+    RewriteRule ^application/.* - [F,L]
+
+    # Route all requests to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php/$1 [L]
+</IfModule>

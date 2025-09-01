@@ -106,6 +106,7 @@
     </style>
 </head>
 <body>
+        <?php $this->load->view('templates/navbar'); ?>
     <div class="container">
         <div class="breadcrumb">
             <a href="<?php echo site_url('/'); ?>">Home</a> 
@@ -134,7 +135,7 @@
             
             <div class="form-group">
                 <label for="name">
-                    Full Name <span class="required">*</span>
+                    Full Nameee <span class="required">*</span>
                 </label>
                 <input type="text" 
                        name="name" 
@@ -147,14 +148,14 @@
             
             <div class="form-group">
                 <label for="email">
-                    Email Address <span class="required">*</span>
+                    Email Address 14 <span class="required">*</span>
                 </label>
                 <input type="email" 
                        name="email" 
                        id="email" 
                        value="<?php echo set_value('email', htmlspecialchars($student->email)); ?>" 
                        required
-                       placeholder="Enter email address"
+                       placeholder="Enter email address 15"
                        maxlength="100">
             </div>
             
@@ -181,10 +182,10 @@
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-submit">
-                    ✅ Update Student
+                    Update Student
                 </button>
                 <a href="<?php echo site_url('students'); ?>" class="btn btn-cancel">
-                    ❌ Cancel
+                    Cancel
                 </a>
             </div>
         <?php echo form_close(); ?>
@@ -193,6 +194,7 @@
             <p><em>Fields marked with <span class="required">*</span> are required.</em></p>
         </div>
     </div>
+     <?php $this->load->view('templates/footer'); ?>
 
     <script>
         document.querySelector('form').addEventListener('submit', function(e) {
@@ -208,7 +210,7 @@
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 e.preventDefault();
-                alert('Please enter a valid email address.');
+                alert('Please enter a valid email address 16.');
                 return false;
             }
         });

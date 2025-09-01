@@ -106,6 +106,7 @@
     </style>
 </head>
 <body>
+     <?php $this->load->view('templates/navbar'); ?>
     <div class="container">
         <div class="breadcrumb">
             <a href="<?php echo site_url('/'); ?>">Home</a> 
@@ -132,7 +133,7 @@
         <?php echo form_open('students/create', array('novalidate' => 'novalidate')); ?>
             <div class="form-group">
                 <label for="name">
-                    Full Name <span class="required">*</span>
+                    Full Nameeee <span class="required">*</span>
                 </label>
                 <input type="text" 
                        name="name" 
@@ -145,14 +146,14 @@
             
             <div class="form-group">
                 <label for="email">
-                    Email Address <span class="required">*</span>
+                    Email Address 12 <span class="required">*</span>
                 </label>
                 <input type="email" 
                        name="email" 
                        id="email" 
                        value="<?php echo set_value('email'); ?>" 
                        required
-                       placeholder="Enter email address"
+                       placeholder="Enter email address 12"
                        maxlength="100">
             </div>
             
@@ -179,7 +180,7 @@
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-submit">
-                    Add Student
+                    Add Student 8
                 </button>
                 <a href="<?php echo site_url('students'); ?>" class="btn btn-cancel">
                      Cancel
@@ -191,6 +192,7 @@
             <p><em>Fields marked with <span class="required">*</span> are required.</em></p>
         </div>
     </div>
+     <?php $this->load->view('templates/footer'); ?>
     
     <script>
         document.querySelector('form').addEventListener('submit', function(e) {
@@ -206,7 +208,7 @@
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 e.preventDefault();
-                alert('Please enter a valid email address.');
+                alert('Please enter a valid email address 13.');
                 return false;
             }
         });

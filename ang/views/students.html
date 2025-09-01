@@ -1,0 +1,46 @@
+<div class="breadcrumb">
+  <a href="#/students">Students</a> <span>/ Ascending</span>
+</div>
+
+<h1>
+  <a href="#/students" style="cursor: pointer; color: #333; text-decoration: none; transition: color 0.3s ease; margin-bottom: 20px;" ng-mouseover="this.style.color='#007bff'; this.style.textDecoration='underline';" ng-mouseout="this.style.color='#333'; this.style.textDecoration='none';">
+    Student Management System
+  </a>
+</h1>
+
+<div class="stats" ng-show="students.length">
+  Total Students: <strong>{{ students.length }}</strong>
+</div>
+
+<a href="#/students/add" class="btn btn-add">Add New Student</a>
+
+<table ng-show="students.length">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Address</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="student in students" id="student-{{ student.id }}">
+      <td>{{ student.id }}</td>
+      <td>{{ student.name }}</td>
+      <td>{{ student.email }}</td>
+      <td>{{ student.phone || 'N/A' }}</td>
+      <td>{{ student.address || 'N/A' }}</td>
+      <td>
+        <a href="#/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student">Edit</a>
+        <button class="btn btn-delete" ng-click="deleteStudent(student.id)" title="Delete Student">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="no-data" ng-show="!students.length && !flashMessage">
+  <h3>No students found</h3>
+  <p>Get started by <a href="#/students/add">adding the first student</a></p>
+</div>

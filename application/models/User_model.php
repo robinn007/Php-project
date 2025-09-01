@@ -1,38 +1,35 @@
 <?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
 class User_model extends CI_Model {
-    
     public function __construct() {
         parent::__construct();
-      //  $this->load->database(); 
-        if (!$this->db->conn_id) {
-            log_message('error', 'Database connection failed in User_model');
-            show_error('Database connection failed. Please check your database configuration.');
-        }
+        $this->load->database();
     }
-    
+
+    public function get_user_by_email($email) {
+        $this->db->where('email', $email);
+        $query = $this->db->get('users');
+        return $query->row_array();
+    }
+
+    public function get_user_by_id($id) {
+        $this->db->where('id', $id);
+        $query = $this->db->get('users');
+        return $query->row_array();
+    }
+
     public function signup($data) {
-        try {
-            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
-            return $this->db->insert('users', $data);
-        } catch (Exception $e) {
-            log_message('error', 'Exception in signup(): ' . $e->getMessage());
-            return FALSE;
-        }
+        return $this->db->insert('users', $data);
     }
-    
-    public function login($email, $password) {
-        try {
-            $query = $this->db->get_where('users', array('email' => $email));
-            if ($query && $query->num_rows() > 0) {
-                $user = $query->row();
-                if (password_verify($password, $user->password)) {
-                    return $user;
-                }
-            }
-            return FALSE;
-        } catch (Exception $e) {
-            log_message('error', 'Exception in login(): ' . $e->getMessage());
-            return FALSE;
-        }
+
+    public function update_user($id, $data) {
+        $this->db->where('id', $id);
+        return $this->db->update('users', $data);
+    }
+
+    public function delete_user($id) {
+        $this->db->where('id', $id);
+        return $this->db->delete('users');
     }
 }

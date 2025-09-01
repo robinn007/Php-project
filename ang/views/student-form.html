@@ -1,0 +1,38 @@
+<div class="breadcrumb">
+  <a href="#/students">Students</a> <span> / {{ title }}</span>
+</div>
+
+<h1>{{ title }}</h1>
+
+<form name="studentForm" ng-submit="submitForm()" novalidate>
+  <div class="form-group">
+    <label for="name">Full Nameee <span class="required">*</span></label>
+    <input type="text" ng-model="student.name" required placeholder="Enter student's full name" maxlength="100">
+    <span ng-show="studentForm.$submitted && !student.name">Name is required</span>
+  </div>
+
+  <div class="form-group">
+    <label for="email">Email Address 4 <span class="required">*</span></label>
+    <input type="email" name="email" ng-model="student.email" required placeholder="Enter email address 5" maxlength="100">
+    <span ng-show="studentForm.$submitted && studentForm.email.$invalid">Valid email required</span>
+  </div>
+
+  <div class="form-group">
+    <label for="phone">Phone Number</label>
+    <input type="text" ng-model="student.phone" placeholder="Enter phone number (optional)" maxlength="20">
+  </div>
+
+  <div class="form-group">
+    <label for="address">Address</label>
+    <textarea ng-model="student.address" placeholder="Enter address (optional)"></textarea>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-submit">{{ action === 'edit' ? 'Update' : 'Add' }} Student</button>
+    <a href="#/students" class="btn btn-cancel">Cancel</a>
+  </div>
+</form>
+
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
+  <p><em>Fields marked with <span class="required">*</span> are required.</em></p>
+</div>

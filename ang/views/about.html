@@ -1,3 +1,6 @@
-<h2>{{ title }}</h2>
+<!-- About page template displaying static content -->
+<ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false"></ng-include>
+<!-- Include flash message partial for user feedback -->
+<ng-include src="'views/partials/flash-message.html'"></ng-include>
+<!-- Display message from scope (set by HomeController) -->
 <p>{{ message }}</p>
-

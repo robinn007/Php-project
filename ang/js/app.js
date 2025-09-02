@@ -1,13 +1,29 @@
+/**
+ * @description Main AngularJS application module for the Student Management System.
+ * Configures routes, CSRF token handling, and authentication checks.
+ */
+
 var app = angular.module('myApp', ['ngRoute', 'ngCookies']);
 
-app.run(['$http', '$rootScope', '$cookies', function($http, $rootScope, $cookies) {
+/**
+ * @description Initializes the application, sets up CSRF token fetching, and enforces authentication on route changes.
+ * As the $http - HTTP service used for API calls
+ * As the $rootScope - Angular root scope
+ * As the $cookies - Angular cookies service
+ * As the $location - Angular location service
+ */
+
+app.run(['$http', '$rootScope', '$cookies', '$location', function($http, $rootScope, $cookies, $location) {
   console.log('AngularJS app initialized - DEBUG MODE');
-  
-  // Simplified CSRF fetching - just for the token
+
+  // Fetches CSRF token from the server and stores it in cookies.
+  //@returns {Promise} Resolves with CSRF token data or logs an error on failure
+
   $rootScope.fetchCsrfToken = function() {
     return $http.get('/ci/auth/get_csrf').then(function(response) {
       console.log('CSRF response:', response.data);
       if (response.data.csrf_token_name && response.data.csrf_token) {
+         // Store CSRF token and name in cookies
         $cookies.csrf_token_name = response.data.csrf_token_name;
         $cookies.csrf_token = response.data.csrf_token;
       } else {
@@ -15,76 +31,37 @@ app.run(['$http', '$rootScope', '$cookies', function($http, $rootScope, $cookies
       }
     }, function(error) {
       console.error('Failed to fetch CSRF token:', error);
-      // Don't fail the app if CSRF fails
     });
   };
   
-  // Try to fetch CSRF token but don't block the app
+  // Fetch CSRF token on app start
   $rootScope.fetchCsrfToken();
+
+  // Listen for route changes to manage authentication for protected routes
+  // Redirects to /login if authentication is required and user is not logged in.
+
+  $rootScope.$on('$routeChangeStart', function(event, next, current) {
+    console.log('Route change to:', next.$$route ? next.$$route.originalPath : 'unknown');
+    if (next.$$route && next.$$route.requireAuth && !$cookies.user_id) {
+      console.log('Authentication required, redirecting to /login');
+      event.preventDefault();
+      $location.path('/login');
+    }
+  });
 }]);
 
-app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($routeProvider, $httpProvider, $locationProvider) {
-  $locationProvider.html5Mode(false).hashPrefix('');
+/**
+ * @ngdoc config
+ * @name configBlock
+ * @description Configures routes and HTTP interceptors for the application.
+ * @param {Object} $routeProvider - Angular route provider
+ * @param {Object} $httpProvider - Angular HTTP provider
+ */
 
+
+app.config(['$routeProvider', '$httpProvider', function($routeProvider, $httpProvider) {
+    // Define application routes
   $routeProvider
-    .when('/', {
-      templateUrl: 'views/home.html',
-      controller: 'HomeController'
-    })
-    .when('/students', {
-      templateUrl: 'views/students.html',
-      controller: 'StudentController',
-      resolve: {
-        auth: ['AuthService', '$location', function(AuthService, $location) {
-          console.log('Resolving auth for /students');
-          if (!AuthService.isLoggedIn()) {
-            console.log('Not logged in, redirecting to /login');
-            $location.path('/login');
-            return false;
-          }
-          return true;
-        }]
-      }
-    })
-    .when('/students/add', {
-      templateUrl: 'views/student-form.html',
-      controller: 'StudentFormController',
-      resolve: {
-        auth: ['AuthService', '$location', function(AuthService, $location) {
-          if (!AuthService.isLoggedIn()) {
-            $location.path('/login');
-            return false;
-          }
-          return true;
-        }]
-      }
-    })
-    .when('/students/edit/:id', {
-      templateUrl: 'views/student-form.html',
-      controller: 'StudentFormController',
-      resolve: {
-        auth: ['AuthService', '$location', function(AuthService, $location) {
-          if (!AuthService.isLoggedIn()) {
-            $location.path('/login');
-            return false;
-          }
-          return true;
-        }]
-      }
-    })
-    .when('/deleted-students', {
-      templateUrl: 'views/deleted-students.html',
-      controller: 'DeletedStudentsController',
-      resolve: {
-        auth: ['AuthService', '$location', function(AuthService, $location) {
-          if (!AuthService.isLoggedIn()) {
-            $location.path('/login');
-            return false;
-          }
-          return true;
-        }]
-      }
-    })
     .when('/login', {
       templateUrl: 'views/login.html',
       controller: 'AuthController'
@@ -93,77 +70,66 @@ app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($ro
       templateUrl: 'views/signup.html',
       controller: 'AuthController'
     })
-    .when('/logout', {
-      controller: 'AuthController',
-      template: '',
-      resolve: {
-        logout: ['AuthService', '$location', function(AuthService, $location) {
-          AuthService.logout();
-          $location.path('/login');
-          return true;
-        }]
-      }
+    .when('/dashboard', {
+      templateUrl: 'views/dashboard.html',
+      controller: 'DashboardController',
+      requireAuth: true   // Requires user to be logged in
+    })
+    .when('/students', {
+      templateUrl: 'views/students.html',
+      controller: 'StudentController',
+      requireAuth: true  // Requires user to be logged in
+    })
+    .when('/students/add', {
+      templateUrl: 'views/student-form.html',
+      controller: 'StudentFormController',
+      requireAuth: true  // Requires user to be logged in
+    })
+    .when('/students/edit/:id', {
+      templateUrl: 'views/student-form.html',
+      controller: 'StudentFormController',
+      requireAuth: true  // Requires user to be logged in
+    })
+    .when('/students/deleted', {
+      templateUrl: 'views/deleted-students.html',
+      controller: 'DeletedStudentsController',
+      requireAuth: true  // Requires user to be logged in
     })
     .when('/test-db', {
       templateUrl: 'views/test-db.html',
-      controller: 'TestDbController'
+      controller: 'TestDbController',
+      requireAuth: true  // Requires user to be logged in
     })
     .otherwise({
-      redirectTo: '/'
+      redirectTo: function() {
+        return $cookies.user_id ? '/dashboard' : '/login';
+      }
     });
 
-  // Simplified HTTP interceptor for debugging
-  $httpProvider.interceptors.push(['$q', '$rootScope', '$cookies', function($q, $rootScope, $cookies) {
+    /**
+  * @description HTTP interceptor to attach CSRF token to requests and update it from responses.
+   * @param {Object} $cookies - Angular cookies service
+   * @returns {Object} Interceptor object with request and response handlers
+     */
+
+   // HTTP Interceptor for CSRF token
+  $httpProvider.interceptors.push(function($cookies) {
     return {
       request: function(config) {
-        console.log('HTTP Request:', config.method, config.url);
-        
-        // Only add CSRF for POST requests and if we have the token
-        if (config.method === 'POST' && $cookies.csrf_token_name && $cookies.csrf_token) {
-          config.data = config.data || {};
-          config.data[$cookies.csrf_token_name] = $cookies.csrf_token;
-          console.log('Added CSRF token to request');
+          // Attach CSRF token to request headers
+        var token = $cookies.csrf_token || '';
+        if (token) {
+          config.headers['X-CSRF-Token'] = token;
         }
-        
         return config;
       },
       response: function(response) {
-        console.log('HTTP Response:', response.status, response.config.url);
-        
-        // Update CSRF token if provided
-        if (response.data && response.data.csrf_token) {
+           // Update CSRF token from response if provided
+        if (response.data.csrf_token) {
           $cookies.csrf_token = response.data.csrf_token;
-          console.log('Updated CSRF token from response');
         }
-        
         return response;
-      },
-      responseError: function(rejection) {
-        console.error('HTTP Error:', rejection.status, rejection.config.url, rejection.data);
-        
-        // Update CSRF token if provided in error response
-        if (rejection.data && rejection.data.csrf_token) {
-          $cookies.csrf_token = rejection.data.csrf_token;
-          console.log('Updated CSRF token from error response');
-        }
-        
-        // Set flash message for errors (except auth redirects)
-        if (rejection.status !== 401 && rejection.status !== 403) {
-          $rootScope.flashMessage = rejection.data && rejection.data.message ? 
-            rejection.data.message : 
-            'Request failed: ' + (rejection.statusText || 'Server error');
-          $rootScope.flashType = 'error';
-        }
-        
-        return $q.reject(rejection);
       }
     };
-  }]);
+  });
 }]);
-
-app.filter('capitalize', function() {
-  return function(input) {
-    if (!input) return '';
-    return input.charAt(0).toUpperCase() + input.slice(1);
-  };
-});

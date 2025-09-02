@@ -103,6 +103,13 @@ $route['test/(:any)'] = 'test/$1';
 $route['setup'] = 'setup/index';
 $route['setup/database'] = 'setup/database';
 
+// Ensure correct routing for students
+$route['students/get/(:num)'] = 'students/get/$1';
+$route['students/manage'] = 'students/manage';
+$route['students/deleted'] = 'students/deleted';
+$route['students/restore/(:num)'] = 'students/restore/$1';
+$route['students/permanent_delete/(:num)'] = 'students/permanent_delete/$1';
+
 
 // // Default routes
 // $route['default_controller'] = 'students';

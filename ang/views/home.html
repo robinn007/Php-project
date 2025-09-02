@@ -1,16 +1,12 @@
+<!-- Home page container -->
 <div class="home-container">
-  <h2>{{ title }}</h2>
-  <p>{{ message }}</p>
-  
-  <div class="quick-actions">
-    <h3>Quick Actions</h3>
-    <div class="action-buttons">
-      <a href="#/students" class="btn btn-primary">View Students</a>
-      <a href="#/students/add" class="btn btn-secondary">Add New Student</a>
-      <a href="#/test-db" class="btn btn-info">Test Database</a>
-    </div>
-  </div>
-  
+  <!-- Include header without breadcrumb -->
+  <ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false"></ng-include>
+  <!-- Include flash message partial for user feedback -->
+  <ng-include src="'views/partials/flash-message.html'"></ng-include>
+  <!-- Include action buttons for navigation -->
+  <ng-include src="'views/partials/action-buttons.html'" ng-init="showViewStudents=true; showAddStudent=true; showTestDb=true"></ng-include>
+  <!-- Static feature list -->
   <div class="features">
     <h3>Features</h3>
     <ul>
@@ -21,4 +17,3 @@
     </ul>
   </div>
 </div>
-

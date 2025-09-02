@@ -1,40 +1,54 @@
 <!DOCTYPE html>
+<!-- Bootstrap the AngularJS application with the myApp module -->
 <html ng-app="myApp">
 <head>
+  <!-- Set character encoding and page title -->
   <meta charset="UTF-8">
   <title>Student Management System</title>
+  <!-- Ensure responsive design -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Set base URL for AngularJS routing -->
   <base href="/ci/ang/">
+  <!-- Load custom CSS for styling -->
   <link rel="stylesheet" href="css/style.css">
-  <!-- CSRF Token Meta -->
+  <!-- CSRF token meta tags (populated by backend) -->
   <meta name="csrf-token-name" content="">
   <meta name="csrf-token" content="">
 </head>
 <body>
-  <!-- Navbar -->
+  <!-- Navigation bar controlled by NavController -->
   <nav class="navbar" ng-controller="NavController">
     <div class="navbar-container">
-      <a href="#/" class="navbar-brand">SMS</a>
+      <!-- Application logo linking to students page -->
+      <a href="#/students" class="navbar-brand">Home</a>
+      <!-- Navigation links -->
       <ul class="navbar-nav">
+        <!-- Dashboard link, shown if user is logged in -->
         <li ng-show="isLoggedIn">
-          <a href="#/students" class="nav-link" ng-class="{ active: currentPath == '/students' }">Dashboard</a>
+          <a href="#/dashboard" class="nav-link" ng-class="{ active: currentPath == '/dashboard' }">Dashboard</a>
         </li>
+        <!-- Add student link, shown if user is logged in -->
         <li ng-show="isLoggedIn">
-          <a href="#/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student 1</a>
+          <a href="#/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student</a>
         </li>
+        <!-- Deleted students link, shown if user is logged in -->
         <li ng-show="isLoggedIn">
-          <a href="#/deleted-students" class="nav-link" ng-class="{ active: currentPath == '/deleted-students' }">Deleted Students</a>
+          <a href="#/students/deleted" class="nav-link" ng-class="{ active: currentPath == '/students/deleted' }">Deleted Students</a>
         </li>
+        <!-- Test database link, shown if user is logged in -->
         <li ng-show="isLoggedIn">
           <a href="#/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
         </li>
+        <!-- Login link, shown if user is not logged in -->
         <li ng-show="!isLoggedIn">
           <a href="#/login" class="nav-link" ng-class="{ active: currentPath == '/login' }">Login</a>
         </li>
+        <!-- Signup link, shown if user is not logged in -->
         <li ng-show="!isLoggedIn">
           <a href="#/signup" class="nav-link" ng-class="{ active: currentPath == '/signup' }">Sign Up</a>
         </li>
       </ul>
+      <!-- User info and logout button, shown if user is logged in -->
       <div class="user-info" ng-show="isLoggedIn">
         <span class="user-name">Welcome, {{ currentUser }}</span>
         <a href="#/logout" class="btn-logout" ng-click="logout()">Logout</a>
@@ -42,62 +56,61 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
+  <!-- Main content area -->
   <main class="main-content">
     <div class="container">
-      <div ng-show="flashMessage" class="flash-message" ng-class="{ 'success': flashType == 'success', 'error': flashType == 'error', 'info': flashType == 'info' }" flash-message>
-        <strong>{{ flashType | capitalize }}:</strong> {{ flashMessage }}
-      </div>
+      <!-- Placeholder for view templates rendered by ngRoute -->
       <div ng-view></div>
     </div>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer with static content and dynamic links -->
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-content">
+        <!-- Application description -->
         <div class="footer-section">
-          <h4>Student Management System</h4>
+          <h4>Student Management System edit 4.4</h4>
           <p>Efficiently manage student records with our comprehensive platform.</p>
         </div>
+        <!-- Quick navigation links -->
         <div class="footer-section">
           <h4>Quick Links</h4>
           <ul class="footer-links">
-            <li ng-show="isLoggedIn"><a href="#/students">Dashboard</a></li>
-            <li ng-show="isLoggedIn"><a href="#/students/add">Add Student 2</a></li>
+            <li ng-show="isLoggedIn"><a href="#/dashboard">Dashboard</a></li>
+            <li ng-show="isLoggedIn"><a href="#/students/add">Add Student</a></li>
             <li ng-show="isLoggedIn"><a href="#/test-db">Database Status</a></li>
             <li ng-show="!isLoggedIn"><a href="#/login">Login</a></li>
             <li ng-show="!isLoggedIn"><a href="#/signup">Sign Up</a></li>
           </ul>
         </div>
+        <!-- Support links -->
         <div class="footer-section">
           <h4>Support</h4>
           <ul class="footer-links">
             <li><a href="/ci/migrate">Run Migrations</a></li>
             <li><a href="/ci/students/setup_database">Setup Database</a></li>
+            <li ng-show="isLoggedIn"><a href="#/dashboard">Dashboard</a></li>
           </ul>
         </div>
       </div>
+      <!-- Copyright notice -->
       <div class="footer-bottom">
         <div class="footer-copyright">
           <p>&copy; 2025 Student Management System. Built with CodeIgniter 2 and AngularJS 1.3.</p>
-        </div>
-        <div class="footer-status">
-          <span class="status-indicator" ng-class="{ 'online': isLoggedIn, 'offline': !isLoggedIn }"></span>
-          <span ng-show="isLoggedIn">Connected as {{ currentUser }}</span>
-          <span ng-show="!isLoggedIn">Not logged in</span>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- AngularJS Scripts -->
-<script src="assets/angular-1.3.0/angular.js"></script>
-<script src="assets/angular-1.3.0/angular-route.min.js"></script>
-<script src="assets/angular-1.3.0/angular-cookies.js"></script>
-<script src="js/app.js"></script>
-<script src="js/services.js"></script>
-<script src="js/controllers.js"></script>
-<script src="js/directives.js"></script>
+  <!-- AngularJS and application scripts -->
+  <script src="assets/angular-1.3.0/angular.js"></script>
+  <script src="assets/angular-1.3.0/angular-route.min.js"></script>
+  <script src="assets/angular-1.3.0/angular-cookies.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/services.js"></script>
+  <script src="js/controllers.js"></script>
+  <script src="js/directives.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>

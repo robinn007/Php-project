@@ -1,18 +1,16 @@
+<!-- Login page container -->
 <div class="auth-container">
-  <h2>Login</h2>
+  <!-- Include header with custom title and no breadcrumb -->
+  <ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false; title='Login'"></ng-include>
+  <!-- Include flash message partial for user feedback -->
+  <ng-include src="'views/partials/flash-message.html'"></ng-include>
+  <!-- Login form with validation -->
   <form name="loginForm" ng-submit="submitForm()" novalidate>
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" ng-model="user.email" required class="form-control">
-      <span ng-show="loginForm.email.$touched && loginForm.email.$error.required" class="error">Email is required.</span>
-      <span ng-show="loginForm.email.$touched && loginForm.email.$error.email" class="error">Invalid email format.</span>
-    </div>
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" ng-model="user.password" required class="form-control">
-      <span ng-show="loginForm.password.$touched && loginForm.password.$error.required" class="error">Password is required.</span>
-    </div>
+    <!-- Include reusable authentication form fields -->
+    <ng-include src="'views/partials/form-fields-auth.html'" ng-init="isSignup=false"></ng-include>
+    <!-- Submit button, disabled if form is invalid -->
     <button type="submit" class="btn btn-primary" ng-disabled="loginForm.$invalid">Login</button>
   </form>
+  <!-- Link to signup page -->
   <p>Don't have an account? <a href="#/signup">Sign Up</a></p>
 </div>

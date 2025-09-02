@@ -1,0 +1,9 @@
+<!-- Action buttons container for navigation -->
+<div class="action-buttons">
+  <!-- Button to view students list, shown if showViewStudents is true -->
+  <a href="#/students" class="btn btn-primary" ng-if="showViewStudents">View Students</a>
+  <!-- Button to add a new student, shown if showAddStudent is true -->
+  <a href="#/students/add" class="btn btn-secondary" ng-if="showAddStudent">Add New Student</a>
+  <!-- Button to test database connection, shown if showTestDb is true -->
+  <a href="#/test-db" class="btn btn-info" ng-if="showTestDb">Test Database</a>
+</div>

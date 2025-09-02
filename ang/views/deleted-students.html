@@ -1,40 +1,6 @@
-<div class="breadcrumb">
-  <a href="#/students">Students</a> <span> / Deleted Students</span>
-</div>
-
-<h1>Deleted Students Archive</h1>
-
-<div class="stats" ng-show="students.length">
-  Total Deleted Students: <strong>{{ students.length }}</strong>
-</div>
-
-<table ng-show="students.length">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Phone</th>
-      <th>Address</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr ng-repeat="student in students">
-      <td>{{ student.id }}</td>
-      <td>{{ student.name }}</td>
-      <td>{{ student.email }}</td>
-      <td>{{ student.phone || 'N/A' }}</td>
-      <td>{{ student.address || 'N/A' }}</td>
-      <td>
-        <button class="btn btn-edit" ng-click="restoreStudent(student.id)">Restore</button>
-        <button class="btn btn-delete" ng-click="permanentDelete(student.id)">Permanent Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="no-data" ng-show="!students.length">
-  <h3>No deleted students found</h3>
-  <p>All students are currently active. <a href="#/students">View active students</a></p>
-</div>
+<!-- Include header with breadcrumb for deleted students -->
+<ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=true; breadcrumbText='Deleted Students'"></ng-include>
+<!-- Include flash message partial for user feedback -->
+<ng-include src="'views/partials/flash-message.html'"></ng-include>
+<!-- Include reusable student table with restore and permanent delete options -->
+<ng-include src="'views/partials/table-students.html'" ng-init="tableTitle='Deleted Students'; showRestore=true; showPermanentDelete=true"></ng-include>

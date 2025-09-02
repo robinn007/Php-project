@@ -10,20 +10,25 @@ class Auth extends CI_Controller {
         error_reporting(E_ALL);
         ini_set('display_errors', 1);
         
+       // Load User_model for database operations
         $this->load->model('User_model');
+        // Load session library for user session management
         $this->load->library('session');
+        // Load security library for CSRF protection
         $this->load->library('security');
         
-        // Always return JSON
+          // Set JSON content type for all responses
         $this->output->set_content_type('application/json');
         
         log_message('debug', 'Auth controller constructor called');
     }
 
+    // Retrieve CSRF token for frontend requests
     public function get_csrf() {
         try {
             log_message('debug', 'get_csrf method called');
             
+             // Prepare CSRF response
             $response = array(
                 'success' => true,
                 'csrf_token_name' => $this->security->get_csrf_token_name(),
@@ -35,6 +40,7 @@ class Auth extends CI_Controller {
             
         } catch (Exception $e) {
             log_message('error', 'get_csrf error: ' . $e->getMessage());
+             // Return error response with CSRF token
             echo json_encode(array(
                 'success' => false,
                 'message' => 'CSRF error: ' . $e->getMessage()
@@ -50,6 +56,7 @@ class Auth extends CI_Controller {
             // Temporarily disable CSRF for debugging
             $this->config->set_item('csrf_protection', FALSE);
             
+              // Validate request method
             if ($this->input->server('REQUEST_METHOD') !== 'POST') {
                 throw new Exception('Method not allowed');
             }
@@ -73,12 +80,12 @@ class Auth extends CI_Controller {
             
             log_message('debug', 'Login attempt for email: ' . $email);
             
-            // Basic validation
+            // Basic validation input
             if (empty($email) || empty($password)) {
                 throw new Exception('Email and password are required');
             }
             
-            // Check if user exists
+            // Check if user exists 
             $user = $this->User_model->get_user_by_email($email);
             log_message('debug', 'User found: ' . ($user ? 'yes' : 'no'));
             
@@ -92,7 +99,7 @@ class Auth extends CI_Controller {
                 throw new Exception('Invalid password');
             }
             
-            // Set session
+            // Set session data
             $session_data = array(
                 'user_id' => $user['id'],
                 'username' => $user['username'],
@@ -103,7 +110,7 @@ class Auth extends CI_Controller {
             $this->session->set_userdata($session_data);
             log_message('debug', 'Session data set: ' . json_encode($session_data));
             
-            // Success response
+            // Success response with user data and CSRF token
             $response = array(
                 'success' => true,
                 'message' => 'Login successful',
@@ -121,6 +128,7 @@ class Auth extends CI_Controller {
         } catch (Exception $e) {
             log_message('error', 'Login error: ' . $e->getMessage());
             
+              // Error response with CSRF token
             $error_response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -146,8 +154,10 @@ class Auth extends CI_Controller {
             $raw_input = file_get_contents('php://input');
             log_message('debug', 'Signup raw input: ' . $raw_input);
             
+             // Decode JSON input
             $json_data = json_decode($raw_input, true);
             
+              // Extract data from JSON or POST
             if ($json_data) {
                 $username = isset($json_data['username']) ? trim($json_data['username']) : '';
                 $email = isset($json_data['email']) ? trim($json_data['email']) : '';
@@ -162,7 +172,7 @@ class Auth extends CI_Controller {
             
             log_message('debug', 'Signup data - username: ' . $username . ', email: ' . $email);
             
-            // Validation
+            // Validate input
             if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
                 throw new Exception('All fields are required');
             }
@@ -184,7 +194,7 @@ class Auth extends CI_Controller {
                 throw new Exception('Email already registered');
             }
             
-            // Create user
+            // Create user data
             $user_data = array(
                 'username' => $username,
                 'email' => $email,
@@ -194,12 +204,14 @@ class Auth extends CI_Controller {
             
             log_message('debug', 'Creating user with data: ' . json_encode($user_data));
             
+             // Create user
             if (!$this->User_model->signup($user_data)) {
                 throw new Exception('Failed to create user account');
             }
             
             log_message('debug', 'User created successfully');
             
+             // Success response with CSRF token
             $response = array(
                 'success' => true,
                 'message' => 'Account created successfully! Please log in.',
@@ -211,6 +223,7 @@ class Auth extends CI_Controller {
         } catch (Exception $e) {
             log_message('error', 'Signup error: ' . $e->getMessage());
             
+             // Error response with CSRF token
             $error_response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -221,12 +234,15 @@ class Auth extends CI_Controller {
         }
     }
 
+     // Handle user logout
     public function logout() {
         try {
             log_message('debug', 'Logout method called');
             
+             // Destroy session
             $this->session->sess_destroy();
             
+              // Success response with CSRF token
             $response = array(
                 'success' => true,
                 'message' => 'Logged out successfully',
@@ -238,6 +254,7 @@ class Auth extends CI_Controller {
         } catch (Exception $e) {
             log_message('error', 'Logout error: ' . $e->getMessage());
             
+             // Error response
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Logout failed: ' . $e->getMessage()

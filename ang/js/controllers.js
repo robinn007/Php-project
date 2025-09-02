@@ -1,28 +1,57 @@
+/**
+  * @file controllers.js
+ * @description Defines AngularJS controllers for the Student Management System.
+ * Includes navigation, home, student management, and authentication controllers.
+ */
+
+
+/**
+ * @ngdoc controller
+ * @name NavController
+ * @description Controller for managing navigation and user authentication state and logout.
+ */
 app.controller('NavController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
+  // Initialize scope variables
   $scope.isLoggedIn = AuthService.isLoggedIn();
   $scope.currentUser = AuthService.getCurrentUser();
   $scope.currentPath = $location.path();
 
+  console.log('NavController initialized. isLoggedIn:', $scope.isLoggedIn, 'currentUser:', $scope.currentUser, 'currentPath:', $scope.currentPath);
+
+  /**
+   * @event $routeChangeSuccess
+   * @description Updates navigation state when the route changes.
+   */
+  // Update currentPath on route change
   $scope.$on('$routeChangeSuccess', function() {
     $scope.currentPath = $location.path();
     $scope.isLoggedIn = AuthService.isLoggedIn();
     $scope.currentUser = AuthService.getCurrentUser();
+    console.log('Route changed. currentPath:', $scope.currentPath, 'isLoggedIn:', $scope.isLoggedIn);
   });
 
+   /**
+   * @function logout
+   * @description Logs out the user, clears cookies, and redirects to login page.
+   */
+
   $scope.logout = function() {
+    console.log('Logging out user:', $scope.currentUser);
     AuthService.logout().then(function() {
       $scope.isLoggedIn = false;
       $scope.currentUser = '';
       $location.path('/login');
-      $scope.flashMessage = 'Logged out successfully.';
-      $scope.flashType = 'success';
     }, function(error) {
-      $scope.flashMessage = 'Logout failed: ' + (error.statusText || 'Unknown error');
-      $scope.flashType = 'error';
+      console.error('Logout failed:', JSON.stringify(error, null, 2));
     });
   };
 }]);
 
+/**
+ * @ngdoc controller
+ * @name HomeController
+ * @description Controller for the home page with static content and flash messages.
+ */
 app.controller('HomeController', ['$scope', function($scope) {
   $scope.title = "Welcome to Student Management System";
   $scope.message = "Manage your student records efficiently.";
@@ -30,6 +59,56 @@ app.controller('HomeController', ['$scope', function($scope) {
   $scope.flashType = '';
 }]);
 
+
+// app.controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
+//   $scope.title = "Students Dashboard";
+//   $scope.students = [];
+//   $scope.flashMessage = 'Loading students...';
+//   $scope.flashType = 'info';
+
+//   console.log('StudentController initialized');
+//   StudentService.getStudents().then(function(response) {
+//     console.log('getStudents response:', response);
+//     if (response.data.success) {
+//       $scope.students = response.data.students || [];
+//       $scope.flashMessage = 'Loaded ' + $scope.students.length + ' active students.';
+//       $scope.flashType = 'success';
+//     } else {
+//       $scope.flashMessage = response.data.message || 'Failed to load students.';
+//       $scope.flashType = 'error';
+//     }
+//   }, function(error) {
+//     console.error('Error loading students:', error);
+//     $scope.flashMessage = 'Error loading students: ' + (error.statusText || 'Unknown error');
+//     $scope.flashType = 'error';
+//   });
+
+//   $scope.deleteStudent = function(id) {
+//     if (confirm('Are you sure you want to delete this student?')) {
+//       StudentService.deleteStudent(id).then(function(response) {
+//         if (response.data.success) {
+//           $scope.students = $scope.students.filter(function(student) {
+//             return student.id !== id;
+//           });
+//           $scope.flashMessage = response.data.message || 'Student deleted successfully.';
+//           $scope.flashType = 'success';
+//         } else {
+//           $scope.flashMessage = response.data.message || 'Failed to delete student.';
+//           $scope.flashType = 'error';
+//         }
+//       }, function(error) {
+//         $scope.flashMessage = 'Error deleting student: ' + (error.statusText || 'Unknown error');
+//         $scope.flashType = 'error';
+//       });
+//     }
+//   };
+// }]);
+
+/**
+ * @name StudentController
+ * @description Controller for managing student list view including fetching and deleting students.
+ *  StudentService - Service for student-related API calls
+ */
 app.controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
   $scope.title = "Students Dashboard";
   $scope.students = [];
@@ -37,26 +116,45 @@ app.controller('StudentController', ['$scope', 'StudentService', function($scope
   $scope.flashType = 'info';
 
   console.log('StudentController initialized');
-  StudentService.getStudents().then(function(response) {
-    console.log('getStudents response:', response);
-    if (response.data.success) {
-      $scope.students = response.data.students || [];
-      $scope.flashMessage = 'Loaded ' + $scope.students.length + ' active students.';
-      $scope.flashType = 'success';
-    } else {
-      $scope.flashMessage = response.data.message || 'Failed to load students.';
-      $scope.flashType = 'error';
-    }
-  }, function(error) {
-    console.error('Error loading students:', error);
-    $scope.flashMessage = 'Error loading students: ' + (error.statusText || 'Unknown error');
-    $scope.flashType = 'error';
-  });
 
+   /**
+   * @function loadStudents
+   * @description Fetches active students from the server and updates the UI.
+   */
+  // Function to fetch students
+  $scope.loadStudents = function() {
+    $scope.flashMessage = 'Loading students...';
+    $scope.flashType = 'info';
+    StudentService.getStudents().then(function(response) {
+      console.log('getStudents response:', response);
+      if (response.data.success) {
+        $scope.students = response.data.students || [];
+        $scope.flashMessage = 'Loaded ' + $scope.students.length + ' active students.';
+        $scope.flashType = 'success';
+      } else {
+        $scope.flashMessage = response.data.message || 'Failed to load students.';
+        $scope.flashType = 'error';
+      }
+    }, function(error) {
+      console.error('Error loading students:', error);
+      $scope.flashMessage = 'Error loading students: ' + (error.statusText || 'Unknown error');
+      $scope.flashType = 'error';
+    });
+  };
+
+    // Initial load of students
+  $scope.loadStudents();
+
+    /**
+   * @function deleteStudent
+   * @description Soft deletes a student after user confirmation.
+   * @param {number} id - Student ID to delete
+   */
   $scope.deleteStudent = function(id) {
     if (confirm('Are you sure you want to delete this student?')) {
       StudentService.deleteStudent(id).then(function(response) {
         if (response.data.success) {
+            // Remove deleted student from the list
           $scope.students = $scope.students.filter(function(student) {
             return student.id !== id;
           });
@@ -72,39 +170,87 @@ app.controller('StudentController', ['$scope', 'StudentService', function($scope
       });
     }
   };
+ /**
+   * @event studentUpdated
+   * @description Listens for student update events to refresh the student list.
+   */
+  // Listen for student update events
+  $scope.$on('studentUpdated', function() {
+    $scope.loadStudents();
+  });
 }]);
 
-app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', function($scope, $routeParams, $location, StudentService) {
-  $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student 3';
+
+// when i try to render edited data on UI  step - 5
+/**
+ * @name StudentFormController
+ * @description Controller for managing the student form (add/edit).
+ * @param {Object} $scope - Angular scope object
+ * @param {Object} $routeParams - Angular route parameters
+ * @param {Object} $location - Angular location service
+ * @param {Object} StudentService - Service for student-related API calls
+ * @param {Object} $rootScope - Angular root scope
+ */
+app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', function($scope, $routeParams, $location, StudentService, $rootScope) {
+  $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
   $scope.action = $routeParams.id ? 'edit' : 'add';
   $scope.flashMessage = '';
   $scope.flashType = '';
 
+  console.log('StudentFormController initialized. Action:', $scope.action, 'ID:', $routeParams.id);
+
+   // Load student data for editing if ID is provided
   if ($routeParams.id) {
+    console.log('Fetching student data for ID:', $routeParams.id);
     StudentService.getStudent($routeParams.id).then(function(response) {
-      if (response.data.success) {
-        $scope.student = response.data.student;
+      console.log('getStudent response:', JSON.stringify(response.data, null, 2));
+      if (response.data.success && response.data.student) {
+         // Populate form with student data
+        $scope.student = {
+          name: response.data.student.name || '',
+          email: response.data.student.email || '',
+          phone: response.data.student.phone || '',
+          address: response.data.student.address || ''
+        };
+        $scope.flashMessage = 'Student data loaded successfully.';
+        $scope.flashType = 'success';
       } else {
-        $scope.flashMessage = response.data.message || 'Failed to load student.';
+        $scope.flashMessage = response.data.message || 'Failed to load student data: No student found.';
         $scope.flashType = 'error';
+        console.error('Failed to load student data for ID:', $routeParams.id, 'Message:', response.data.message);
       }
     }, function(error) {
-      $scope.flashMessage = 'Error loading student: ' + (error.statusText || 'Unknown error');
+      console.error('Error loading student for ID:', $routeParams.id, JSON.stringify(error, null, 2));
+      $scope.flashMessage = 'Error loading student: ' + (error.statusText || 'Network or server error');
       $scope.flashType = 'error';
     });
   }
 
+   /**
+   * @function submitForm
+   * @description Submits the student form for adding or editing a student.
+   */
   $scope.submitForm = function() {
-    if (!$scope.student.name || !$scope.student.email) {
-      $scope.flashMessage = 'Please fill in all required fields.';
+    console.log('Submitting form. Action:', $scope.action, 'Student:', $scope.student);
+    
+    // Check form validity using Angular's form validation
+    if ($scope.studentForm.$invalid) {
+      $scope.flashMessage = 'Please correct the phone number in the form before submitting.';
       $scope.flashType = 'error';
+      
+      // Mark all fields as touched to show validation errors
+      angular.forEach($scope.studentForm, function(field, name) {
+        if (name[0] !== '$') {
+          field.$setTouched();
+        }
+      });
       return;
     }
 
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test($scope.student.email)) {
-      $scope.flashMessage = 'Please enter a valid email address 1.';
+    // Check required fields
+    if (!$scope.student.name || !$scope.student.email) {
+      $scope.flashMessage = 'Please fill in all required fields.';
       $scope.flashType = 'error';
       return;
     }
@@ -114,27 +260,49 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
       StudentService.addStudent($scope.student);
 
     promise.then(function(response) {
+      console.log('Submit response:', JSON.stringify(response.data, null, 2));
       if (response.data.success) {
+        // Broadcast event to refresh student list
         $scope.flashMessage = response.data.message || ($scope.action === 'edit' ? 'Student updated successfully.' : 'Student added successfully.');
         $scope.flashType = 'success';
+        $rootScope.$broadcast('studentUpdated');
         $location.path('/students');
       } else {
-        $scope.flashMessage = response.data.message || 'Operation failed.';
+        $scope.flashMessage = response.data.message || 'Operation failed: Unknown error.';
         $scope.flashType = 'error';
+        console.error('Submit failed:', response.data.message);
       }
     }, function(error) {
-      $scope.flashMessage = 'Error: ' + (error.statusText || 'Unknown error');
+      console.error('Submit error:', JSON.stringify(error, null, 2));
+      $scope.flashMessage = 'Error: ' + (error.statusText || 'Network or server error');
       $scope.flashType = 'error';
     });
   };
+
+    /**
+   * @function goToStudents
+   * @description Navigates to the students list page.
+   */
+  $scope.goToStudents = function() {
+    console.log('Navigating to /students');
+    $location.path('/students');
+  };
 }]);
 
+
+/**
+ * @name DeletedStudentsController
+ * @description Manages the deleted students archive view, including restore and permanent delete.
+ *  * @param {Object} $scope - Angular scope object
+ * @param {Object} StudentService - Service for student-related API calls
+ */
 app.controller('DeletedStudentsController', ['$scope', 'StudentService', function($scope, StudentService) {
   $scope.title = "Deleted Students Archive";
   $scope.students = [];
   $scope.flashMessage = 'Loading deleted students...';
   $scope.flashType = 'info';
 
+  // Fetch deleted students
   StudentService.getDeletedStudents().then(function(response) {
     if (response.data.success) {
       $scope.students = response.data.students;
@@ -154,10 +322,16 @@ app.controller('DeletedStudentsController', ['$scope', 'StudentService', functio
     $scope.flashType = 'error';
   });
 
+   /**
+   * @function restoreStudent
+   * @description Restores a soft-deleted student after confirmation.
+   * @param {number} id - Student ID to restore
+   */
   $scope.restoreStudent = function(id) {
     if (confirm('Are you sure you want to restore this student?')) {
       StudentService.restoreStudent(id).then(function(response) {
         if (response.data.success) {
+             // Remove restored student from the list
           $scope.students = $scope.students.filter(function(student) {
             return student.id !== id;
           });
@@ -174,10 +348,16 @@ app.controller('DeletedStudentsController', ['$scope', 'StudentService', functio
     }
   };
 
+   /**
+   * @function permanentDelete
+   * @description Permanently deletes a student after confirmation.
+   * @param {number} id - Student ID to permanently delete
+   */
   $scope.permanentDelete = function(id) {
     if (confirm('Are you sure you want to permanently delete this student? This action cannot be undone!')) {
       StudentService.permanentDelete(id).then(function(response) {
         if (response.data.success) {
+          // Remove deleted student from the list
           $scope.students = $scope.students.filter(function(student) {
             return student.id !== id;
           });
@@ -194,13 +374,19 @@ app.controller('DeletedStudentsController', ['$scope', 'StudentService', functio
     }
   };
 }]);
-
+/**
+ * @name TestDbController
+ * @description Displays the database connection status.
+ * @param {Object} $scope - Angular scope object
+ * @param {Object} $http - Angular HTTP service
+ */
 app.controller('TestDbController', ['$scope', '$http', function($scope, $http) {
   $scope.title = "Database Status";
   $scope.message = '';
   $scope.flashMessage = 'Loading database status...';
   $scope.flashType = 'info';
 
+   // Fetch database status
   $http.get('/ci/students/test_db').then(function(response) {
     $scope.message = response.data.message;
     $scope.flashMessage = 'Database status loaded successfully.';
@@ -211,17 +397,29 @@ app.controller('TestDbController', ['$scope', '$http', function($scope, $http) {
     $scope.flashType = 'error';
   });
 }]);
-
+/**
+ * @name AuthController
+ * @description Controller for managing user authentication.
+ * @param {Object} $scope - Angular scope object
+ * @param {Object} $location - Angular location service
+ * @param {Object} $cookies - Angular cookies service
+ * @param {Object} $http - Angular HTTP service
+ */
 app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', function($scope, $location, $cookies, $http) {
   $scope.user = { email: '', password: '', username: '', confirm_password: '' };
   $scope.flashMessage = '';
   $scope.flashType = '';
   $scope.isSignup = $location.path() === '/signup';
 
+  /**
+   * @function submitForm
+   * @description Submits login or signup form with validation.
+   */
   console.log('AuthController initialized');
 
   $scope.submitForm = function() {
     if ($scope.isSignup) {
+        // Validate signup form
       if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
         $scope.flashMessage = 'Please fill in all required fields.';
         $scope.flashType = 'error';
@@ -237,6 +435,8 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         $scope.flashType = 'error';
         return;
       }
+
+        // Submit signup request
       var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test($scope.user.email)) {
         $scope.flashMessage = 'Please enter a valid email address 2.';
@@ -260,6 +460,7 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         $scope.flashType = 'error';
       });
     } else {
+       // Validate login form
       if (!$scope.user.email || !$scope.user.password) {
         $scope.flashMessage = 'Please fill in all required fields.';
         $scope.flashType = 'error';
@@ -272,10 +473,11 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         return;
       }
 
+       // Submit login request
       $http.post('/ci/auth/login', $scope.user).then(function(response) {
         console.log('Login response:', response.data);
         if (response.data.success) {
-          // Use AngularJS 1.3.0 cookie syntax
+           // Set authentication cookies
           $cookies.user_id = response.data.user.id.toString();
           $cookies.username = response.data.user.username;
           $cookies.email = response.data.user.email;

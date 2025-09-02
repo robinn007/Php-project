@@ -6,11 +6,13 @@ class Migrate extends CI_Controller {
         parent::__construct();
         // Load migration library only when needed
         $this->load->library('migration');
-         // Debug: Log config loading
+        // Load migration configuration
         $this->load->config('migration', TRUE);
+        // Debug: Log migration config
         log_message('debug', 'Migration config loaded: ' . json_encode($this->config->item('migration')));
     }
 
+    // Run migrations to the latest version
     public function index() {
         // Restrict to CLI or add authentication for production
         if (!$this->input->is_cli_request()) {
@@ -41,6 +43,7 @@ class Migrate extends CI_Controller {
         }
     }
 
+       // Roll back migrations to a specified version
     public function rollback($version = 0) {
         if (!$this->input->is_cli_request()) {
             // Comment out for testing in browser
@@ -54,10 +57,12 @@ class Migrate extends CI_Controller {
         echo 'Migration Path: ' . $this->config->item('migration_path') . '<br>';
         echo '</pre>';
 
+       // Check if migrations are enabled
         if (!$this->config->item('migration_enabled')) {
             show_error('Migrations are disabled in config/migration.php.');
         }
 
+          // Roll back to specified version
         if ($this->migration->version($version)) {
             echo 'Migration rolled back successfully to version: ' . $version;
         } else {

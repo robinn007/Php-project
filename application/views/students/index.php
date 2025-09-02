@@ -30,11 +30,12 @@ $this->load->view('layout/header', array('page_title' => $page_title));
         </div>
     <?php endif; ?>
     
-    <?php if (isset($students) && !empty($students)): ?>
-        <div class="stats">
-            Total Students: <strong><?php echo count($students); ?></strong>
-        </div>
-    <?php endif; ?>
+ <?php if (isset($students) && !empty($students)): ?>
+    <div class="stats" style="margin-top:20px;">
+        Total Students...: <strong><?php echo count($students); ?></strong>
+    </div>
+<?php endif; ?>
+
     
     <a href="<?php echo site_url('students/manage/add'); ?>" class="btn btn-add">
         Add New Student

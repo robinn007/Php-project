@@ -1,0 +1,71 @@
+<!-- Dashboard container with centered layout and styling -->
+<div style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+  <!-- Page title bound to scope -->
+  <h2 style="color: #333; text-align: center;">{{title}}</h2>
+  <!-- Flash message with dynamic background color based on flashType -->
+  <div ng-show="flashMessage" style="padding: 10px; margin-bottom: 20px; border-radius: 4px; color: #fff;" 
+       ng-style="{'background-color': flashType === 'success' ? '#28a745' : flashType === 'error' ? '#dc3545' : '#17a2b8'}">
+    {{flashMessage}}
+  </div>
+
+  <!-- Welcome message with current user's username -->
+  <div style="margin-bottom: 20px;">
+    <h3 style="color: #333;">Welcome {{currentUser}}!</h3>
+    <?php echo 'dfgdfgd df gdf'; ?>
+  </div>
+
+  <!-- Overview and quick actions in a flexible layout -->
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
+    <!-- Overview section showing student counts -->
+    <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #ccc; border-radius: 4px;">
+      <h4 style="margin: 0 0 10px; color: #333;">Overview</h4>
+      <p style="margin: 5px 0;"><strong>Total Active Students:</strong> {{totalStudents}}</p>
+      <p style="margin: 5px 0;"><strong>Total Deleted Students:</strong> {{totalDeletedStudents}}</p>
+    </div>
+
+    <!-- Quick actions for navigation -->
+    <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #ccc; border-radius: 4px;">
+      <h4 style="margin: 0 0 10px; color: #333;">Quick Actions</h4>
+      <button style="padding: 8px 16px; margin: 5px; background-color: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer;"
+              ng-click="goToAddStudent()">Add New Student</button>
+      <button style="padding: 8px 16px; margin: 5px; background-color: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer;"
+              ng-click="goToStudents()">View All Students</button>
+      <button style="padding: 8px 16px; margin: 5px; background-color: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer;"
+              ng-click="goToDeletedStudents()">View Deleted Students</button>
+    </div>
+  </div>
+
+  <!-- Recent students table -->
+  <div style="padding: 15px; border: 1px solid #ccc; border-radius: 4px;">
+    <h4 style="margin: 0 0 10px; color: #333;">Recently Added Students</h4>
+    <!-- Display table only if recent students exist -->
+    <table ng-if="recentStudents.length > 0" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f8f9fa;">
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Name</th>
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Email</th>
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Phone</th>
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Address</th>
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Created At</th>
+          <th style="padding: 8px; border: 1px solid #ccc; text-align: left;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Iterate over recent students -->
+        <tr ng-repeat="student in recentStudents">
+          <td style="padding: 8px; border: 1px solid #ccc;">{{student.name}}</td>
+          <td style="padding: 8px; border: 1px solid #ccc;">{{student.email}}</td>
+          <td style="padding: 8px; border: 1px solid #ccc;">{{student.phone}}</td>
+          <td style="padding: 8px; border: 1px solid #ccc;">{{student.address}}</td>
+          <td style="padding: 8px; border: 1px solid #ccc;">{{student.created_at}}</td>
+          <td style="padding: 8px; border: 1px solid #ccc;">
+            <button style="padding: 6px 12px; background-color: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer;"
+                    ng-click="goToEditStudent(student.id)">Edit</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- Message for no recent students -->
+    <p ng-if="recentStudents.length === 0" style="margin: 10px 0; color: #666;">No recent students found.</p>
+  </div>
+</div>

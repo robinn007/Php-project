@@ -1,13 +1,13 @@
 <!-- Login page container -->
 <div class="auth-container">
   <!-- Include header with custom title and no breadcrumb -->
-  <ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false; title='Login'"></ng-include>
+  <ng-include src="'views/partials/header.php'" ng-init="showBreadcrumb=false; title='Login'"></ng-include>
   <!-- Include flash message partial for user feedback -->
-  <ng-include src="'views/partials/flash-message.html'"></ng-include>
+  <ng-include src="'views/partials/flash-message.php'"></ng-include>
   <!-- Login form with validation -->
   <form name="loginForm" ng-submit="submitForm()" novalidate>
     <!-- Include reusable authentication form fields -->
-    <ng-include src="'views/partials/form-fields-auth.html'" ng-init="isSignup=false"></ng-include>
+    <ng-include src="'views/partials/form-fields-auth.php'" ng-init="isSignup=false"></ng-include>
     <!-- Submit button, disabled if form is invalid -->
     <button type="submit" class="btn btn-primary" ng-disabled="loginForm.$invalid">Login</button>
   </form>

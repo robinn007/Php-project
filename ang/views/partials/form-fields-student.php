@@ -56,18 +56,6 @@
 </div>
 
 <!-- Address field, optional -->
-<!-- <div class="form-group">
-  <label for="address">Address</label>
-  <textarea 
-    id="address"
-    name="address"
-    ng-model="student.address" 
-    placeholder="Enter complete address (optional)"
-    class="form-control"
-    rows="3"></textarea>
-</div> -->
-
-
 <div class="form-group">
   <label for="address">Address</label>
   <div 

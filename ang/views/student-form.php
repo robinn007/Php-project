@@ -1,9 +1,9 @@
 <!-- Student form container -->
 <div class="form-container">
   <!-- Include header with dynamic breadcrumb -->
-  <ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=true; breadcrumbText=title"></ng-include>
+  <ng-include src="'views/partials/header.php'" ng-init="showBreadcrumb=true; breadcrumbText=title"></ng-include>
   <!-- Include flash message partial for user feedback -->
-  <ng-include src="'views/partials/flash-message.html'"></ng-include>
+  <ng-include src="'views/partials/flash-message.php'"></ng-include>
   
   <!-- Form header with dynamic title -->
   <div class="form-header">
@@ -13,7 +13,7 @@
   <!-- Student form with validation -->
   <form name="studentForm" ng-submit="submitForm()" novalidate>
     <!-- Include reusable student form fields -->
-    <ng-include src="'views/partials/form-fields-student.html'"></ng-include>
+    <ng-include src="'views/partials/form-fields-student.php'"></ng-include>
     <!-- Form actions -->
     <div class="form-actions">
       <!-- Submit button with dynamic text -->

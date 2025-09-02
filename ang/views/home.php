@@ -1,11 +1,11 @@
 <!-- Home page container -->
 <div class="home-container">
   <!-- Include header without breadcrumb -->
-  <ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false"></ng-include>
+  <ng-include src="'views/partials/header.php'" ng-init="showBreadcrumb=false"></ng-include>
   <!-- Include flash message partial for user feedback -->
-  <ng-include src="'views/partials/flash-message.html'"></ng-include>
+  <ng-include src="'views/partials/flash-message.php'"></ng-include>
   <!-- Include action buttons for navigation -->
-  <ng-include src="'views/partials/action-buttons.html'" ng-init="showViewStudents=true; showAddStudent=true; showTestDb=true"></ng-include>
+  <ng-include src="'views/partials/action-buttons.php'" ng-init="showViewStudents=true; showAddStudent=true; showTestDb=true"></ng-include>
   <!-- Static feature list -->
   <div class="features">
     <h3>Features</h3>

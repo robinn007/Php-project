@@ -1,7 +1,7 @@
 <!-- Include header without breadcrumb -->
-<ng-include src="'views/partials/header.html'" ng-init="showBreadcrumb=false"></ng-include>
+<ng-include src="'views/partials/header.php'" ng-init="showBreadcrumb=false"></ng-include>
 <!-- Include flash message partial for user feedback -->
-<ng-include src="'views/partials/flash-message.html'"></ng-include>
+<ng-include src="'views/partials/flash-message.php'"></ng-include>
 <!-- Display database status message -->
 <div ng-bind-html="message"></div>
 <!-- Link to students list -->

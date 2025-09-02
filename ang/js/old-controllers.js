@@ -110,7 +110,7 @@ app.controller('HomeController', ['$scope', function($scope) {
  *  StudentService - Service for student-related API calls
  */
 app.controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
-  $scope.title = "Students Dashboard";
+  $scope.title = "Students Dashboard.....";
   $scope.students = [];
   $scope.flashMessage = 'Loading students...';
   $scope.flashType = 'info';

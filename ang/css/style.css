@@ -962,6 +962,27 @@ table tr:nth-child(even) {
   color: var(--color-gray-500);
 }
 
+
+/* Existing styles (keep your current styles) */
+
+/* TinyMCE Editor Styles */
+.mce-tinymce {
+    margin-bottom: 15px;
+}
+.mce-container, .mce-container * {
+    box-sizing: border-box;
+}
+.form-control.mce-textbox {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+td:nth-child(2) {
+  font-weight: 500;
+  color: #2c3e50;
+}
 /* ==========================================================================
    STATUS INDICATORS
    ========================================================================== */

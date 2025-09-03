@@ -16,9 +16,16 @@
     <tr ng-repeat="student in students" id="student-{{ student.id }}">
       <td>{{ student.id }}</td>
       <td>{{ student.name }}</td>
-      <td>{{ student.email }}</td>
-      <td>{{ student.phone || 'N/A' }}</td>
-      <td>{{ student.address || 'N/A' }}</td>
+      <td>
+      <a ng-href="mailto:{{ student.email }}?subject=Hello {{ student.name }}&body=Dear {{ student.name }}," target="_blank">{{ student.email }}</a>
+      </td>
+     <td>
+    <a ng-if="student.phone" ng-href="tel:{{ student.phone }}">{{ student.phone }}</a>
+    <span ng-if="!student.phone">N/A</span>
+</td>
+      <td>
+        {{ student.address || 'N/A' }}
+      </td>
       <td>
         <a href="/ci/ang/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student" ng-if="showEdit">Edit</a>
         <button class="btn btn-delete" ng-click="deleteStudent(student.id)" title="Delete Student" ng-if="showDelete">Delete</button>

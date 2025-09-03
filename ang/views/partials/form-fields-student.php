@@ -56,7 +56,7 @@
 </div>
 
 <!-- Address field, optional -->
-<div class="form-group">
+  <div class="form-group">
   <label for="address">Address</label>
   <div 
     id="address"
@@ -66,21 +66,27 @@
     placeholder="Enter complete address (optional)"
     class="form-control content-editable-field"
     maxlength="500"
-    minlength="0"></div>
+    minlength="0"></div> 
   
-  <!-- Address validation messages -->
-  <span ng-show="studentForm.address.$touched && studentForm.address.$error.maxlength" 
+  <!-- // Address validation messages -->
+    <span ng-show="studentForm.address.$touched && studentForm.address.$error.maxlength" 
         class="error-message">
     Address cannot exceed 500 characters
-  </span>
+  </span> 
   
   <!-- Character counter -->
-  <div class="character-counter" 
+    <div class="character-counter" 
        ng-show="student.address && student.address.length > 0"
        ng-class="{
          'warning': student.address.length > 400, 
          'danger': student.address.length > 450
        }">
     {{ student.address.length || 0 }}/500 characters
-  </div>
-</div>
+  </div> 
+  </div> 
+
+
+ <!-- <div class="form-group">
+  <label for="address">Address</label>
+  <textarea id="address" name="address" ng-model="student.address" tiny-mce class="form-control"></textarea>
+</div>  -->

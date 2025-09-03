@@ -369,3 +369,20 @@ app.directive('contentEditable', function() {
     }
   };
 });
+
+/**
+ * @file directives.js
+ * @description Custom AngularJS directives for the Student Management System.
+ */
+
+/**
+ * @ngdoc directive
+ * @name tinyMce
+ * @description Integrates TinyMCE rich text editor with AngularJS for two-way data binding.
+ * @element textarea
+ */
+/**
+ * @file directives.js
+ * @description Custom AngularJS directives for the Student Management System.
+ */
+

@@ -3,7 +3,7 @@
  * @description Controller for managing student list view including fetching and deleting students.
  */
 angular.module('myApp').controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
-  $scope.title = "Students Dashboard.....";
+  $scope.title = "Students Dashboard......";
   $scope.students = [];
   $scope.flashMessage = 'Loading students...';
   $scope.flashType = 'info';
@@ -61,6 +61,7 @@ angular.module('myApp').controller('StudentController', ['$scope', 'StudentServi
       });
     }
   };
+
 
   /**
    * @event studentUpdated

@@ -87,14 +87,15 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
     </div>
   </footer>
 
+
+  <script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
   <script src="assets/angular-1.3.0/angular.js"></script>
   <script src="assets/angular-1.3.0/angular-route.min.js"></script>
   <script src="assets/angular-1.3.0/angular-cookies.js"></script>
+  <script src="assets/angular-1.3.0/angular-sanitize.min.js"></script>
   <script src="js/app.js"></script>
   <script src="js/services.js"></script>
-  <!-- <script src="js/controllers.js"></script> -->
   <script src="js/directives.js"></script>
-  <!-- <script src="js/dashboard.js"></script> -->
   <script src="js/routes.js"></script>
     <script src="js/controllers/NavController.js"></script>
    <script src="js/controllers/HomeController.js"></script>

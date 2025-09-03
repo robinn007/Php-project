@@ -210,3 +210,13 @@ require_once BASEPATH.'core/CodeIgniter.php';
 
 /* End of file index.php */
 /* Location: ./index.php */
+
+
+//  <script src="js/controllers/NavController.js"></script>
+//   <script src="js/controllers/HomeController.js"></script>
+//   <script src="js/controllers/StudentController.js"></script>
+//   <script src="js/controllers/StudentFormController.js"></script>
+//   <script src="js/controllers/DeletedStudentsController.js"></script>
+//   <script src="js/controllers/TestDbController.js"></script>
+//   <script src="js/controllers/AuthController.js"></script>
+//   <script src="js/controllers/DashboardController.js"></script>

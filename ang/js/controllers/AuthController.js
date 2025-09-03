@@ -2,6 +2,7 @@
  * @file AuthController.js
  * @description Controller for managing user authentication.
  */
+
 angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', '$http', function($scope, $location, $cookies, $http) {
   $scope.user = { email: '', password: '', username: '', confirm_password: '' };
   $scope.flashMessage = '';
@@ -10,10 +11,11 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
 
   console.log('AuthController initialized');
 
-  /**
-   * @function submitForm
-   * @description Submits login or signup form with validation.
-   */
+   /**
+    * @function submitForm
+    * @description Submits login or signup form with validation.
+    */
+
   $scope.submitForm = function() {
     if ($scope.isSignup) {
       if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
@@ -44,11 +46,10 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
         if (response.data.success) {
           $scope.flashMessage = response.data.message || 'Account created successfully! Please log in.';
           $scope.flashType = 'success';
-         -SPOT
-          $location.path('/login');
+          $location.path('/login'); // Updated to clean URL
         } else {
           $scope.flashMessage = response.data.message || 'Failed to create account.';
- $scope.flashType = 'error';
+          $scope.flashType = 'error';
         }
       }, function(error) {
         console.error('Signup error:', error);
@@ -81,7 +82,7 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
           });
           $scope.flashMessage = 'Login successful!';
           $scope.flashType = 'success';
-          $location.path('/students');
+          $location.path('/students'); // Updated to clean URL
         } else {
           $scope.flashMessage = response.data.message || 'Invalid email or password.';
           $scope.flashType = 'error';

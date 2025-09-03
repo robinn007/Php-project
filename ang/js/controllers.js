@@ -10,19 +10,14 @@
  * @name NavController
  * @description Controller for managing navigation and user authentication state and logout.
  */
+// NavController
 app.controller('NavController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
-  // Initialize scope variables
   $scope.isLoggedIn = AuthService.isLoggedIn();
   $scope.currentUser = AuthService.getCurrentUser();
   $scope.currentPath = $location.path();
 
   console.log('NavController initialized. isLoggedIn:', $scope.isLoggedIn, 'currentUser:', $scope.currentUser, 'currentPath:', $scope.currentPath);
 
-  /**
-   * @event $routeChangeSuccess
-   * @description Updates navigation state when the route changes.
-   */
-  // Update currentPath on route change
   $scope.$on('$routeChangeSuccess', function() {
     $scope.currentPath = $location.path();
     $scope.isLoggedIn = AuthService.isLoggedIn();
@@ -30,17 +25,12 @@ app.controller('NavController', ['$scope', '$location', 'AuthService', function(
     console.log('Route changed. currentPath:', $scope.currentPath, 'isLoggedIn:', $scope.isLoggedIn);
   });
 
-   /**
-   * @function logout
-   * @description Logs out the user, clears cookies, and redirects to login page.
-   */
-
   $scope.logout = function() {
     console.log('Logging out user:', $scope.currentUser);
     AuthService.logout().then(function() {
       $scope.isLoggedIn = false;
       $scope.currentUser = '';
-      $location.path('/login');
+      $location.path('/login'); // Updated to clean URL
     }, function(error) {
       console.error('Logout failed:', JSON.stringify(error, null, 2));
     });
@@ -59,50 +49,6 @@ app.controller('HomeController', ['$scope', function($scope) {
   $scope.flashType = '';
 }]);
 
-
-// app.controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
-//   $scope.title = "Students Dashboard";
-//   $scope.students = [];
-//   $scope.flashMessage = 'Loading students...';
-//   $scope.flashType = 'info';
-
-//   console.log('StudentController initialized');
-//   StudentService.getStudents().then(function(response) {
-//     console.log('getStudents response:', response);
-//     if (response.data.success) {
-//       $scope.students = response.data.students || [];
-//       $scope.flashMessage = 'Loaded ' + $scope.students.length + ' active students.';
-//       $scope.flashType = 'success';
-//     } else {
-//       $scope.flashMessage = response.data.message || 'Failed to load students.';
-//       $scope.flashType = 'error';
-//     }
-//   }, function(error) {
-//     console.error('Error loading students:', error);
-//     $scope.flashMessage = 'Error loading students: ' + (error.statusText || 'Unknown error');
-//     $scope.flashType = 'error';
-//   });
-
-//   $scope.deleteStudent = function(id) {
-//     if (confirm('Are you sure you want to delete this student?')) {
-//       StudentService.deleteStudent(id).then(function(response) {
-//         if (response.data.success) {
-//           $scope.students = $scope.students.filter(function(student) {
-//             return student.id !== id;
-//           });
-//           $scope.flashMessage = response.data.message || 'Student deleted successfully.';
-//           $scope.flashType = 'success';
-//         } else {
-//           $scope.flashMessage = response.data.message || 'Failed to delete student.';
-//           $scope.flashType = 'error';
-//         }
-//       }, function(error) {
-//         $scope.flashMessage = 'Error deleting student: ' + (error.statusText || 'Unknown error');
-//         $scope.flashType = 'error';
-//       });
-//     }
-//   };
-// }]);
 
 /**
  * @name StudentController
@@ -191,6 +137,9 @@ app.controller('StudentController', ['$scope', 'StudentService', function($scope
  * @param {Object} StudentService - Service for student-related API calls
  * @param {Object} $rootScope - Angular root scope
  */
+
+
+// StudentFormController
 app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', function($scope, $routeParams, $location, StudentService, $rootScope) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
@@ -200,13 +149,11 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
 
   console.log('StudentFormController initialized. Action:', $scope.action, 'ID:', $routeParams.id);
 
-   // Load student data for editing if ID is provided
   if ($routeParams.id) {
     console.log('Fetching student data for ID:', $routeParams.id);
     StudentService.getStudent($routeParams.id).then(function(response) {
       console.log('getStudent response:', JSON.stringify(response.data, null, 2));
       if (response.data.success && response.data.student) {
-         // Populate form with student data
         $scope.student = {
           name: response.data.student.name || '',
           email: response.data.student.email || '',
@@ -227,19 +174,13 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
     });
   }
 
-   /**
-   * @function submitForm
-   * @description Submits the student form for adding or editing a student.
-   */
   $scope.submitForm = function() {
     console.log('Submitting form. Action:', $scope.action, 'Student:', $scope.student);
     
-    // Check form validity using Angular's form validation
     if ($scope.studentForm.$invalid) {
       $scope.flashMessage = 'Please correct the phone number in the form before submitting.';
       $scope.flashType = 'error';
       
-      // Mark all fields as touched to show validation errors
       angular.forEach($scope.studentForm, function(field, name) {
         if (name[0] !== '$') {
           field.$setTouched();
@@ -248,7 +189,6 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
       return;
     }
 
-    // Check required fields
     if (!$scope.student.name || !$scope.student.email) {
       $scope.flashMessage = 'Please fill in all required fields.';
       $scope.flashType = 'error';
@@ -262,11 +202,10 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
     promise.then(function(response) {
       console.log('Submit response:', JSON.stringify(response.data, null, 2));
       if (response.data.success) {
-        // Broadcast event to refresh student list
         $scope.flashMessage = response.data.message || ($scope.action === 'edit' ? 'Student updated successfully.' : 'Student added successfully.');
         $scope.flashType = 'success';
         $rootScope.$broadcast('studentUpdated');
-        $location.path('/students');
+        $location.path('/students'); // Updated to clean URL
       } else {
         $scope.flashMessage = response.data.message || 'Operation failed: Unknown error.';
         $scope.flashType = 'error';
@@ -279,13 +218,9 @@ app.controller('StudentFormController', ['$scope', '$routeParams', '$location', 
     });
   };
 
-    /**
-   * @function goToStudents
-   * @description Navigates to the students list page.
-   */
   $scope.goToStudents = function() {
     console.log('Navigating to /students');
-    $location.path('/students');
+    $location.path('/students'); // Updated to clean URL
   };
 }]);
 
@@ -405,21 +340,18 @@ app.controller('TestDbController', ['$scope', '$http', function($scope, $http) {
  * @param {Object} $cookies - Angular cookies service
  * @param {Object} $http - Angular HTTP service
  */
+
+// AuthController
 app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', function($scope, $location, $cookies, $http) {
   $scope.user = { email: '', password: '', username: '', confirm_password: '' };
   $scope.flashMessage = '';
   $scope.flashType = '';
   $scope.isSignup = $location.path() === '/signup';
 
-  /**
-   * @function submitForm
-   * @description Submits login or signup form with validation.
-   */
   console.log('AuthController initialized');
 
   $scope.submitForm = function() {
     if ($scope.isSignup) {
-        // Validate signup form
       if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
         $scope.flashMessage = 'Please fill in all required fields.';
         $scope.flashType = 'error';
@@ -436,7 +368,6 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         return;
       }
 
-        // Submit signup request
       var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test($scope.user.email)) {
         $scope.flashMessage = 'Please enter a valid email address 2.';
@@ -449,7 +380,7 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         if (response.data.success) {
           $scope.flashMessage = response.data.message || 'Account created successfully! Please log in.';
           $scope.flashType = 'success';
-          $location.path('/login');
+          $location.path('/login'); // Updated to clean URL
         } else {
           $scope.flashMessage = response.data.message || 'Failed to create account.';
           $scope.flashType = 'error';
@@ -460,7 +391,6 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         $scope.flashType = 'error';
       });
     } else {
-       // Validate login form
       if (!$scope.user.email || !$scope.user.password) {
         $scope.flashMessage = 'Please fill in all required fields.';
         $scope.flashType = 'error';
@@ -473,11 +403,9 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
         return;
       }
 
-       // Submit login request
       $http.post('/ci/auth/login', $scope.user).then(function(response) {
         console.log('Login response:', response.data);
         if (response.data.success) {
-           // Set authentication cookies
           $cookies.user_id = response.data.user.id.toString();
           $cookies.username = response.data.user.username;
           $cookies.email = response.data.user.email;
@@ -488,7 +416,7 @@ app.controller('AuthController', ['$scope', '$location', '$cookies', '$http', fu
           });
           $scope.flashMessage = 'Login successful!';
           $scope.flashType = 'success';
-          $location.path('/students');
+          $location.path('/students'); // Updated to clean URL
         } else {
           $scope.flashMessage = response.data.message || 'Invalid email or password.';
           $scope.flashType = 'error';

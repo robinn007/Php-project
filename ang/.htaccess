@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /ci/ang/
+
+    # Don't rewrite requests for files, directories, or API routes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/ci/(auth|students|migrate|setup|test)/
+    RewriteRule ^(.*)$ index.php [L]
+</IfModule>

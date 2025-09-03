@@ -10,21 +10,17 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Students extends CI_Controller {
     public function __construct() {
-        parent::__construct();
-       // Load Student_model for database operations
+      parent::__construct();
         $this->load->model('Student_model');
         $this->load->library('form_validation');
-        // Temporarily disable CSRF for debugging
-        $this->config->set_item('csrf_protection', FALSE);
+        $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
     }
 
       // Retrieve all active students
     public function index() {
-        // Check if user is authenticated
         if ($this->session->userdata('user_id')) {
             if ($this->input->is_ajax_request()) {
                 $this->output->set_content_type('application/json');
-                // Success response
                 echo json_encode(array(
                     'success' => true,
                     'students' => $this->Student_model->get_students(),
@@ -32,11 +28,12 @@ class Students extends CI_Controller {
                 ));
                 exit();
             }
-            redirect('/ci/ang/#/students');
+            $this->load->view('index'); // Load AngularJS app
         } else {
-            redirect('auth/login');
+            redirect('/ci/ang/login'); // Redirect to login page
         }
     }
+
 
       /**
      * Manage Method

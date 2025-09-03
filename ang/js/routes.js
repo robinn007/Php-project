@@ -10,10 +10,17 @@
  * @description Configures application routes and HTTP interceptors.
  * @param {Object} $routeProvider - Angular route provider
  * @param {Object} $httpProvider - Angular HTTP provider
+ * @param {Object} $locationProvider - Angular location provider
  */
-app.config(['$routeProvider', '$httpProvider', function($routeProvider, $httpProvider) {
+app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($routeProvider, $httpProvider, $locationProvider) {
     console.log('Routes configuration initialized');
     
+    // Enable HTML5 mode to remove hash (#) from URLs
+    $locationProvider.html5Mode({
+        enabled: true,
+        requireBase: true // Requires <base> tag in index.php
+    });
+
     // Define application routes
     $routeProvider
         .when('/login', {
@@ -24,35 +31,35 @@ app.config(['$routeProvider', '$httpProvider', function($routeProvider, $httpPro
             templateUrl: 'views/signup.php',
             controller: 'AuthController'
         })
-        .when('/dashboard', {
+        .when('/students/dashboard', {
             templateUrl: 'views/dashboard.php',
             controller: 'DashboardController',
-            requireAuth: true   // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students', {
             templateUrl: 'views/students.php',
             controller: 'StudentController',
-            requireAuth: true  // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students/add', {
             templateUrl: 'views/student-form.php',
             controller: 'StudentFormController',
-            requireAuth: true  // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students/edit/:id', {
             templateUrl: 'views/student-form.php',
             controller: 'StudentFormController',
-            requireAuth: true  // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students/deleted', {
             templateUrl: 'views/deleted-students.php',
             controller: 'DeletedStudentsController',
-            requireAuth: true  // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/test-db', {
             templateUrl: 'views/test-db.php',
             controller: 'TestDbController',
-            requireAuth: true  // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .otherwise({
             redirectTo: function($cookies) {

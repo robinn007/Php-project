@@ -13,16 +13,16 @@ angular.module('myApp').controller('DashboardController', ['$scope', 'StudentSer
 
   console.log('DashboardController initialized. User:', $scope.currentUser, 'Logged in:', AuthService.isLoggedIn());
 
-  // Redirect to login if user is not authenticated
+    // Redirect to login if user is not authenticated
   if (!AuthService.isLoggedIn()) {
     console.log('User not logged in, redirecting to /login');
     $scope.flashMessage = 'Please log in to view the dashboard.';
     $scope.flashType = 'error';
-    $location.path('/login');
+    $location.path('/login'); // Updated to clean URL
     return;
   }
 
-  // Fetch active students
+    // Fetch active students
   StudentService.getStudents().then(function(response) {
     console.log('getStudents response:', JSON.stringify(response.data, null, 2));
     if (response.data.success) {
@@ -47,7 +47,7 @@ angular.module('myApp').controller('DashboardController', ['$scope', 'StudentSer
     $scope.flashType = 'error';
   });
 
-  // Fetch deleted students
+    // Fetch deleted students
   StudentService.getDeletedStudents().then(function(response) {
     console.log('getDeletedStudents response:', JSON.stringify(response.data, null, 2));
     if (response.data.success) {
@@ -63,40 +63,28 @@ angular.module('myApp').controller('DashboardController', ['$scope', 'StudentSer
     $scope.flashType = 'error';
   });
 
-  /**
-   * @function goToAddStudent
-   * @description Navigates to the add student page.
-   */
+   /**
+    * @function goToAddStudent
+    * @description Navigates to the add student page.
+    */
+
   $scope.goToAddStudent = function() {
     console.log('Navigating to /students/add');
-    $location.path('/students/add');
+    $location.path('/students/add'); // Updated to clean URL
   };
 
-  /**
-   * @function goToEditStudent
-   * @description Navigates to the edit student page for a specific student.
-   * @param {number} id - Student ID to edit
-   */
   $scope.goToEditStudent = function(id) {
     console.log('Navigating to /students/edit/' + id);
-    $location.path('/students/edit/' + id);
+    $location.path('/students/edit/' + id); // Already clean URL
   };
 
-  /**
-   * @function goToStudents
-   * @description Navigates to the students list page.
-   */
   $scope.goToStudents = function() {
     console.log('Navigating to /students');
-    $location.path('/students');
+    $location.path('/students'); // Updated to clean URL
   };
 
-  /**
-   * @function goToDeletedStudents
-   * @description Navigates to the deleted students archive page.
-   */
   $scope.goToDeletedStudents = function() {
     console.log('Navigating to /students/deleted');
-    $location.path('/students/deleted');
+    $location.path('/students/deleted'); // Updated to clean URL
   };
 }]);

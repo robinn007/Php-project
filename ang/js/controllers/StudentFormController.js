@@ -2,6 +2,9 @@
  * @file StudentFormController.js
  * @description Controller for managing the student form (add/edit).
  */
+
+
+// StudentFormController
 angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', function($scope, $routeParams, $location, StudentService, $rootScope) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
@@ -37,7 +40,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     });
   }
 
-  /**
+   /**
    * @function submitForm
    * @description Submits the student form for adding or editing a student.
    */
@@ -72,7 +75,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
         $scope.flashMessage = response.data.message || ($scope.action === 'edit' ? 'Student updated successfully.' : 'Student added successfully.');
         $scope.flashType = 'success';
         $rootScope.$broadcast('studentUpdated');
-        $location.path('/students');
+        $location.path('/students'); // Updated to clean URL
       } else {
         $scope.flashMessage = response.data.message || 'Operation failed: Unknown error.';
         $scope.flashType = 'error';
@@ -85,12 +88,13 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     });
   };
 
+
   /**
    * @function goToStudents
    * @description Navigates to the students list page.
    */
   $scope.goToStudents = function() {
     console.log('Navigating to /students');
-    $location.path('/students');
+    $location.path('/students'); // Updated to clean URL
   };
 }]);

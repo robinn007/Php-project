@@ -5,6 +5,7 @@
 
 var app = angular.module('myApp', ['ngRoute', 'ngCookies']);
 
+
 /**
  * @description Initializes the application, sets up CSRF token fetching, and enforces authentication on route changes.
  * @param {Object} $http - HTTP service used for API calls

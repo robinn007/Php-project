@@ -1,6 +1,4 @@
-<!-- Breadcrumb navigation, shown if showBreadcrumb is true -->
 <div class="breadcrumb" ng-if="showBreadcrumb">
-  <a href="#/students">Students</a> <span> / {{ breadcrumbText }}</span>
+  <a href="/students">Students</a> <span> / {{ breadcrumbText }}</span>
 </div>
-<!-- Page title -->
-<h1>{{ title }} hello seprate controllers</h1>
+<h1>{{ title }}</h1>

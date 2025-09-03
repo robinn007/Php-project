@@ -1,7 +1,7 @@
 <?php
-// Ensure CSRF tokens are fetched from CodeIgniter's security library
-$csrf_token_name = $this->security->get_csrf_token_name();
-$csrf_token = $this->security->get_csrf_hash();
+// Optional: Add PHP logic for session handling or CSRF token generation
+$csrf_token_name = 'csrf_token_name'; // Replace with actual CodeIgniter CSRF token name
+$csrf_token = ''; // Replace with actual CSRF token from session or config
 ?>
 <!DOCTYPE html>
 <html ng-app="myApp">
@@ -10,7 +10,7 @@ $csrf_token = $this->security->get_csrf_hash();
   <title>Student Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="/ci/ang/">
-  <link rel="stylesheet" href="/ci/ang/css/style.css">
+  <link rel="stylesheet" href="css/style.css">
   <meta name="csrf-token-name" content="<?php echo htmlspecialchars($csrf_token_name); ?>">
   <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
 </head>
@@ -20,7 +20,7 @@ $csrf_token = $this->security->get_csrf_hash();
       <a href="/students" class="navbar-brand">Home</a>
       <ul class="navbar-nav">
         <li ng-show="isLoggedIn">
-          <a href="/dashboard" class="nav-link" ng-class="{ active: currentPath == '/dashboard' }">Dashboard</a>
+          <a href="/ci/ang/dashboard" class="nav-link" ng-class="{ active: currentPath == '/dashboard' }">Dashboard</a>
         </li>
         <li ng-show="isLoggedIn">
           <a href="/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student</a>
@@ -85,22 +85,14 @@ $csrf_token = $this->security->get_csrf_hash();
     </div>
   </footer>
 
-  <!-- AngularJS and application scripts -->
   <script src="assets/angular-1.3.0/angular.js"></script>
   <script src="assets/angular-1.3.0/angular-route.min.js"></script>
   <script src="assets/angular-1.3.0/angular-cookies.js"></script>
   <script src="js/app.js"></script>
   <script src="js/services.js"></script>
+  <script src="js/controllers.js"></script>
   <script src="js/directives.js"></script>
+  <script src="js/dashboard.js"></script>
   <script src="js/routes.js"></script>
-  <!-- Individual controller scripts -->
-  <script src="js/controllers/NavController.js"></script>
-  <script src="js/controllers/HomeController.js"></script>
-  <script src="js/controllers/StudentController.js"></script>
-  <script src="js/controllers/StudentFormController.js"></script>
-  <script src="js/controllers/DeletedStudentsController.js"></script>
-  <script src="js/controllers/TestDbController.js"></script>
-  <script src="js/controllers/AuthController.js"></script>
-  <script src="js/controllers/DashboardController.js"></script>
 </body>
 </html>

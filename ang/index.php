@@ -17,30 +17,30 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
 <body>
   <nav class="navbar" ng-controller="NavController">
     <div class="navbar-container">
-      <a href="#/students" class="navbar-brand">Home</a>
+      <a href="/ci/ang/students" class="navbar-brand">Home2</a>
       <ul class="navbar-nav">
         <li ng-show="isLoggedIn">
-          <a href="#/dashboard" class="nav-link" ng-class="{ active: currentPath == '/dashboard' }">Dashboard</a>
+          <a href="/ci/ang/students/dashboard" class="nav-link" ng-class="{ active: currentPath == '/students/dashboard' }">Dashboard2</a>
         </li>
         <li ng-show="isLoggedIn">
-          <a href="#/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student</a>
+          <a href="/ci/ang/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student</a>
         </li>
         <li ng-show="isLoggedIn">
-          <a href="#/students/deleted" class="nav-link" ng-class="{ active: currentPath == '/students/deleted' }">Deleted Students</a>
+          <a href="/ci/ang/students/deleted" class="nav-link" ng-class="{ active: currentPath == '/students/deleted' }">Deleted Students1</a>
         </li>
         <li ng-show="isLoggedIn">
-          <a href="#/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
+          <a href="/ci/ang/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
         </li>
         <li ng-show="!isLoggedIn">
-          <a href="#/login" class="nav-link" ng-class="{ active: currentPath == '/login' }">Login</a>
+          <a href="/ci/ang/login" class="nav-link" ng-class="{ active: currentPath == '/login' }">Login</a>
         </li>
         <li ng-show="!isLoggedIn">
-          <a href="#/signup" class="nav-link" ng-class="{ active: currentPath == '/signup' }">Sign Up</a>
+          <a href="/ci/ang/signup" class="nav-link" ng-class="{ active: currentPath == '/signup' }">Sign Up</a>
         </li>
       </ul>
       <div class="user-info" ng-show="isLoggedIn">
         <span class="user-name">Welcome, {{ currentUser }}</span>
-        <a href="#/logout" class="btn-logout" ng-click="logout()">Logout</a>
+        <a href="/ci/ang/logout" class="btn-logout" ng-click="logout()">Logout</a>
       </div>
     </div>
   </nav>
@@ -50,6 +50,8 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
       <div ng-view></div>
     </div>
   </main>
+
+
 
   <footer class="footer">
     <div class="footer-container">
@@ -61,11 +63,11 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
         <div class="footer-section">
           <h4>Quick Links</h4>
           <ul class="footer-links">
-            <li ng-show="isLoggedIn"><a href="#/dashboard">Dashboard</a></li>
-            <li ng-show="isLoggedIn"><a href="#/students/add">Add Student</a></li>
-            <li ng-show="isLoggedIn"><a href="#/test-db">Database Status</a></li>
-            <li ng-show="!isLoggedIn"><a href="#/login">Login</a></li>
-            <li ng-show="!isLoggedIn"><a href="#/signup">Sign Up</a></li>
+            <li ng-show="isLoggedIn"><a href="/ci/ang/students/dashboard">Dashboard</a></li>
+            <li ng-show="isLoggedIn"><a href="/ci/ang/students/add">Add Student</a></li>
+            <li ng-show="isLoggedIn"><a href="/ci/ang/test-db">Database Status</a></li>
+            <li ng-show="!isLoggedIn"><a href="/ci/ang/login">Login</a></li>
+            <li ng-show="!isLoggedIn"><a href="/ci/ang/signup">Sign Up</a></li>
           </ul>
         </div>
         <div class="footer-section">
@@ -73,27 +75,34 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
           <ul class="footer-links">
             <li><a href="/ci/migrate">Run Migrations</a></li>
             <li><a href="/ci/students/setup_database">Setup Database</a></li>
-            <li ng-show="isLoggedIn"><a href="#/dashboard">Dashboard</a></li>
+            <li ng-show="isLoggedIn"><a href="/ci/ang/students/dashboard">Dashboard</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <div class="footer-copyright">
-          <p>&copy; 2025 Student Management System. Built with CodeIgniter 2 ....and AngularJS 1.3. .....</p>
+          <p>&copy; 2025 Student Management System. Built with CodeIgniter 2 and AngularJS 1.3.</p>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- AngularJS and application scripts -->
   <script src="assets/angular-1.3.0/angular.js"></script>
   <script src="assets/angular-1.3.0/angular-route.min.js"></script>
   <script src="assets/angular-1.3.0/angular-cookies.js"></script>
   <script src="js/app.js"></script>
   <script src="js/services.js"></script>
+  <!-- <script src="js/controllers.js"></script> -->
   <script src="js/directives.js"></script>
+  <!-- <script src="js/dashboard.js"></script> -->
   <script src="js/routes.js"></script>
-  <script src="js/controllers.js"></script>
-  <script src="js/dashboard.js"></script>
+    <script src="js/controllers/NavController.js"></script>
+   <script src="js/controllers/HomeController.js"></script>
+   <script src="js/controllers/StudentController.js"></script>
+   <script src="js/controllers/StudentFormController.js"></script>
+   <script src="js/controllers/DeletedStudentsController.js"></script>
+   <script src="js/controllers/TestDbController.js"></script>
+   <script src="js/controllers/AuthController.js"></script>
+   <script src="js/controllers/DashboardController.js"></script>
 </body>
 </html>

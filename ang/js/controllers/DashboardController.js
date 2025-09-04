@@ -2,7 +2,7 @@
  * @file DashboardController.js
  * @description Manages the dashboard view, including student counts and recent students.
  */
-angular.module('myApp').controller('DashboardController', ['$scope', 'StudentService', 'AuthService', '$location', function($scope, StudentService, AuthService, $location) {
+angular.module('myApp').controller('DashboardController', ['$scope', 'StudentService', 'AuthService', '$location', '$sce', function($scope, StudentService, AuthService, $location, $sce) {
   $scope.title = 'Student Management Dashboard';
   $scope.totalStudents = 0;
   $scope.totalDeletedStudents = 0;

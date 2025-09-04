@@ -42,7 +42,9 @@
           <td class="table-cell">{{student.email}}</td>
           <td class="table-cell">{{student.phone}}</td>
           <td class="table-cell">{{student.address}}</td>
-          <td class="table-cell">{{student.created_at}}</td>
+          <td class="table-cell">
+            <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>
+         </td>
           <td class="table-cell">
             <button class="btn btn-primary" ng-click="goToEditStudent(student.id)">Edit</button>
           </td>
@@ -53,3 +55,7 @@
     <p ng-if="recentStudents.length === 0" class="no-students-message">No recent students found.</p>
   </div>
 </div>
+
+    <!-- <td>
+  <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>
+</td> -->

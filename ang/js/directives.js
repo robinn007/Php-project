@@ -239,150 +239,246 @@
     };
   });
 
-  // Content editable directive for address field for angular
-app.directive('contentEditable', function() {
+
+app.directive('ckEditor', ['$timeout', function($timeout) {
   return {
     restrict: 'A',
     require: 'ngModel',
     link: function(scope, element, attrs, ngModel) {
-      // Set contenteditable attribute
-      element.attr('contenteditable', 'true');
+      console.log('ckEditor directive initialized');
       
-      // Add placeholder functionality
-      var placeholder = attrs.placeholder || '';
-      
-      function setPlaceholder() {
-        if (!element.text().trim() || element.text() === placeholder) {
-          element.text(placeholder);
-          element.addClass('placeholder-text');
-        }
-      }
-      
-      function removePlaceholder() {
-        if (element.hasClass('placeholder-text')) {
-          element.text('');
-          element.removeClass('placeholder-text');
-        }
-      }
-      
-      // Initialize placeholder
-      if (!ngModel.$viewValue) {
-        setPlaceholder();
-      }
-      
-      // Handle focus events
-      element.on('focus', function() {
-        removePlaceholder();
+      // Initialize CKEditor
+      var ck = CKEDITOR.replace(element[0], {
+        height: 250,
+        allowedContent: true,
+        toolbar: [
+          { name: 'document', items: ['Source', '-', 'Preview', 'Print'] },
+          { name: 'clipboard', items: ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'] },
+          { name: 'editing', items: ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'] },
+          { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar', 'PageBreak', 'Iframe'] },
+          { name: 'links', items: ['Link', 'Unlink', 'Anchor'] },
+          { name: 'tools', items: ['Maximize', 'ShowBlocks'] },
+          { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'] },
+          { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'] },
+          { name: 'styles', items: ['Format', 'Font', 'FontSize'] },
+          { name: 'colors', items: ['TextColor', 'BGColor'] },
+          { name: 'about', items: ['About'] }
+        ]
       });
-      
-      element.on('blur', function() {
-        var content = element.text().trim();
-        if (!content) {
-          setPlaceholder();
-          ngModel.$setViewValue('');
-        } else {
-          ngModel.$setViewValue(content);
-        }
-        ngModel.$setTouched();
-        scope.$apply();
+
+      // Update Angular model when CKEditor content changes
+      ck.on('change', function() {
+        $timeout(function() {
+          var data = ck.getData();
+          ngModel.$setViewValue(data);
+          console.log('CKEditor content updated:', data);
+        });
       });
-      
-      // Handle input events - AngularJS 1.3.0 compatible
-      element.on('input', function() {
-        var content = element.text();
-        if (!element.hasClass('placeholder-text')) {
-          ngModel.$setViewValue(content);
-          // AngularJS 1.3.0 compatible way to set dirty
-          ngModel.$dirty = true;
-          ngModel.$pristine = false;
-        }
-        scope.$apply();
-      });
-      
-      // Handle paste events to clean up formatting
-      element.on('paste', function(e) {
-        e.preventDefault();
-        var clipboardData = e.originalEvent.clipboardData || window.clipboardData;
-        var pastedText = clipboardData.getData('text/plain');
-        
-        // Insert plain text only
-        if (document.execCommand) {
-          document.execCommand('insertText', false, pastedText);
-        } else {
-          // Fallback for browsers that don't support execCommand
-          var selection = window.getSelection();
-          if (selection.rangeCount) {
-            var range = selection.getRangeAt(0);
-            range.deleteContents();
-            range.insertNode(document.createTextNode(pastedText));
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
-          }
-        }
-        
-        // Update model - AngularJS 1.3.0 compatible
-        var content = element.text();
-        if (!element.hasClass('placeholder-text')) {
-          ngModel.$setViewValue(content);
-          ngModel.$dirty = true;
-          ngModel.$pristine = false;
-        }
-        scope.$apply();
-      });
-      
-      // Watch for model changes and update view
+
+      // Initialize CKEditor with model data
       ngModel.$render = function() {
-        if (ngModel.$viewValue) {
-          element.removeClass('placeholder-text');
-          element.text(ngModel.$viewValue);
-        } else {
-          setPlaceholder();
-        }
+        var value = ngModel.$viewValue || '';
+        ck.setData(value);
+        console.log('CKEditor rendered with:', value);
       };
-      
-      // Validation function for content length - AngularJS 1.3.0 compatible
+
+      // Validate content length
       function validateContent(value) {
-        var maxLength = parseInt(attrs.maxlength) || 500;
+        var maxLength = parseInt(attrs.maxlength) || 2000;
         var minLength = parseInt(attrs.minlength) || 0;
         
-        if (!value) {
+        // Handle undefined, null, or non-string values
+        if (value == null || typeof value !== 'string') {
           ngModel.$setValidity('required', !attrs.required);
           ngModel.$setValidity('minlength', true);
           ngModel.$setValidity('maxlength', true);
-          return value;
+          return value; // Return as-is to avoid further processing
         }
-        
-        var trimmedValue = value.trim();
-        var length = trimmedValue.length;
-        
-        ngModel.$setValidity('required', length > 0);
+
+        // Strip HTML tags to count plain text length
+        var plainText = value.replace(/<[^>]+>/g, '');
+        var length = plainText.length;
+
+        ngModel.$setValidity('required', length > 0 || !attrs.required);
         ngModel.$setValidity('minlength', length >= minLength);
         ngModel.$setValidity('maxlength', length <= maxLength);
-        
+
         return value;
       }
-      
-      // Add validation
+
+      // Add validation for parsers and formatters
       ngModel.$parsers.push(validateContent);
       ngModel.$formatters.push(validateContent);
+
+      // Clean up CKEditor instance on scope destroy
+      scope.$on('$destroy', function() {
+        if (ck) {
+          ck.destroy();
+        }
+      });
+    }
+  };
+}]);
+
+/**
+ * @ngdoc filter
+ * @name plainText
+ * @description Strips HTML tags from a string to return plain text.
+ * @param {string} input - Input string containing HTML
+ * @returns {string} Plain text without HTML tags
+ */
+app.filter('plainText', function() {
+  return function(input) {
+    if (!input || typeof input !== 'string') return input;
+    return input.replace(/<[^>]+>/g, '');
+  };
+});
+
+
+/**
+ * @file email-link.directive.js
+ * @description Directive for creating clickable email links with customizable mailto functionality
+ */
+
+app.directive('emailLink', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      email: '@',           // Email address (required)
+      name: '@',            // Student/Person name (optional)
+      subject: '@',         // Custom subject (optional)
+      body: '@',            // Custom body (optional)
+      displayText: '@',     // Custom display text (optional, defaults to email)
+      cssClass: '@',        // Custom CSS class (optional)
+      target: '@'           // Link target (optional, defaults to '_blank')
+    },
+    template: '<a ng-href="{{ mailtoUrl }}" target="{{ linkTarget }}" ng-class="{{ linkClass }}">{{ linkText }}</a>',
+    link: function(scope) {
+      
+      // Set default values
+      scope.linkTarget = scope.target || '_blank';
+      scope.linkText = scope.displayText || scope.email;
+      scope.linkClass = scope.cssClass || '';
+      
+      // Build mailto URL
+      function buildMailtoUrl() {
+        if (!scope.email) {
+          scope.mailtoUrl = '#';
+          return;
+        }
+        
+        let url = 'mailto:' + scope.email;
+        let params = [];
+        
+        // Add subject
+        let subject = scope.subject;
+        if (!subject && scope.name) {
+          subject = 'Hello ' + scope.name;
+        }
+        if (subject) {
+          params.push('subject=' + encodeURIComponent(subject));
+        }
+        
+        // Add body
+        let body = scope.body;
+        if (!body && scope.name) {
+          body = 'Dear ' + scope.name + ',';
+        }
+        if (body) {
+          params.push('body=' + encodeURIComponent(body));
+        }
+        
+        // Combine URL with parameters
+        if (params.length > 0) {
+          url += '?' + params.join('&');
+        }
+        
+        scope.mailtoUrl = url;
+      }
+      
+      // Watch for changes in email, name, subject, or body
+      scope.$watchGroup(['email', 'name', 'subject', 'body'], function() {
+        buildMailtoUrl();
+      });
+      
+      // Initial build
+      buildMailtoUrl();
     }
   };
 });
 
-/**
- * @file directives.js
- * @description Custom AngularJS directives for the Student Management System.
- */
 
 /**
- * @ngdoc directive
- * @name tinyMce
- * @description Integrates TinyMCE rich text editor with AngularJS for two-way data binding.
- * @element textarea
+ * @file phone-link.directive.js
+ * @description Directive for creating clickable phone links with tel: functionality
  */
-/**
- * @file directives.js
- * @description Custom AngularJS directives for the Student Management System.
- */
+
+app.directive('phoneLink', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      phone: '@',           // Phone number
+      displayText: '@',     // Custom display text (optional)
+      emptyText: '@',       // Text when no phone (optional, defaults to 'N/A')
+      cssClass: '@'         // Custom CSS class (optional)
+    },
+    template: '<a ng-if="phone && phone.trim()" ng-href="tel:{{ cleanPhone }}" ng-class="cssClass">{{ displayText || phone }}</a>' +
+              '<span ng-if="!phone || !phone.trim()" ng-class="cssClass">{{ emptyText || "N/A" }}</span>',
+    link: function(scope, element, attrs) {
+      
+      // Watch for phone changes and clean it for tel: URL
+      scope.$watch('phone', function(newPhone) {
+        if (newPhone && newPhone.trim()) {
+          // Remove spaces, dashes, parentheses, dots for clean tel: URL
+          scope.cleanPhone = newPhone.replace(/[\s\-\(\)\.]/g, '');
+        }
+      });
+    }
+  };
+});
+
+
+
+// New: Contenteditable directive for two-way data binding
+app.directive('contenteditableModel', ['$sce', function($sce) {
+  return {
+    restrict: 'A',
+    require: 'ngModel',
+    link: function(scope, element, attrs, ngModel) {
+      
+      // View -> Model
+      function read() {
+        var html = element.html();
+        // When we clear the content editable the browser leaves a <br> behind
+        // If strip-br attribute is provided then we strip this out
+        if (attrs.stripBr && html === '<br>') {
+          html = '';
+        }
+        ngModel.$setViewValue(html);
+      }
+
+      // Model -> View
+      ngModel.$render = function() {
+        var value = ngModel.$viewValue || '';
+        element.html($sce.trustAsHtml(value));
+      };
+
+      // Listen for change events to enable binding
+      element.on('blur keyup change', function() {
+        scope.$evalAsync(read);
+      });
+
+      // Handle paste events
+      element.on('paste', function(e) {
+        setTimeout(function() {
+          scope.$evalAsync(read);
+        }, 0);
+      });
+
+      // Initialize
+      read();
+    }
+  };
+}]);
+
 

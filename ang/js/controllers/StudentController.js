@@ -7,6 +7,7 @@ angular.module('myApp').controller('StudentController', ['$scope', 'StudentServi
   $scope.students = [];
   $scope.flashMessage = 'Loading students...';
   $scope.flashType = 'info';
+  
 
   console.log('StudentController initialized');
 
@@ -61,8 +62,6 @@ angular.module('myApp').controller('StudentController', ['$scope', 'StudentServi
       });
     }
   };
-
-
   /**
    * @event studentUpdated
    * @description Listens for student update events to refresh the student list.

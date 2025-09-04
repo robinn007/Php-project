@@ -13,18 +13,22 @@
     </tr>
   </thead>
   <tbody>
-    <tr ng-repeat="student in students" id="student-{{ student.id }}">
+   <tr ng-repeat="student in students" id="student-{{ student.id }}">
       <td>{{ student.id }}</td>
       <td>{{ student.name }}</td>
       <td>
-      <a ng-href="mailto:{{ student.email }}?subject=Hello {{ student.name }}&body=Dear {{ student.name }}," target="_blank">{{ student.email }}</a>
+        <!-- Using the email-link directive -->
+        <email-link 
+          email="{{ student.email }}" 
+          name="{{ student.name }}">
+        </email-link>
       </td>
-     <td>
-    <a ng-if="student.phone" ng-href="tel:{{ student.phone }}">{{ student.phone }}</a>
-    <span ng-if="!student.phone">N/A</span>
-</td>
       <td>
-        {{ student.address || 'N/A' }}
+        <!--  phone-link directive replaces your original code -->
+        <phone-link phone="{{ student.phone }}"></phone-link>
+      </td>
+      <td>
+        <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>
       </td>
       <td>
         <a href="/ci/ang/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student" ng-if="showEdit">Edit</a>

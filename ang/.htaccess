@@ -8,3 +8,29 @@
     RewriteCond %{REQUEST_URI} !^/ci/(auth|students|migrate|setup|test)/
     RewriteRule ^(.*)$ index.php [L]
 </IfModule>
+
+
+## virtual host step -1 
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /ci/ang/
+
+#     # Don't rewrite requests for files, directories, or API routes
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteCond %{REQUEST_URI} !^/ci/(auth|students|migrate|setup|test)/
+#     RewriteRule ^(.*)$ index.php [L]
+# </IfModule>
+
+## virtual host step - 2
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /
+
+#     # Don't rewrite requests for files, directories, or API routes
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteCond %{REQUEST_URI} !^/(auth|students|migrate|setup|test)/
+#     RewriteRule ^(.*)$ index.php [L]
+# </IfModule>

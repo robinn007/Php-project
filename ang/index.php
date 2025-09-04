@@ -17,10 +17,10 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
 <body>
   <nav class="navbar" ng-controller="NavController">
     <div class="navbar-container">
-      <a href="/ci/ang/students" class="navbar-brand">Home2</a>
+      <a href="/ci/ang/students" class="navbar-brand">Home</a>
       <ul class="navbar-nav">
         <li ng-show="isLoggedIn">
-          <a href="/ci/ang/students/dashboard" class="nav-link" ng-class="{ active: currentPath == '/students/dashboard' }">Dashboard2</a>
+          <a href="/ci/ang/students/dashboard" class="nav-link" ng-class="{ active: currentPath == '/students/dashboard' }">Dashboard</a>
         </li>
         <li ng-show="isLoggedIn">
           <a href="/ci/ang/students/add" class="nav-link" ng-class="{ active: currentPath == '/students/add' }">Add Student</a>
@@ -50,8 +50,6 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
       <div ng-view></div>
     </div>
   </main>
-
-
 
   <footer class="footer">
     <div class="footer-container">
@@ -87,8 +85,6 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
     </div>
   </footer>
 
-
-  <script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
   <script src="assets/angular-1.3.0/angular.js"></script>
   <script src="assets/angular-1.3.0/angular-route.min.js"></script>
   <script src="assets/angular-1.3.0/angular-cookies.js"></script>
@@ -97,13 +93,13 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
   <script src="js/services.js"></script>
   <script src="js/directives.js"></script>
   <script src="js/routes.js"></script>
-    <script src="js/controllers/NavController.js"></script>
-   <script src="js/controllers/HomeController.js"></script>
-   <script src="js/controllers/StudentController.js"></script>
-   <script src="js/controllers/StudentFormController.js"></script>
-   <script src="js/controllers/DeletedStudentsController.js"></script>
-   <script src="js/controllers/TestDbController.js"></script>
-   <script src="js/controllers/AuthController.js"></script>
-   <script src="js/controllers/DashboardController.js"></script>
+  <script src="js/controllers/NavController.js"></script>
+  <script src="js/controllers/HomeController.js"></script>
+  <script src="js/controllers/StudentController.js"></script>
+  <script src="js/controllers/StudentFormController.js"></script>
+  <script src="js/controllers/DeletedStudentsController.js"></script>
+  <script src="js/controllers/TestDbController.js"></script>
+  <script src="js/controllers/AuthController.js"></script>
+  <script src="js/controllers/DashboardController.js"></script>
 </body>
 </html>

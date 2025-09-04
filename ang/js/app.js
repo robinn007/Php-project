@@ -3,7 +3,7 @@
  * Initializes the application and handles CSRF token management and authentication checks.
  */
 
-var app = angular.module('myApp', ['ngRoute', 'ngCookies']);
+var app = angular.module('myApp', ['ngRoute', 'ngCookies', 'ngSanitize']);
 
 
 /**

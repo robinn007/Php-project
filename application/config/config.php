@@ -22,7 +22,9 @@
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = 'http://localhost/ci/';
+//$config['base_url'] = 'http://localhost/ci/';
+$config['base_url'] = 'http://localhost/students/';
+//$config['base_url'] = 'http://localhost.students/';
 //$config['encryption_key'] = 'd1a79fc037a40b3bd0740d9a6184f7b9';
 
 

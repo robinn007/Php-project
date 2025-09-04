@@ -17,7 +17,7 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
 <body>
   <nav class="navbar" ng-controller="NavController">
     <div class="navbar-container">
-      <a href="/students" class="navbar-brand">Home111</a>
+      <a href="/ci/ang/students" class="navbar-brand">Home111</a>
       <ul class="navbar-nav">
         <li ng-show="isLoggedIn">
           <a href="/dashboard" class="nav-link" ng-class="{ active: currentPath == '/dashboard' }">Dashboard...</a>

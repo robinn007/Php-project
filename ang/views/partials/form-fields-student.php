@@ -1,92 +1,83 @@
-<!-- Full name field, required -->
-<div class="form-group">
-  <label for="name">Full Name <span class="required">*</span></label>
-  <input 
-    type="text" 
-    id="name"
-    name="name"
-    ng-model="student.name" 
-    required 
-    placeholder="Enter student's full name" 
-    maxlength="100"
-    class="form-control">
-  <!-- Validation error for required field -->
-  <span ng-show="studentForm.name.$touched && studentForm.name.$error.required" 
-        style="color: #dc3545; font-size: 14px; margin-top: 5px;">
-    Name is required
-  </span>
-</div>
-
-<!-- Email field, required with valid-email directive -->
-<div class="form-group">
-  <label for="email">Email Address <span class="required">*</span></label>
-  <input 
-    type="email" 
-    id="email"
-    name="email" 
-    ng-model="student.email" 
-    required 
-    valid-email
-    placeholder="Enter email address" 
-    maxlength="100"
-    class="form-control">
-  <!-- Validation error for required field -->
-  <span ng-show="studentForm.email.$touched && studentForm.email.$error.required" 
-        style="color: #dc3545; font-size: 14px; margin-top: 5px;">
-    Email is required
-  </span>
-  <!-- Custom directive for email validation error message -->
-  <email-validation-message form="studentForm" field="email"></email-validation-message>
-</div>
-
-<!-- Phone field with valid-phone directive -->
-<div class="form-group">
-  <label for="phone">Phone Number</label>
-  <input 
-    type="text" 
-    id="phone"
-    name="phone"
-    ng-model="student.phone" 
-    valid-phone
-    placeholder="Enter phone number (e.g., +91-555-123-4567, (555) 123-4567)" 
-    maxlength="20"
-    class="form-control">
-  <!-- Custom directive for phone validation error message -->
-  <phone-validation-message form="studentForm" field="phone"></phone-validation-message>
-</div>
-
-<!-- Address field, optional -->
-  <div class="form-group">
-  <label for="address">Address</label>
-  <div 
-    id="address"
-    name="address"
-    ng-model="student.address" 
-    content-editable
-    placeholder="Enter complete address (optional)"
-    class="form-control content-editable-field"
-    maxlength="500"
-    minlength="0"></div> 
+<div class="student-form-container">
+  <h1>{{ title }}</h1>
   
-  <!-- // Address validation messages -->
-    <span ng-show="studentForm.address.$touched && studentForm.address.$error.maxlength" 
-        class="error-message">
-    Address cannot exceed 500 characters
-  </span> 
-  
-  <!-- Character counter -->
-    <div class="character-counter" 
-       ng-show="student.address && student.address.length > 0"
-       ng-class="{
-         'warning': student.address.length > 400, 
-         'danger': student.address.length > 450
-       }">
-    {{ student.address.length || 0 }}/500 characters
-  </div> 
-  </div> 
+  <!-- Flash Message -->
+  <div ng-show="flashMessage" class="flash-message flash-{{ flashType }}">
+    {{ flashMessage }}
+  </div>
 
+  <form name="studentForm" ng-submit="submitForm()" novalidate>
+    
+    <!-- Name Field -->
+    <div class="form-group">
+      <label for="name">Name *</label>
+      <input 
+        type="text" 
+        id="name" 
+        name="name" 
+        ng-model="student.name" 
+        required 
+        maxlength="100"
+        class="form-control"
+        ng-class="{ 'error': studentForm.name.$invalid && studentForm.name.$touched }"
+      >
+      <div ng-show="studentForm.name.$invalid && studentForm.name.$touched" class="error-message">
+        <span ng-show="studentForm.name.$error.required">Name is required.</span>
+        <span ng-show="studentForm.name.$error.maxlength">Name must be less than 100 characters.</span>
+      </div>
+    </div>
 
- <!-- <div class="form-group">
-  <label for="address">Address</label>
-  <textarea id="address" name="address" ng-model="student.address" tiny-mce class="form-control"></textarea>
-</div>  -->
+    <!-- Email Field -->
+    <div class="form-group">
+      <label for="email">Email *</label>
+      <input 
+        type="email" 
+        id="email" 
+        name="email" 
+        ng-model="student.email" 
+        required 
+        maxlength="150"
+        class="form-control"
+        ng-class="{ 'error': studentForm.email.$invalid && studentForm.email.$touched }"
+      >
+      <div ng-show="studentForm.email.$invalid && studentForm.email.$touched" class="error-message">
+        <span ng-show="studentForm.email.$error.required">Email is required.</span>
+        <span ng-show="studentForm.email.$error.email">Please enter a valid email address.</span>
+        <span ng-show="studentForm.email.$error.maxlength">Email must be less than 150 characters.</span>
+      </div>
+    </div>
+
+    <!-- Phone Field -->
+    <div class="form-group">
+      <label for="phone">Phone</label>
+      <input 
+        type="tel" 
+        id="phone" 
+        name="phone" 
+        ng-model="student.phone" 
+        maxlength="20"
+        class="form-control"
+        ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
+      >
+      <div ng-show="studentForm.phone.$invalid && studentForm.phone.$touched" class="error-message">
+        <span ng-show="studentForm.phone.$error.maxlength">Phone must be less than 20 characters.</span>
+      </div>
+    </div>
+
+    <!-- Address Field (Contenteditable) -->
+    <div class="form-group">
+      <label for="address">Address</label>
+      <div 
+        id="address"
+        name="address"
+        contenteditable="true"
+        ng-model="student.address"
+        class="form-control contenteditable-field"
+        placeholder="Enter student address..."
+        contenteditable-model
+      ></div>
+    </div>
+
+    <!-- Form Actions -->
+  </form>
+</div>

@@ -35,7 +35,7 @@ class Student_model extends CI_Model {
         return $query->result_array();
     }
 
-    public function manage_student($action, $id = null, $data = array()) {
+  public function manage_student($action, $id = null, $data = array()) {
     switch ($action) {
         case 'add':
             // Check for duplicate email
@@ -44,6 +44,11 @@ class Student_model extends CI_Model {
             $query = $this->db->get('students');
             if ($query->num_rows() > 0) {
                 log_message('error', 'Duplicate email detected: ' . $data['email']);
+                return false;
+            }
+            // Validate address length (plain text)
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 500) {
+                log_message('error', 'Address exceeds maximum length of 500 characters');
                 return false;
             }
             log_message('debug', 'Attempting to insert student: ' . json_encode($data));
@@ -62,6 +67,11 @@ class Student_model extends CI_Model {
             $query = $this->db->get('students');
             if ($query->num_rows() > 0) {
                 log_message('error', 'Duplicate email detected: ' . $data['email']);
+                return false;
+            }
+            // Validate address length (plain text)
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 500) {
+                log_message('error', 'Address exceeds maximum length of 500 characters');
                 return false;
             }
             log_message('debug', 'Attempting to update student ID: ' . $id . ' with data: ' . json_encode($data));

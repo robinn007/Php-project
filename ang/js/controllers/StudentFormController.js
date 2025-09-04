@@ -1,11 +1,8 @@
 /**
  * @file StudentFormController.js
- * @description Controller for managing the student form (add/edit).
+ * @description Controller for managing the student form (add/edit) with contenteditable address field.
  */
-
-
-// StudentFormController
-angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', function($scope, $routeParams, $location, StudentService, $rootScope) {
+angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', '$sce', function($scope, $routeParams, $location, StudentService, $rootScope, $sce) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
   $scope.action = $routeParams.id ? 'edit' : 'add';
@@ -24,8 +21,9 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
           name: response.data.student.name || '',
           email: response.data.student.email || '',
           phone: response.data.student.phone || '',
-          address: response.data.student.address || ''
+          address: response.data.student.address || '',
         };
+        console.log('Loaded address field:', $scope.student.address);
         $scope.flashMessage = 'Student data loaded successfully.';
         $scope.flashType = 'success';
       } else {
@@ -40,15 +38,35 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     });
   }
 
-   /**
+  /**
+   * @function cleanAddressContent
+   * @description Cleans the address content from the contenteditable div
+   * @param {string} content - Raw HTML content from contenteditable
+   * @returns {string} Cleaned content
+   */
+  $scope.cleanAddressContent = function(content) {
+    if (!content) return '';
+    
+    // Remove empty paragraphs and line breaks that browsers might add
+    var cleaned = content.replace(/<p><br><\/p>/gi, '')
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/<div><br><\/div>/gi, '\n')
+                        .replace(/<div>/gi, '\n')
+                        .replace(/<\/div>/gi, '')
+                        .trim();
+    
+    return cleaned;
+  };
+
+  /**
    * @function submitForm
    * @description Submits the student form for adding or editing a student.
    */
   $scope.submitForm = function() {
-    console.log('Submitting form. Action:', $scope.action, 'Student:', $scope.student);
+    console.log('Submitting form. Action:', $scope.action, 'Student:', JSON.stringify($scope.student, null, 2));
     
     if ($scope.studentForm.$invalid) {
-      $scope.flashMessage = 'Please correct the phone number in the form before submitting.';
+      $scope.flashMessage = 'Please correct the errors in the form before submitting.';
       $scope.flashType = 'error';
       
       angular.forEach($scope.studentForm, function(field, name) {
@@ -65,9 +83,13 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
       return;
     }
 
+    // Clean the address content before submitting
+    var studentData = angular.copy($scope.student);
+    studentData.address = $scope.cleanAddressContent(studentData.address);
+
     var promise = $scope.action === 'edit' ?
-      StudentService.updateStudent($routeParams.id, $scope.student) :
-      StudentService.addStudent($scope.student);
+      StudentService.updateStudent($routeParams.id, studentData) :
+      StudentService.addStudent(studentData);
 
     promise.then(function(response) {
       console.log('Submit response:', JSON.stringify(response.data, null, 2));
@@ -75,7 +97,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
         $scope.flashMessage = response.data.message || ($scope.action === 'edit' ? 'Student updated successfully.' : 'Student added successfully.');
         $scope.flashType = 'success';
         $rootScope.$broadcast('studentUpdated');
-        $location.path('/students'); // Updated to clean URL
+        $location.path('/students');
       } else {
         $scope.flashMessage = response.data.message || 'Operation failed: Unknown error.';
         $scope.flashType = 'error';
@@ -88,13 +110,12 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     });
   };
 
-
   /**
    * @function goToStudents
    * @description Navigates to the students list page.
    */
   $scope.goToStudents = function() {
     console.log('Navigating to /students');
-    $location.path('/students'); // Updated to clean URL
+    $location.path('/students');
   };
 }]);

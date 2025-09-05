@@ -41,10 +41,10 @@
           <td class="table-cell">{{student.name}}</td>
           <td class="table-cell">{{student.email}}</td>
           <td class="table-cell">{{student.phone}}</td>
-          <td class="table-cell">{{student.address}}</td>
           <td class="table-cell">
-            <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>
-         </td>
+             <div>{{ student.address | addressFilter:'short' || 'N/A' }}</div>
+          </td>
+          <td class="table-cell">{{student.created_at}}</td>
           <td class="table-cell">
             <button class="btn btn-primary" ng-click="goToEditStudent(student.id)">Edit</button>
           </td>

@@ -38,7 +38,17 @@
   
       </td>
       <td>
-        <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>
+         <div>{{ student.address | addressFilter:'short' || 'N/A' }}</div>
+         <!-- Debug outputs for address - TESTING FILTERS -->
+        <!-- <div><strong>Original:</strong> <span style="background: #f0f0f0; padding: 2px;">{{ student.address }}</span></div>
+        <div><strong>Clean:</strong> {{ student.address | addressFilter:'clean' }}</div>
+        <div><strong>One Line:</strong> {{ student.address | addressFilter:'oneline' }}</div>
+        <div><strong>Short:</strong> {{ student.address | addressFilter:'short' }}</div>
+        <div><strong>Format:</strong> {{ student.address | addressFilter:'format' }}</div>
+        <div><strong>Validate:</strong> {{ student.address | addressFilter:'validate' }}</div>
+        <div><strong>Postal:</strong> {{ student.address | addressFilter:'postal' }}</div>
+        <div><strong>Count:</strong> {{ student.address | addressFilter:'count' }}</div>
+        <div><strong>Lines:</strong> {{ student.address | addressFilter:'lines' }}</div>  -->
       </td>
       <td>
         <a href="/ci/ang/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student" ng-if="showEdit">Edit</a>

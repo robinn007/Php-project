@@ -533,3 +533,170 @@ app.filter('phoneFilter', function() {
     return result;
   };
 });
+
+// Address Filter - TEXT CLEANING AND FORMATTING
+app.filter('addressFilter', function() {
+  return function(input, operation) {
+    console.log('addressFilter - Input:', input, 'Operation:', operation); // Debug log
+    
+    // Return empty string for null/undefined input
+    if (!input) {
+      console.log('addressFilter - No input provided, returning empty string');
+      return '';
+    }
+    
+    // Ensure input is a string
+    if (typeof input !== 'string') {
+      console.log('addressFilter - Input is not a string:', typeof input);
+      input = String(input);
+    }
+
+    var result = input;
+    
+    switch (operation) {
+      case 'clean':
+        // Remove HTML tags, extra whitespace, and normalize line breaks
+        result = input
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular space
+          .replace(/&amp;/g, '&')  // Replace &amp; with &
+          .replace(/&lt;/g, '<')   // Replace &lt; with <
+          .replace(/&gt;/g, '>')   // Replace &gt; with >
+          .replace(/\s+/g, ' ')    // Replace multiple spaces with single space
+          .trim();                 // Remove leading/trailing whitespace
+        break;
+        
+      case 'oneline':
+        // Convert to single line, replacing line breaks with commas
+        result = input
+          .replace(/<[^>]*>/g, '') // Remove HTML tags first
+          .replace(/&nbsp;/g, ' ') // Replace &nbsp;
+          .replace(/[\r\n]+/g, ', ') // Replace line breaks with commas
+          .replace(/\s+/g, ' ')    // Replace multiple spaces with single space
+          .replace(/,\s*,/g, ',')  // Remove duplicate commas
+          .replace(/,\s*$/, '')    // Remove trailing comma
+          .trim();
+        break;
+        
+      case 'short':
+        // Truncate to first 50 characters and add ellipsis if needed
+        var cleaned = input
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (cleaned.length > 50) {
+          result = cleaned.substring(0,35) + '...';
+        } else {
+          result = cleaned;
+        }
+        break;
+        
+      case 'format':
+        // Format address with proper capitalization and structure
+        result = input
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/&nbsp;/g, ' ') // Replace &nbsp;
+          .replace(/\s+/g, ' ')    // Clean multiple spaces
+          .trim()
+          .split(/[\r\n,]+/)       // Split by line breaks or commas
+          .map(function(line) {
+            return line.trim()
+              .split(' ')
+              .map(function(word) {
+                // Capitalize first letter of each word, but keep abbreviations
+                if (word.length <= 2 && word.toUpperCase() === word) {
+                  return word; // Keep abbreviations like "St", "Dr", "CA"
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+              })
+              .join(' ');
+          })
+          .filter(function(line) { return line.length > 0; }) // Remove empty lines
+          .join(', '); // Join with commas
+        break;
+        
+      case 'validate':
+        // Basic validation - check if address has minimum required content
+        var cleaned = input
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (cleaned.length < 5) {
+          result = 'Too short (minimum 5 characters)';
+        } else if (cleaned.length > 500) {
+          result = 'Too long (maximum 500 characters)';
+        } else {
+          // Check if it has some structure (letters, numbers, basic punctuation)
+          var hasLetters = /[a-zA-Z]/.test(cleaned);
+          var hasNumbers = /[0-9]/.test(cleaned);
+          
+          if (hasLetters && hasNumbers) {
+            result = 'Valid address';
+          } else if (hasLetters) {
+            result = 'Valid address (no street number)';
+          } else {
+            result = 'Invalid address (needs letters)';
+          }
+        }
+        break;
+        
+      case 'postal':
+        // Extract postal/zip codes from address
+        var postalRegex = /\b(\d{5}(-\d{4})?|\d{6}|[A-Z]\d[A-Z]\s*\d[A-Z]\d)\b/g;
+        var matches = input.match(postalRegex);
+        
+        if (matches && matches.length > 0) {
+          result = matches[0]; // Return first postal code found
+        } else {
+          result = 'No postal code found';
+        }
+        break;
+        
+      case 'count':
+        // Count characters in cleaned address
+        var cleaned = input
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        result = cleaned.length + ' characters';
+        break;
+        
+      case 'lines':
+        // Count number of lines in address
+        var lines = input
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .split(/[\r\n]+/)
+          .filter(function(line) { return line.trim().length > 0; });
+        
+        result = lines.length + ' lines';
+        break;
+        
+      case 'html':
+        // Convert line breaks to HTML <br> tags for display
+        result = input
+          .replace(/&/g, '&amp;')      // Escape ampersands first
+          .replace(/</g, '&lt;')       // Escape less than
+          .replace(/>/g, '&gt;')       // Escape greater than
+          .replace(/"/g, '&quot;')     // Escape quotes
+          .replace(/'/g, '&#x27;')     // Escape single quotes
+          .replace(/[\r\n]+/g, '<br>') // Convert line breaks to <br>
+          .replace(/\s+/g, ' ')        // Clean multiple spaces
+          .trim();
+        break;
+        
+      default:
+        console.log('addressFilter - Unknown operation:', operation, '- returning original input');
+        result = input;
+    }
+    
+    console.log('addressFilter - Final Result:', result);
+    return result;
+  };
+});

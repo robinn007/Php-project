@@ -58,8 +58,8 @@ class Students extends CI_Controller {
     }
 
     // Log the raw input for debugging
-    $raw_input = file_get_contents('php://input');
-    log_message('debug', 'Students manage raw input: ' . $raw_input);
+    // $raw_input = file_get_contents('php://input');
+    // log_message('debug', 'Students manage raw input: ' . $raw_input);
 
     // // Decode JSON input
     // $json_data = json_decode($raw_input, true);

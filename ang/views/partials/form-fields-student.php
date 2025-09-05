@@ -55,6 +55,7 @@
         id="phone" 
         name="phone" 
         ng-model="student.phone" 
+        required
         maxlength="20"
         class="form-control"
         ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
@@ -78,6 +79,5 @@
       ></div>
     </div>
 
-    <!-- Form Actions -->
   </form>
 </div>

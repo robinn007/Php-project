@@ -101,7 +101,7 @@ class Students extends CI_Controller {
             // Set form validation rules
             $this->form_validation->set_rules('student[name]', 'Name', 'required|trim');
             $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
-            $this->form_validation->set_rules('student[phone]', 'Phone', 'trim');
+            $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
             $this->form_validation->set_rules('student[address]', 'Address', 'trim');
 
             // Log POST data after setting
@@ -152,7 +152,7 @@ class Students extends CI_Controller {
 
             $this->form_validation->set_rules('student[name]', 'Name', 'required|trim');
             $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
-            $this->form_validation->set_rules('student[phone]', 'Phone', 'trim');
+            $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
             $this->form_validation->set_rules('student[address]', 'Address', 'trim');
 
             log_message('debug', 'POST data for edit: ' . json_encode($this->input->post()));

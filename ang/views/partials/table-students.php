@@ -13,19 +13,29 @@
     </tr>
   </thead>
   <tbody>
-   <tr ng-repeat="student in students" id="student-{{ student.id }}">
+    <tr ng-repeat="student in students" id="student-{{ student.id }}">
       <td>{{ student.id }}</td>
       <td>{{ student.name }}</td>
       <td>
-        <!-- Using the email-link directive -->
+        <!-- Using emailFilter with 'mask' operation -->
         <email-link 
-          email="{{ student.email }}" 
-          name="{{ student.name }}">
-        </email-link>
+          email="{{ student.email | emailFilter:'mask' }}" 
+          name="{{ student.name }}"
+          display-text="{{ student.email | emailFilter:'username' }}"
+        ></email-link>
+          <!-- Debug outputs -->
+  <!-- <div>Validate: {{ student.email | emailFilter:'validate' }}</div>
+  <div>Domain: {{ student.email | emailFilter:'domain' }}</div>
+  <div>Username: {{ student.email | emailFilter:'username' }}</div>
+  <div>Mask: {{ student.email | emailFilter:'mask' }}</div> -->
       </td>
       <td>
-        <!--  phone-link directive replaces your original code -->
-        <phone-link phone="{{ student.phone }}"></phone-link>
+        <!-- Using phoneFilter with 'format' operation -->
+        <phone-link 
+          phone="{{ student.phone | phoneFilter:'format' }}"
+          display-text="{{ student.phone | phoneFilter:'mask' }}"
+        ></phone-link>
+  
       </td>
       <td>
         <div ng-bind-html="student.address || 'N/A'">{{ student.address }}</div>

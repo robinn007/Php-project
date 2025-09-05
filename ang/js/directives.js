@@ -1,319 +1,40 @@
-  /**
-   * @file directive.js
-   * @description Defines custom directives and filters for the Student Management System.
-   * Includes flash message handling, email/phone validation, and text formatting.
-   */
+/**
+ * @file directives.js
+ * @description Defines custom directives and filters for the Student Management System.
+ * Includes flash message handling, email/phone validation, and text formatting.
+ */
 
-  /**
-   * @ngdoc directive
-   * @name flashMessage
-   * @description Displays temporary flash messages that auto-hide after 5 seconds.
-   * @restrict A
-   * @param {Object} $timeout - Angular timeout service
-   */
+// Initialize the app variable if not already defined
+var app = angular.module('myApp');
 
-
-  app.directive('flashMessage', ['$timeout', function($timeout) {
-    console.log('flash-message directive initialized'); // Debug
-    return {
-      restrict: 'A',
-      link: function(scope, element) {
-        // Initial state: hide element if no message
-        if (!scope.flashMessage) {
-          element.css('display', 'none');
-        }
-
-        scope.$watch('flashMessage', function(newVal) {
-          if (newVal) {
-            element.css('display', 'block'); // Show element
-            $timeout(function() {
-              scope.flashMessage = '';
-              scope.flashType = '';
-              scope.$apply(); // Ensure scope updates
-              element.css('display', 'none'); // Hide after 5 seconds
-            }, 5000);
-          } else {
-            element.css('display', 'none'); // Hide if no message
-          }
-        });
-      }
-    };
-  }]);
-
-  /**
-   * @ngdoc filter
-   * @name capitalizeFilter
-   * @description Capitalizes the first letter of a string and lowercases the rest.
-   * @param {string} input - Input string to transform
-   * @returns {string} Transformed string
-   * */
-
-  app.filter('capitalizeFilter', function() {
-    return function(input) {
-      if (!input || typeof input !== 'string') return input;
-      return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
-    };
-  });
-
-  /**
-   * @ngdoc directive
-   * @name validEmail
-   * @description Validates email input fields using a regex pattern.
-   * @restrict A
-   * @requires ngModel
-   * */
-
-  // Email validation directive
-  app.directive('validEmail', function() {
-    var EMAIL_REGEXP = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    
-    return {
-      restrict: 'A',
-      require: 'ngModel',
-      link: function(scope, element, attrs, ngModel) {
-        // Only apply validation if the element has a value
-        /**
-         * @function validate
-         * @description Validates the email input and updates validity state.
-         * @param {string} value - Input value to validate
-         * @returns {string|undefined} Valid email or undefined if invalid
-         */
-        function validate(value) {
-          var valid = !value || EMAIL_REGEXP.test(value);
-          ngModel.$setValidity('validEmail', valid);
-          
-          // Add/remove CSS class based on validation state
-          if (value && !valid) {
-            element.addClass('email-invalid');
-          } else {
-            element.removeClass('email-invalid');
-          }
-          
-          return valid ? value : undefined;
-        }
-
-        // For DOM -> model validation
-        ngModel.$parsers.unshift(validate);
-        // For model -> DOM validation
-        ngModel.$formatters.unshift(validate);
-        
-        // Watch for changes in the model to update styling
-        scope.$watch(function() {
-          return ngModel.$viewValue;
-        }, function(newValue) {
-          validate(newValue);
-        });
-      }
-    };
-  });
-
-  /**
-   * @ngdoc directive
-   * @name validPhone
-   * @description Validates phone number input fields with various formats.
-   * @restrict A
-   * @requires ngModel
-   */
-
-  // Phone number validation directive
-  app.directive('validPhone', function() {
-    // Supports various phone number formats:
-    // +1-555-123-4567, (555) 123-4567, 555.123.4567, 5551234567, +91 9876543210, etc.
-    var PHONE_REGEXP = /^[\+]?[\s]?[(]?[\d\s\-\(\)\.]{10,15}$/;
-    
-    return {
-      restrict: 'A',
-      require: 'ngModel',
-      link: function(scope, element, attrs, ngModel) {
-          /**
-         * @function validate
-         * @description Validates the phone number input and updates validity state.
-         * @param {string} value - Input value to validate
-         * @returns {string|undefined} Valid phone number or undefined if invalid
-         */
-        function validate(value) {
-          // If no value, it's valid (optional field)
-          if (!value) {
-            ngModel.$setValidity('validPhone', true);
-            element.removeClass('phone-invalid');
-            return value;
-          }
-          
-          // Clean the phone number for validation (remove spaces, dashes, parentheses, dots)
-          var cleanPhone = value.replace(/[\s\-\(\)\.]/g, '');
-          
-          // Check if it matches phone pattern and has appropriate length
-          var isValidFormat = PHONE_REGEXP.test(value);
-          var isValidLength = cleanPhone.length >= 10 && cleanPhone.length <= 15;
-          var hasOnlyValidChars = /^[\+\d\s\-\(\)\.]+$/.test(value);
-          
-          var valid = isValidFormat && isValidLength && hasOnlyValidChars;
-          
-          ngModel.$setValidity('validPhone', valid);
-          
-          // Add/remove CSS class based on validation state
-          if (!valid) {
-            element.addClass('phone-invalid');
-          } else {
-            element.removeClass('phone-invalid');
-          }
-          
-          return valid ? value : undefined;
-        }
-
-        // For DOM -> model validation
-        ngModel.$parsers.unshift(validate);
-        // For model -> DOM validation
-        ngModel.$formatters.unshift(validate);
-        
-        // Watch for changes in the model to update styling
-        scope.$watch(function() {
-          return ngModel.$viewValue;
-        }, function(newValue) {
-          validate(newValue);
-        });
-      }
-    };
-  });
-
-  /**
-   * @ngdoc directive
-   * @name emailValidationMessage
-   * @description Displays real-time email validation error messages.
-   * @restrict E
-   * @param {Object} form - Form controller
-   * @param {string} field - Field name to validate
-   */
-  // Additional directive for real-time email validation feedback
-  app.directive('emailValidationMessage', function() {
-    return {
-      restrict: 'E',
-      template: '<span ng-show="showError" class="email-error-message">Please enter a valid email address (example: user@domain.com)</span>',
-      scope: {
-        form: '=',
-        field: '@'
-      },
-      link: function(scope, element, attrs) {
-          /**
-         * @description Watches form field for validation errors to show/hide error message.
-         */
-        scope.$watch(function() {
-          var field = scope.form[scope.field];
-          return field && field.$invalid && field.$error.validEmail && (field.$touched || field.$dirty);
-        }, function(newValue) {
-          scope.showError = newValue;
-        });
-      }
-    };
-  });
-
-  /**
-   * @ngdoc directive
-   * @name phoneValidationMessage
-   * @description Displays real-time phone validation error messages.
-   * @restrict E
-   * @param {Object} form - Form controller
-   * @param {string} field - Field name to validate
-   */
-
-  // Additional directive for real-time phone validation feedback
-  app.directive('phoneValidationMessage', function() {
-    return {
-      restrict: 'E',
-      template: '<span ng-show="showError" class="phone-error-message">Please enter a valid phone number (example: +91-555-123-4567, (985) 123-4567, or 5551234567)</span>',
-      scope: {
-        form: '=',
-        field: '@'
-      },
-      link: function(scope, element, attrs) {
-        /**
-         * @description Watches form field for validation errors to show/hide error message.
-         */
-        scope.$watch(function() {
-          var field = scope.form[scope.field];
-          return field && field.$invalid && field.$error.validPhone && (field.$touched || field.$dirty);
-        }, function(newValue) {
-          scope.showError = newValue;
-        });
-      }
-    };
-  });
-
-
-app.directive('ckEditor', ['$timeout', function($timeout) {
+/**
+ * @ngdoc directive
+ * @name flashMessage
+ * @description Displays temporary flash messages that auto-hide after 5 seconds.
+ * @restrict A
+ * @param {Object} $timeout - Angular timeout service
+ */
+app.directive('flashMessage', ['$timeout', function($timeout) {
+  console.log('flash-message directive initialized'); // Debug
   return {
     restrict: 'A',
-    require: 'ngModel',
-    link: function(scope, element, attrs, ngModel) {
-      console.log('ckEditor directive initialized');
-      
-      // Initialize CKEditor
-      var ck = CKEDITOR.replace(element[0], {
-        height: 250,
-        allowedContent: true,
-        toolbar: [
-          { name: 'document', items: ['Source', '-', 'Preview', 'Print'] },
-          { name: 'clipboard', items: ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'] },
-          { name: 'editing', items: ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'] },
-          { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar', 'PageBreak', 'Iframe'] },
-          { name: 'links', items: ['Link', 'Unlink', 'Anchor'] },
-          { name: 'tools', items: ['Maximize', 'ShowBlocks'] },
-          { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'] },
-          { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'] },
-          { name: 'styles', items: ['Format', 'Font', 'FontSize'] },
-          { name: 'colors', items: ['TextColor', 'BGColor'] },
-          { name: 'about', items: ['About'] }
-        ]
-      });
-
-      // Update Angular model when CKEditor content changes
-      ck.on('change', function() {
-        $timeout(function() {
-          var data = ck.getData();
-          ngModel.$setViewValue(data);
-          console.log('CKEditor content updated:', data);
-        });
-      });
-
-      // Initialize CKEditor with model data
-      ngModel.$render = function() {
-        var value = ngModel.$viewValue || '';
-        ck.setData(value);
-        console.log('CKEditor rendered with:', value);
-      };
-
-      // Validate content length
-      function validateContent(value) {
-        var maxLength = parseInt(attrs.maxlength) || 2000;
-        var minLength = parseInt(attrs.minlength) || 0;
-        
-        // Handle undefined, null, or non-string values
-        if (value == null || typeof value !== 'string') {
-          ngModel.$setValidity('required', !attrs.required);
-          ngModel.$setValidity('minlength', true);
-          ngModel.$setValidity('maxlength', true);
-          return value; // Return as-is to avoid further processing
-        }
-
-        // Strip HTML tags to count plain text length
-        var plainText = value.replace(/<[^>]+>/g, '');
-        var length = plainText.length;
-
-        ngModel.$setValidity('required', length > 0 || !attrs.required);
-        ngModel.$setValidity('minlength', length >= minLength);
-        ngModel.$setValidity('maxlength', length <= maxLength);
-
-        return value;
+    link: function(scope, element) {
+      // Initial state: hide element if no message
+      if (!scope.flashMessage) {
+        element.css('display', 'none');
       }
 
-      // Add validation for parsers and formatters
-      ngModel.$parsers.push(validateContent);
-      ngModel.$formatters.push(validateContent);
-
-      // Clean up CKEditor instance on scope destroy
-      scope.$on('$destroy', function() {
-        if (ck) {
-          ck.destroy();
+      scope.$watch('flashMessage', function(newVal) {
+        if (newVal) {
+          element.css('display', 'block'); // Show element
+          $timeout(function() {
+            scope.flashMessage = '';
+            scope.flashType = '';
+            scope.$apply(); // Ensure scope updates
+            element.css('display', 'none'); // Hide after 5 seconds
+          }, 5000);
+        } else {
+          element.css('display', 'none'); // Hide if no message
         }
       });
     }
@@ -322,24 +43,198 @@ app.directive('ckEditor', ['$timeout', function($timeout) {
 
 /**
  * @ngdoc filter
- * @name plainText
- * @description Strips HTML tags from a string to return plain text.
- * @param {string} input - Input string containing HTML
- * @returns {string} Plain text without HTML tags
+ * @name capitalizeFilter
+ * @description Capitalizes the first letter of a string and lowercases the rest.
+ * @param {string} input - Input string to transform
+ * @returns {string} Transformed string
  */
-app.filter('plainText', function() {
+app.filter('capitalizeFilter', function() {
   return function(input) {
     if (!input || typeof input !== 'string') return input;
-    return input.replace(/<[^>]+>/g, '');
+    return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
   };
 });
 
+/**
+ * @ngdoc directive
+ * @name validEmail
+ * @description Validates email input fields using a regex pattern.
+ * @restrict A
+ * @requires ngModel
+ */
+app.directive('validEmail', function() {
+  var EMAIL_REGEXP = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+  return {
+    restrict: 'A',
+    require: 'ngModel',
+    link: function(scope, element, attrs, ngModel) {
+      /**
+       * @function validate
+       * @description Validates the email input and updates validity state.
+       * @param {string} value - Input value to validate
+       * @returns {string|undefined} Valid email or undefined if invalid
+       */
+      function validate(value) {
+        var valid = !value || EMAIL_REGEXP.test(value);
+        ngModel.$setValidity('validEmail', valid);
+        
+        // Add/remove CSS class based on validation state
+        if (value && !valid) {
+          element.addClass('email-invalid');
+        } else {
+          element.removeClass('email-invalid');
+        }
+        
+        return valid ? value : undefined;
+      }
+
+      // For DOM -> model validation
+      ngModel.$parsers.unshift(validate);
+      // For model -> DOM validation
+      ngModel.$formatters.unshift(validate);
+      
+      // Watch for changes in the model to update styling
+      scope.$watch(function() {
+        return ngModel.$viewValue;
+      }, function(newValue) {
+        validate(newValue);
+      });
+    }
+  };
+});
+
+/**
+ * @ngdoc directive
+ * @name validPhone
+ * @description Validates phone number input fields with various formats.
+ * @restrict A
+ * @requires ngModel
+ */
+app.directive('validPhone', function() {
+  // Supports various phone number formats:
+  // +1-555-123-4567, (555) 123-4567, 555.123.4567, 5551234567, +91 9876543210, etc.
+  var PHONE_REGEXP = /^[\+]?[\s]?[(]?[\d\s\-\(\)\.]{10,15}$/;
+  
+  return {
+    restrict: 'A',
+    require: 'ngModel',
+    link: function(scope, element, attrs, ngModel) {
+      /**
+       * @function validate
+       * @description Validates the phone number input and updates validity state.
+       * @param {string} value - Input value to validate
+       * @returns {string|undefined} Valid phone number or undefined if invalid
+       */
+      function validate(value) {
+        // If no value, it's valid (optional field)
+        if (!value) {
+          ngModel.$setValidity('validPhone', true);
+          element.removeClass('phone-invalid');
+          return value;
+        }
+        
+        // Clean the phone number for validation (remove spaces, dashes, parentheses, dots)
+        var cleanPhone = value.replace(/[\s\-\(\)\.]/g, '');
+        
+        // Check if it matches phone pattern and has appropriate length
+        var isValidFormat = PHONE_REGEXP.test(value);
+        var isValidLength = cleanPhone.length >= 10 && cleanPhone.length <= 15;
+        var hasOnlyValidChars = /^[\+\d\s\-\(\)\.]+$/.test(value);
+        
+        var valid = isValidFormat && isValidLength && hasOnlyValidChars;
+        
+        ngModel.$setValidity('validPhone', valid);
+        
+        // Add/remove CSS class based on validation state
+        if (!valid) {
+          element.addClass('phone-invalid');
+        } else {
+          element.removeClass('phone-invalid');
+        }
+        
+        return valid ? value : undefined;
+      }
+
+      // For DOM -> model validation
+      ngModel.$parsers.unshift(validate);
+      // For model -> DOM validation
+      ngModel.$formatters.unshift(validate);
+      
+      // Watch for changes in the model to update styling
+      scope.$watch(function() {
+        return ngModel.$viewValue;
+      }, function(newValue) {
+        validate(newValue);
+      });
+    }
+  };
+});
+
+/**
+ * @ngdoc directive
+ * @name emailValidationMessage
+ * @description Displays real-time email validation error messages.
+ * @restrict E
+ * @param {Object} form - Form controller
+ * @param {string} field - Field name to validate
+ */
+app.directive('emailValidationMessage', function() {
+  return {
+    restrict: 'E',
+    template: '<span ng-show="showError" class="email-error-message">Please enter a valid email address (example: user@domain.com)</span>',
+    scope: {
+      form: '=',
+      field: '@'
+    },
+    link: function(scope, element, attrs) {
+      /**
+       * @description Watches form field for validation errors to show/hide error message.
+       */
+      scope.$watch(function() {
+        var field = scope.form[scope.field];
+        return field && field.$invalid && field.$error.validEmail && (field.$touched || field.$dirty);
+      }, function(newValue) {
+        scope.showError = newValue;
+      });
+    }
+  };
+});
+
+/**
+ * @ngdoc directive
+ * @name phoneValidationMessage
+ * @description Displays real-time phone validation error messages.
+ * @restrict E
+ * @param {Object} form - Form controller
+ * @param {string} field - Field name to validate
+ */
+app.directive('phoneValidationMessage', function() {
+  return {
+    restrict: 'E',
+    template: '<span ng-show="showError" class="phone-error-message">Please enter a valid phone number (example: +91-555-123-4567, (985) 123-4567, or 5551234567)</span>',
+    scope: {
+      form: '=',
+      field: '@'
+    },
+    link: function(scope, element, attrs) {
+      /**
+       * @description Watches form field for validation errors to show/hide error message.
+       */
+      scope.$watch(function() {
+        var field = scope.form[scope.field];
+        return field && field.$invalid && field.$error.validPhone && (field.$touched || field.$dirty);
+      }, function(newValue) {
+        scope.showError = newValue;
+      });
+    }
+  };
+});
 
 /**
  * @file email-link.directive.js
  * @description Directive for creating clickable email links with customizable mailto functionality
  */
-
 app.directive('emailLink', function() {
   return {
     restrict: 'E',
@@ -354,7 +249,6 @@ app.directive('emailLink', function() {
     },
     template: '<a ng-href="{{ mailtoUrl }}" target="{{ linkTarget }}" ng-class="{{ linkClass }}">{{ linkText }}</a>',
     link: function(scope) {
-      
       // Set default values
       scope.linkTarget = scope.target || '_blank';
       scope.linkText = scope.displayText || scope.email;
@@ -395,7 +289,7 @@ app.directive('emailLink', function() {
         
         scope.mailtoUrl = url;
       }
-      
+
       // Watch for changes in email, name, subject, or body
       scope.$watchGroup(['email', 'name', 'subject', 'body'], function() {
         buildMailtoUrl();
@@ -407,12 +301,10 @@ app.directive('emailLink', function() {
   };
 });
 
-
 /**
  * @file phone-link.directive.js
  * @description Directive for creating clickable phone links with tel: functionality
  */
-
 app.directive('phoneLink', function() {
   return {
     restrict: 'E',
@@ -425,7 +317,6 @@ app.directive('phoneLink', function() {
     template: '<a ng-if="phone && phone.trim()" ng-href="tel:{{ cleanPhone }}" ng-class="cssClass">{{ displayText || phone }}</a>' +
               '<span ng-if="!phone || !phone.trim()" ng-class="cssClass">{{ emptyText || "N/A" }}</span>',
     link: function(scope, element, attrs) {
-      
       // Watch for phone changes and clean it for tel: URL
       scope.$watch('phone', function(newPhone) {
         if (newPhone && newPhone.trim()) {
@@ -437,9 +328,7 @@ app.directive('phoneLink', function() {
   };
 });
 
-
-
-// New: Contenteditable directive for two-way data binding
+// Contenteditable directive for two-way data binding
 app.directive('contenteditableModel', ['$sce', function($sce) {
   return {
     restrict: 'A',
@@ -481,4 +370,166 @@ app.directive('contenteditableModel', ['$sce', function($sce) {
   };
 }]);
 
+/**
+ * @file filters.js
+ * @description Email and Phone Filters for the Student Management System
+ * FIXED VERSION - These are the ONLY filter definitions in this file
+ */
 
+// Email Filter - CORRECTED AND WORKING VERSION
+app.filter('emailFilter', function() {
+  return function(input, operation) {
+    console.log('emailFilter - Input:', input, 'Operation:', operation); // Debug log
+    
+    // Return empty string for null/undefined input
+    if (!input) {
+      console.log('emailFilter - No input provided, returning empty string');
+      return '';
+    }
+    
+    // Ensure input is a string
+    if (typeof input !== 'string') {
+      console.log('emailFilter - Input is not a string:', typeof input);
+      input = String(input);
+    }
+
+    var result = input;
+    
+    switch (operation) {
+      case 'validate':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        result = emailRegex.test(input) ? 'Valid email' : 'Invalid email';
+        break;
+        
+      case 'domain':
+        const domainParts = input.split('@');
+        if (domainParts.length > 1) {
+          result = domainParts[1];
+        } else {
+          result = 'No domain found';
+        }
+        break;
+        
+      case 'username':
+        const usernameParts = input.split('@');
+        if (usernameParts.length > 0) {
+          result = usernameParts[0];
+        } else {
+          result = input;
+        }
+        break;
+        
+      case 'mask':
+        const maskParts = input.split('@');
+        if (maskParts.length > 1) {
+          const username = maskParts[0];
+          const domain = maskParts[1];
+          if (username.length > 4) {
+            result = username.substring(0, 4) + '***@' + domain;
+          } else if (username.length > 2) {
+            result = username.substring(0, 2) + '*@' + domain;
+          } else {
+            result = username + '@' + domain; // Don't mask very short usernames
+          }
+        } else {
+          result = input; // Return original if no @ symbol
+        }
+        break;
+        
+      default:
+        console.log('emailFilter - Unknown operation:', operation, '- returning original input');
+        result = input;
+    }
+    
+    console.log('emailFilter - Final Result:', result);
+    return result;
+  };
+});
+
+// Phone Filter - CORRECTED AND WORKING VERSION
+app.filter('phoneFilter', function() {
+  return function(input, operation) {
+    console.log('phoneFilter - Input:', input, 'Operation:', operation); // Debug log
+    
+    // Return empty string for null/undefined input
+    if (!input) {
+      console.log('phoneFilter - No input provided, returning empty string');
+      return '';
+    }
+    
+    // Ensure input is a string
+    if (typeof input !== 'string') {
+      console.log('phoneFilter - Input is not a string:', typeof input);
+      input = String(input);
+    }
+
+    var result = input;
+    var cleanPhone = input.replace(/[^\d+]/g, ''); // Remove everything except digits and +
+    
+    switch (operation) {
+      case 'clean':
+        result = cleanPhone;
+        break;
+        
+      case 'format':
+        var digitsOnly = cleanPhone.replace(/[^\d]/g, ''); // Remove + for digit counting
+        
+        if (cleanPhone.startsWith('+91') && digitsOnly.length === 12) {
+          // India: +91XXXXXXXXXX → +91-XXXXX-XXXXX
+          result = cleanPhone.replace(/(\+91)(\d{5})(\d{5})/, '$1-$2-$3');
+        } else if (cleanPhone.startsWith('+1') && digitsOnly.length === 11) {
+          // USA: +1XXXXXXXXXX → +1-(XXX)-XXX-XXXX
+          result = cleanPhone.replace(/(\+1)(\d{3})(\d{3})(\d{4})/, '$1-($2)-$3-$4');
+        } else if (digitsOnly.length === 10 && /^\d{10}$/.test(digitsOnly)) {
+          // Generic 10-digit: XXXXXXXXXX → (XXX) XXX-XXXX
+          result = digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+        } else if (digitsOnly.length === 10) {
+          // Alternative 10-digit format
+          result = digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        } else {
+          result = input; // Return original if no pattern matches
+        }
+        break;
+        
+      case 'validate':
+        var digits = input.replace(/[^\d]/g, '');
+        if (digits.length >= 10 && digits.length <= 15) {
+          result = 'Valid phone';
+        } else {
+          result = 'Invalid phone (need 10-15 digits)';
+        }
+        break;
+        
+      case 'mask':
+        var digitsOnly = cleanPhone.replace(/[^\d]/g, '');
+        
+        if (cleanPhone.startsWith('+91') && digitsOnly.length === 12) {
+          // India: Show +91XXXXX-XXXXX → +91XXXXX-***XX
+          result = cleanPhone.substring(0, 8) + '***' + cleanPhone.substring(11);
+        } else if (cleanPhone.startsWith('+1') && digitsOnly.length === 11) {
+          // USA: Show +1XXX-XXX-XXXX → +1XXX-XXX-**XX
+          result = cleanPhone.substring(0, 8) + '**' + cleanPhone.substring(10);
+        } else if (digitsOnly.length === 10) {
+          // 10-digit: Show XXXXXX-XXXX → XXXXXX-**XX
+          result = digitsOnly.substring(0, 4) + '****' + digitsOnly.substring(8);
+        } else if (digitsOnly.length >= 7) {
+          // Generic: Mask last 3 digits
+          result = input.substring(0, input.length - 3) + '***';
+        } else {
+          result = input; // Don't mask very short numbers
+        }
+        break;
+        
+      case 'digits':
+        result = input.replace(/[^\d]/g, '');
+        break;
+        
+      default:
+        console.log('phoneFilter - Unknown operation:', operation, '- returning original input');
+        result = input;
+    }
+    
+    console.log('phoneFilter - Final Result:', result);
+    return result;
+  };
+});

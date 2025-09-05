@@ -101,5 +101,6 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
   <script src="js/controllers/TestDbController.js"></script>
   <script src="js/controllers/AuthController.js"></script>
   <script src="js/controllers/DashboardController.js"></script>
+   <!-- <script src="js/filters/email-contact-filters.js"></script>  -->
 </body>
 </html>

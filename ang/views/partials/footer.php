@@ -5,7 +5,8 @@
     <div class="footer-container">
       <div class="footer-content">
         <div class="footer-section">
-          <h4>Student Management System edit 4.5</h4>
+          <h4>Student Management System edit new 1.2
+          </h4>
           <p>Efficiently manage student records with our comprehensive platform.</p>
         </div>
         <div class="footer-section">

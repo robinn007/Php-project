@@ -2,7 +2,7 @@
   <h1>{{ title }}</h1>
   
   <!-- Flash Message -->
-  <div ng-show="flashMessage" class="flash-message flash-{{ flashType }}">
+  <div flash-message ng-show="flashMessage" class="flash-message flash-{{ flashType }}">
     {{ flashMessage }}
   </div>
 
@@ -36,33 +36,30 @@
         name="email" 
         ng-model="student.email" 
         required 
-        maxlength="150"
+        maxlength="100"
+        valid-email
         class="form-control"
         ng-class="{ 'error': studentForm.email.$invalid && studentForm.email.$touched }"
       >
-      <div ng-show="studentForm.email.$invalid && studentForm.email.$touched" class="error-message">
-        <span ng-show="studentForm.email.$error.required">Email is required.</span>
-        <span ng-show="studentForm.email.$error.email">Please enter a valid email address.</span>
-        <span ng-show="studentForm.email.$error.maxlength">Email must be less than 150 characters.</span>
-      </div>
+      <email-validation-message form="studentForm" field="email" email-suggestion="emailSuggestion"></email-validation-message>
     </div>
 
     <!-- Phone Field -->
     <div class="form-group">
-      <label for="phone">Phone</label>
+      <label for="phone">Phone *</label>
       <input 
         type="tel" 
         id="phone" 
         name="phone" 
         ng-model="student.phone" 
         required
-        maxlength="20"
+        maxlength="18"
+        valid-phone
         class="form-control"
         ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
+        placeholder="+12025550123"
       >
-      <div ng-show="studentForm.phone.$invalid && studentForm.phone.$touched" class="error-message">
-        <span ng-show="studentForm.phone.$error.maxlength">Phone must be less than 20 characters.</span>
-      </div>
+      <phone-validation-message form="studentForm" field="phone"></phone-validation-message>
     </div>
 
     <!-- Address Field (Contenteditable) -->
@@ -78,6 +75,23 @@
         contenteditable-model
       ></div>
     </div>
-
   </form>
 </div>
+
+
+
+ <!-- <div class="form-group">
+      <label for="phone">Phone</label>
+      <input 
+        type="tel" 
+        id="phone" 
+        name="phone" 
+        ng-model="student.phone" 
+        required
+        maxlength="20"
+        valid-phone
+        class="form-control"
+        ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
+      >
+      <phone-validation-message form="studentForm" field="phone"></phone-validation-message>
+    </div> -->

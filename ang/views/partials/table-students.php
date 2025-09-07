@@ -17,38 +17,23 @@
       <td>{{ student.id }}</td>
       <td>{{ student.name }}</td>
       <td>
-        <!-- Using emailFilter with 'mask' operation -->
         <email-link 
-          email="{{ student.email | emailFilter:'mask' }}" 
+          email="{{ student.email | emailFilter:'clean' }}" 
           name="{{ student.name }}"
-          display-text="{{ student.email | emailFilter:'username' }}"
+          display-text="{{ student.email | emailFilter:'mask' }}"
         ></email-link>
-          <!-- Debug outputs -->
-  <!-- <div>Validate: {{ student.email | emailFilter:'validate' }}</div>
-  <div>Domain: {{ student.email | emailFilter:'domain' }}</div>
-  <div>Username: {{ student.email | emailFilter:'username' }}</div>
-  <div>Mask: {{ student.email | emailFilter:'mask' }}</div> -->
       </td>
       <td>
-        <!-- Using phoneFilter with 'format' operation -->
+        <!-- Use cleaned phone for tel: URL, formatted or masked for display -->
         <phone-link 
-          phone="{{ student.phone | phoneFilter:'format' }}"
-          display-text="{{ student.phone | phoneFilter:'mask' }}"
+          phone="{{ student.phone | phoneFilter:'clean' }}"
+          display-text="{{ student.phone | phoneFilter:'format' }}"
         ></phone-link>
-  
       </td>
       <td>
-         <div>{{ student.address | addressFilter:'short' || 'N/A' }}</div>
-         <!-- Debug outputs for address - TESTING FILTERS -->
-        <!-- <div><strong>Original:</strong> <span style="background: #f0f0f0; padding: 2px;">{{ student.address }}</span></div>
-        <div><strong>Clean:</strong> {{ student.address | addressFilter:'clean' }}</div>
-        <div><strong>One Line:</strong> {{ student.address | addressFilter:'oneline' }}</div>
-        <div><strong>Short:</strong> {{ student.address | addressFilter:'short' }}</div>
-        <div><strong>Format:</strong> {{ student.address | addressFilter:'format' }}</div>
-        <div><strong>Validate:</strong> {{ student.address | addressFilter:'validate' }}</div>
-        <div><strong>Postal:</strong> {{ student.address | addressFilter:'postal' }}</div>
-        <div><strong>Count:</strong> {{ student.address | addressFilter:'count' }}</div>
-        <div><strong>Lines:</strong> {{ student.address | addressFilter:'lines' }}</div>  -->
+        <div class="address-display">
+          <span ng-bind-html="student.address | addressFilter:'displayFormatted'"></span>
+        </div>
       </td>
       <td>
         <a href="/ci/ang/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student" ng-if="showEdit">Edit</a>

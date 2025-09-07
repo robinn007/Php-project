@@ -39,4 +39,3 @@ angular.module('myApp').controller('NavController', ['$scope', '$location', 'Aut
     });
   };
 }]);
-

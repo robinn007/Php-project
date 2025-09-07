@@ -2,12 +2,13 @@
  * @file StudentFormController.js
  * @description Controller for managing the student form (add/edit) with contenteditable address field.
  */
-angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', '$sce', function($scope, $routeParams, $location, StudentService, $rootScope, $sce) {
+angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', '$sce', '$filter', function($scope, $routeParams, $location, StudentService, $rootScope, $sce, $filter) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
   $scope.action = $routeParams.id ? 'edit' : 'add';
   $scope.flashMessage = '';
   $scope.flashType = '';
+  $scope.emailSuggestion = '';
 
   console.log('StudentFormController initialized. Action:', $scope.action, 'ID:', $routeParams.id);
 
@@ -19,9 +20,9 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
       if (response.data.success && response.data.student) {
         $scope.student = {
           name: response.data.student.name || '',
-          email: response.data.student.email || '',
-          phone: response.data.student.phone || '',
-          address: response.data.student.address || '',
+          email: $filter('emailFilter')(response.data.student.email || '', 'clean'),
+          phone: $filter('phoneFilter')(response.data.student.phone || '', 'clean'), // Clean phone
+          address: response.data.student.address || ''
         };
         console.log('Loaded address field:', $scope.student.address);
         $scope.flashMessage = 'Student data loaded successfully.';
@@ -47,7 +48,6 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
   $scope.cleanAddressContent = function(content) {
     if (!content) return '';
     
-    // Remove empty paragraphs and line breaks that browsers might add
     var cleaned = content.replace(/<p><br><\/p>/gi, '')
                         .replace(/<br\s*\/?>/gi, '\n')
                         .replace(/<div><br><\/div>/gi, '\n')
@@ -83,8 +83,10 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
       return;
     }
 
-    // Clean the address content before submitting
+    // Clean the email, phone, and address before submitting
     var studentData = angular.copy($scope.student);
+    studentData.email = $filter('emailFilter')(studentData.email, 'clean');
+    studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean'); // Clean phone
     studentData.address = $scope.cleanAddressContent(studentData.address);
 
     var promise = $scope.action === 'edit' ?

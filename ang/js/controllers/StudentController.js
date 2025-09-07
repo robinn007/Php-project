@@ -2,19 +2,31 @@
  * @file StudentController.js
  * @description Controller for managing student list view including fetching and deleting students.
  */
-angular.module('myApp').controller('StudentController', ['$scope', 'StudentService', function($scope, StudentService) {
+angular.module('myApp').controller('StudentController', ['$scope', 'StudentService', '$sce', '$filter', function($scope, StudentService, $sce, $filter) {
   $scope.title = "Students Dashboard......";
   $scope.students = [];
   $scope.flashMessage = 'Loading students...';
   $scope.flashType = 'info';
   
-
   console.log('StudentController initialized');
 
   /**
-   * @function loadStudents
-   * @description Fetches active students from the server and updates the UI.
+   * @function getFormattedAddress
+   * @description Safely renders HTML formatted address content (truncated to 40 chars)
+   * @param {string} address - Raw address content from contenteditable
+   * @returns {string} Trusted HTML content
    */
+  $scope.getFormattedAddress = function(address) {
+    if (!address) return 'N/A';
+    
+    // Use the addressFilter to get properly formatted and truncated content
+    var addressFilter = $filter('addressFilter');
+    var formatted = addressFilter(address, 'shortWithFormatting');
+    
+    // Trust the HTML content for rendering
+    return $sce.trustAsHtml(formatted);
+  };
+
   $scope.loadStudents = function() {
     $scope.flashMessage = 'Loading students...';
     $scope.flashType = 'info';
@@ -62,6 +74,7 @@ angular.module('myApp').controller('StudentController', ['$scope', 'StudentServi
       });
     }
   };
+
   /**
    * @event studentUpdated
    * @description Listens for student update events to refresh the student list.

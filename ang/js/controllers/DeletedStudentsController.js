@@ -2,8 +2,7 @@
  * @file DeletedStudentsController.js
  * @description Manages the deleted students archive view, including restore and permanent delete.
  */
-angular.module('myApp')
-.controller('DeletedStudentsController', ['$scope', 'StudentService', function($scope, StudentService) {
+angular.module('myApp').controller('DeletedStudentsController', ['$scope', 'AjaxHelper', function($scope, AjaxHelper) {
   'use strict';
 
   $scope.title = 'Deleted Students Archive';
@@ -25,9 +24,9 @@ angular.module('myApp')
   }
 
   // Fetch deleted students
-  StudentService.getDeletedStudents()
+  AjaxHelper.ajaxRequest('GET', '/ci/students/deleted')
     .then(function(response) {
-      if (response && response.data && response.data.success) {
+      if (response.data.success) {
         $scope.students = response.data.students || [];
         if ($scope.students.length === 0) {
           setFlash('No deleted students found.', 'info');
@@ -35,12 +34,13 @@ angular.module('myApp')
           setFlash('Loaded ' + $scope.students.length + ' deleted students.', 'success');
         }
       } else {
-        setFlash((response && response.data && response.data.message) || 'Failed to load deleted students.', 'error');
+        setFlash(response.flashMessage, response.flashType);
       }
-    }, function(error) {
-      setFlash('Error loading deleted students: ' +
-        ((error && (error.statusText || error.message)) || 'Unknown error'), 'error');
-    })['finally'](function() {
+    })
+    .catch(function(error) {
+      setFlash(error.flashMessage, error.flashType);
+    })
+    ['finally'](function() {
       $scope.isLoading = false;
     });
 
@@ -52,17 +52,18 @@ angular.module('myApp')
   $scope.restoreStudent = function(id) {
     if (!id) { return; }
     if (confirm('Are you sure you want to restore this student?')) {
-      StudentService.restoreStudent(id).then(function(response) {
-        if (response && response.data && response.data.success) {
-          removeById(id);
-          setFlash(response.data.message || 'Student restored successfully.', 'success');
-        } else {
-          setFlash((response && response.data && response.data.message) || 'Failed to restore student.', 'error');
-        }
-      }, function(error) {
-        setFlash('Error restoring student: ' +
-          ((error && (error.statusText || error.message)) || 'Unknown error'), 'error');
-      });
+      AjaxHelper.ajaxRequest('POST', '/ci/students/restore/' + id, { action: 'restore', id: id })
+        .then(function(response) {
+          if (response.data.success) {
+            removeById(id);
+            setFlash(response.flashMessage, response.flashType);
+          } else {
+            setFlash(response.flashMessage, response.flashType);
+          }
+        })
+        .catch(function(error) {
+          setFlash(error.flashMessage, error.flashType);
+        });
     }
   };
 
@@ -74,17 +75,18 @@ angular.module('myApp')
   $scope.permanentDelete = function(id) {
     if (!id) { return; }
     if (confirm('Are you sure you want to permanently delete this student? This action cannot be undone!')) {
-      StudentService.permanentDelete(id).then(function(response) {
-        if (response && response.data && response.data.success) {
-          removeById(id);
-          setFlash(response.data.message || 'Student permanently deleted successfully.', 'success');
-        } else {
-          setFlash((response && response.data && response.data.message) || 'Failed to delete student permanently.', 'error');
-        }
-      }, function(error) {
-        setFlash('Error deleting student permanently: ' +
-          ((error && (error.statusText || error.message)) || 'Unknown error'), 'error');
-      });
+      AjaxHelper.ajaxRequest('POST', '/ci/students/permanent_delete/' + id, { action: 'permanent_delete', id: id })
+        .then(function(response) {
+          if (response.data.success) {
+            removeById(id);
+            setFlash(response.flashMessage, response.flashType);
+          } else {
+            setFlash(response.flashMessage, response.flashType);
+          }
+        })
+        .catch(function(error) {
+          setFlash(error.flashMessage, error.flashType);
+        });
     }
   };
 }]);

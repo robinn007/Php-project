@@ -2,49 +2,31 @@
  * @file StudentController.js
  * @description Controller for managing student list view including fetching and deleting students.
  */
-angular.module('myApp').controller('StudentController', ['$scope', 'StudentService', '$sce', '$filter', function($scope, StudentService, $sce, $filter) {
+angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper', '$sce', '$filter', function($scope, AjaxHelper, $sce, $filter) {
   $scope.title = "Students Dashboard......";
   $scope.students = [];
   $scope.flashMessage = 'Loading students...';
   $scope.flashType = 'info';
-  
-  console.log('StudentController initialized');
 
-  /**
-   * @function getFormattedAddress
-   * @description Safely renders HTML formatted address content (truncated to 40 chars)
-   * @param {string} address - Raw address content from contenteditable
-   * @returns {string} Trusted HTML content
-   */
-  $scope.getFormattedAddress = function(address) {
-    if (!address) return 'N/A';
-    
-    // Use the addressFilter to get properly formatted and truncated content
-    var addressFilter = $filter('addressFilter');
-    var formatted = addressFilter(address, 'shortWithFormatting');
-    
-    // Trust the HTML content for rendering
-    return $sce.trustAsHtml(formatted);
-  };
+  console.log('StudentController initialized');
 
   $scope.loadStudents = function() {
     $scope.flashMessage = 'Loading students...';
     $scope.flashType = 'info';
-    StudentService.getStudents().then(function(response) {
-      console.log('getStudents response:', response);
-      if (response.data.success) {
-        $scope.students = response.data.students || [];
-        $scope.flashMessage = 'Loaded ' + $scope.students.length + ' active students.';
-        $scope.flashType = 'success';
-      } else {
-        $scope.flashMessage = response.data.message || 'Failed to load students.';
-        $scope.flashType = 'error';
-      }
-    }, function(error) {
-      console.error('Error loading students:', error);
-      $scope.flashMessage = 'Error loading students: ' + (error.statusText || 'Unknown error');
-      $scope.flashType = 'error';
-    });
+    AjaxHelper.ajaxRequest('GET', '/ci/students/manage')
+      .then(function(response) {
+        console.log('getStudents response:', response);
+        $scope.flashMessage = response.flashMessage;
+        $scope.flashType = response.flashType;
+        if (response.data.success) {
+          $scope.students = response.data.students || [];
+        }
+      })
+      .catch(function(error) {
+        console.error('Error loading students:', error);
+        $scope.flashMessage = error.flashMessage;
+        $scope.flashType = error.flashType;
+      });
   };
 
   // Initial load of students
@@ -57,21 +39,23 @@ angular.module('myApp').controller('StudentController', ['$scope', 'StudentServi
    */
   $scope.deleteStudent = function(id) {
     if (confirm('Are you sure you want to delete this student?')) {
-      StudentService.deleteStudent(id).then(function(response) {
-        if (response.data.success) {
-          $scope.students = $scope.students.filter(function(student) {
-            return student.id !== id;
-          });
-          $scope.flashMessage = response.data.message || 'Student deleted successfully.';
-          $scope.flashType = 'success';
-        } else {
-          $scope.flashMessage = response.data.message || 'Failed to delete student.';
-          $scope.flashType = 'error';
-        }
-      }, function(error) {
-        $scope.flashMessage = 'Error deleting student: ' + (error.statusText || 'Unknown error');
-        $scope.flashType = 'error';
-      });
+      AjaxHelper.ajaxRequest('POST', '/ci/students/manage', { action: 'delete', id: id })
+        .then(function(response) {
+          if (response.data.success) {
+            $scope.students = $scope.students.filter(function(student) {
+              return student.id !== id;
+            });
+            $scope.flashMessage = response.flashMessage;
+            $scope.flashType = response.flashType;
+          } else {
+            $scope.flashMessage = response.flashMessage;
+            $scope.flashType = response.flashType;
+          }
+        })
+        .catch(function(error) {
+          $scope.flashMessage = error.flashMessage;
+          $scope.flashType = error.flashType;
+        });
     }
   };
 

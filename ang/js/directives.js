@@ -1,3 +1,4 @@
+
 /**
  * @file directives.js
  * @description Defines custom directives and filters for the Student Management System.
@@ -15,26 +16,25 @@ var app = angular.module('myApp');
  * @param {Object} $timeout - Angular timeout service
  */
 app.directive('flashMessage', ['$timeout', function($timeout) {
-  console.log('flash-message directive initialized'); // Debug
+  console.log('flash-message directive initialized');
   return {
     restrict: 'A',
     link: function(scope, element) {
-      // Initial state: hide element if no message
       if (!scope.flashMessage) {
         element.css('display', 'none');
       }
 
       scope.$watch('flashMessage', function(newVal) {
         if (newVal) {
-          element.css('display', 'block'); // Show element
+          element.css('display', 'block');
           $timeout(function() {
             scope.flashMessage = '';
             scope.flashType = '';
-            scope.$apply(); // Ensure scope updates
-            element.css('display', 'none'); // Hide after 5 seconds
+            scope.$apply();
+            element.css('display', 'none');
           }, 5000);
         } else {
-          element.css('display', 'none'); // Hide if no message
+          element.css('display', 'none');
         }
       });
     }
@@ -56,75 +56,187 @@ app.filter('capitalizeFilter', function() {
 });
 
 /**
+ * @ngdoc filter
+ * @name emailLinkFilter
+ * @description Returns a mailto URL for an email address with optional parameters.
+ * @param {string} input - Email address
+ * @param {Object} options - Optional parameters {name, subject, body}
+ * @returns {string} Mailto URL (e.g., 'mailto:user@domain.com?subject=Hello')
+ */
+app.filter('emailLinkFilter', ['$filter', function($filter) {
+  return function(input, options) {
+    console.log('emailLinkFilter - Input:', input, 'Options:', options);
+
+    // Return empty string for null/undefined input
+    if (!input) {
+      console.log('emailLinkFilter - No input provided, returning empty string');
+      return '';
+    }
+
+    // Ensure input is a string and clean it
+    if (typeof input !== 'string') {
+      input = String(input);
+    }
+    var cleanEmail = $filter('emailFilter')(input, 'clean');
+    if (!cleanEmail) {
+      console.log('emailLinkFilter - Invalid email, returning empty string');
+      return '';
+    }
+
+    // Default options
+    var opts = angular.extend({
+      name: '',
+      subject: '',
+      body: ''
+    }, options || {});
+
+    // Build mailto URL
+    var url = 'mailto:' + encodeURIComponent(cleanEmail);
+    var params = [];
+
+    // Add subject
+    var subject = opts.subject;
+    if (!subject && opts.name) {
+      subject = 'Hello ' + opts.name;
+    }
+    if (subject) {
+      params.push('subject=' + encodeURIComponent(subject));
+    }
+
+    // Add body
+    var body = opts.body;
+    if (!body && opts.name) {
+      body = 'Dear ' + opts.name + ',';
+    }
+    if (body) {
+      params.push('body=' + encodeURIComponent(body));
+    }
+
+    // Combine URL with parameters
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+
+    console.log('emailLinkFilter - Final Result:', url);
+    return url;
+  };
+}]);
+
+
+/**
+ * @ngdoc filter
+ * @name phoneLinkFilter
+ * @description Returns a tel URL for a phone number or fallback text for invalid/empty inputs.
+ * @param {string} input - Phone number
+ * @param {Object} options - Optional parameters {emptyText}
+ * @returns {string} Tel URL (e.g., 'tel:+12025550123') or fallback text
+ */
+app.filter('phoneLinkFilter', ['$filter', function($filter) {
+  return function(input, options) {
+    console.log('phoneLinkFilter - Input:', input, 'Options:', options);
+
+    // Return empty text for null/undefined/empty input
+    if (!input || !input.trim()) {
+      console.log('phoneLinkFilter - No input provided, returning empty text');
+      return options && options.emptyText ? options.emptyText : 'N/A';
+    }
+
+    // Ensure input is a string
+    if (typeof input !== 'string') {
+      input = String(input);
+    }
+
+    // Clean the phone number
+    var cleanPhone = $filter('phoneFilter')(input, 'clean');
+    if (!cleanPhone) {
+      console.log('phoneLinkFilter - Invalid phone number, returning empty text');
+      return options && options.emptyText ? options.emptyText : 'N/A';
+    }
+
+    // Build the tel URL
+    var result = 'tel:' + encodeURIComponent(cleanPhone);
+
+    console.log('phoneLinkFilter - Final Result:', result);
+    return result;
+  };
+}]);
+
+/**
  * @ngdoc directive
  * @name validEmail
  * @description Validates email input fields using a regex pattern.
  * @restrict A
  * @requires ngModel
  */
-
-/**
- * @ngdoc directive
- * @name validPhone
- * @description Validates phone number input fields with enhanced rules in E.164 format.
- * @restrict A
- * @requires ngModel
- */
-app.directive('validPhone', function() {
-  console.log('validPhone directive initialized'); // Debug log
-  var PHONE_REGEXP = /^\+[1-9]\d{0,2}\d{7,14}$/;
-  var BLOCKED_NUMBERS = [
-    '1234567890', '0123456789', '0000000000', '1111111111', '2222222222',
-    '3333333333', '4444444444', '5555555555', '6666666666', '7777777777',
-    '8888888888', '9999999999'
-  ];
+app.directive('validEmail', function() {
+  var EMAIL_REGEXP = /^[a-zA-Z0-9][a-zA-Z0-9._%+-]{0,62}[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]{0,61}\.[a-zA-Z]{2,}$/;
+  var DOMAIN_SUGGESTIONS = {
+    'gmial.com': 'gmail.com',
+    'gamil.com': 'gmail.com',
+    'hotnail.com': 'hotmail.com',
+    'hotmal.com': 'hotmail.com',
+    'yaho.com': 'yahoo.com',
+    'yahho.com': 'yahoo.com',
+    'yhaoo.com': 'yahoo.com'
+  };
 
   return {
     restrict: 'A',
     require: 'ngModel',
     link: function(scope, element, attrs, ngModel) {
-      console.log('validPhone directive linked for element:', element); // Debug log
       function validate(value) {
         if (!value) {
-          ngModel.$setValidity('validPhone', true);
-          ngModel.$setValidity('phoneFormat', true);
-          ngModel.$setValidity('phoneE164', true);
-          ngModel.$setValidity('phoneLength', true);
-          ngModel.$setValidity('phoneLeadingZero', true);
-          ngModel.$setValidity('phoneConsecutiveDigits', true);
-          ngModel.$setValidity('phoneDummy', true);
-          element.removeClass('phone-invalid');
+          ngModel.$setValidity('validEmail', true);
+          ngModel.$setValidity('emailSpaces', true);
+          ngModel.$setValidity('emailDoubleAt', true);
+          ngModel.$setValidity('emailMaxlength', true);
+          ngModel.$setValidity('emailTld', true);
+          ngModel.$setValidity('emailLeadingTrailingDots', true);
+          ngModel.$setValidity('emailConsecutiveDots', true);
+          ngModel.$setValidity('emailLocalChars', true);
+          ngModel.$setValidity('emailLeadingChars', true);
+          ngModel.$setValidity('emailDomainTypo', true);
           return value;
         }
 
-        var cleanedValue = value.replace(/[\s\-\(\)\.]/g, '');
-        var validChars = /^\+\d+$/.test(cleanedValue);
-        var e164Match = cleanedValue.match(/^\+(\d{1,3})(\d+)$/);
-        var isValidE164 = e164Match && PHONE_REGEXP.test(cleanedValue);
-        var subscriberNumber = e164Match ? e164Match[2] : '';
-        var noLeadingZero = subscriberNumber && !subscriberNumber.startsWith('0');
-        var digitsOnly = cleanedValue.replace(/\+/, '');
-        var isValidLength = digitsOnly.length >= 8 && digitsOnly.length <= 15;
-        var noConsecutiveDigits = !/(\d)\1{5,}/.test(digitsOnly);
-        var isNotDummy = !BLOCKED_NUMBERS.includes(digitsOnly);
+        var cleanedValue = value.toLowerCase().trim();
+        var hasSpaces = /\s/.test(cleanedValue);
+        var atCount = (cleanedValue.match(/@/g) || []).length;
+        var isValidLength = cleanedValue.length <= 100;
+        var parts = cleanedValue.split('@');
+        var isValidParts = parts.length === 2;
+        var localPart = isValidParts ? parts[0] : '';
+        var domain = isValidParts ? parts[1] : '';
+        var tldValid = isValidParts && domain.match(/\.[a-zA-Z]{2,}$/);
+        var noLeadingTrailingDots = isValidParts && !localPart.startsWith('.') && !localPart.endsWith('.');
+        var noConsecutiveDots = isValidParts && !localPart.includes('..');
+        var validLocalChars = isValidParts && /^[a-zA-Z0-9][a-zA-Z0-9._%+-]*[a-zA-Z0-9]$/.test(localPart);
+        var validLeadingChars = isValidParts && !localPart.startsWith('-') && !domain.startsWith('.') && !domain.startsWith('-');
+        var hasNoDomainTypo = isValidParts && !DOMAIN_SUGGESTIONS[domain];
 
-        ngModel.$setValidity('phoneFormat', validChars);
-        ngModel.$setValidity('phoneE164', isValidE164);
-        ngModel.$setValidity('phoneLeadingZero', noLeadingZero);
-        ngModel.$setValidity('phoneLength', isValidLength);
-        ngModel.$setValidity('phoneConsecutiveDigits', noConsecutiveDigits);
-        ngModel.$setValidity('phoneDummy', isNotDummy);
 
-        var valid = validChars && isValidE164 && noLeadingZero && isValidLength && noConsecutiveDigits && isNotDummy;
-        ngModel.$setValidity('validPhone', valid);
+        ngModel.$setValidity('emailSpaces', !hasSpaces);
+        ngModel.$setValidity('emailDoubleAt', atCount === 1);
+        ngModel.$setValidity('emailMaxlength', isValidLength);
+        ngModel.$setValidity('emailTld', !!tldValid);
+        ngModel.$setValidity('emailLeadingTrailingDots', noLeadingTrailingDots);
+        ngModel.$setValidity('emailConsecutiveDots', noConsecutiveDots);
+        ngModel.$setValidity('emailLocalChars', validLocalChars);
+        ngModel.$setValidity('emailLeadingChars', validLeadingChars);
+        ngModel.$setValidity('emailDomainTypo', hasNoDomainTypo);
 
-        if (!valid) {
-          element.addClass('phone-invalid');
+        var isValid = EMAIL_REGEXP.test(cleanedValue) && !hasSpaces && atCount === 1 && isValidLength &&
+                      tldValid && noLeadingTrailingDots && noConsecutiveDots && validLocalChars && validLeadingChars && hasNoDomainTypo;
+
+        ngModel.$setValidity('validEmail', isValid);
+
+        if (!hasNoDomainTypo && isValidParts) {
+          scope.emailSuggestion = parts[0] + '@' + DOMAIN_SUGGESTIONS[domain];
         } else {
-          element.removeClass('phone-invalid');
+          scope.emailSuggestion = '';
         }
 
-        return valid ? cleanedValue : undefined;
+        return isValid ? cleanedValue : undefined;
       }
 
       ngModel.$parsers.unshift(validate);
@@ -146,11 +258,9 @@ app.directive('validPhone', function() {
  * @restrict A
  * @requires ngModel
  */
+
 app.directive('validPhone', function() {
-  // E.164 format: +[country code][subscriber number], e.g., +12025550123
   var PHONE_REGEXP = /^\+[1-9]\d{0,2}\d{7,14}$/;
-  
-  // Dummy/test numbers to block
   var BLOCKED_NUMBERS = [
     '1234567890',
     '0123456789',
@@ -170,14 +280,7 @@ app.directive('validPhone', function() {
     restrict: 'A',
     require: 'ngModel',
     link: function(scope, element, attrs, ngModel) {
-      /**
-       * @function validate
-       * @description Validates the phone number input and updates validity state.
-       * @param {string} value - Input value to validate
-       * @returns {string|undefined} Valid phone number or undefined if invalid
-       */
       function validate(value) {
-        // Allow empty value (optional field)
         if (!value) {
           ngModel.$setValidity('validPhone', true);
           ngModel.$setValidity('phoneFormat', true);
@@ -189,44 +292,31 @@ app.directive('validPhone', function() {
           return value;
         }
 
-        // 8. Trim spaces, dashes, parentheses, and dots
         var cleanedValue = value.replace(/[\s\-\(\)\.]/g, '');
-
-        // 1. Check if only digits after +
         var validChars = /^\+\d+$/.test(cleanedValue);
         ngModel.$setValidity('phoneFormat', validChars);
 
-        // 4. Check E.164 format: starts with + followed by 1-3 digit country code
         var e164Match = cleanedValue.match(/^\+(\d{1,3})(\d+)$/);
         var isValidE164 = e164Match && PHONE_REGEXP.test(cleanedValue);
         ngModel.$setValidity('phoneE164', isValidE164);
 
-        // Extract subscriber number (after country code)
         var subscriberNumber = e164Match ? e164Match[2] : '';
-
-        // 2. No leading zeros in subscriber number
         var noLeadingZero = subscriberNumber && !subscriberNumber.startsWith('0');
         ngModel.$setValidity('phoneLeadingZero', noLeadingZero);
 
-        // 3 & 6. Length restriction (8-15 digits, max 15 digits)
         var digitsOnly = cleanedValue.replace(/\+/, '');
         var isValidLength = digitsOnly.length >= 8 && digitsOnly.length <= 15;
         ngModel.$setValidity('phoneLength', isValidLength);
 
-        // 5. No 6 or more consecutive same digits
         var noConsecutiveDigits = !/(\d)\1{5,}/.test(digitsOnly);
         ngModel.$setValidity('phoneConsecutiveDigits', noConsecutiveDigits);
 
-        // 7. Block dummy/test numbers
         var isNotDummy = !BLOCKED_NUMBERS.includes(digitsOnly);
         ngModel.$setValidity('phoneDummy', isNotDummy);
 
-        // Overall validation
         var valid = validChars && isValidE164 && noLeadingZero && isValidLength && noConsecutiveDigits && isNotDummy;
-
         ngModel.$setValidity('validPhone', valid);
 
-        // Update CSS class based on validation state
         if (!valid) {
           element.addClass('phone-invalid');
         } else {
@@ -236,12 +326,9 @@ app.directive('validPhone', function() {
         return valid ? cleanedValue : undefined;
       }
 
-      // For DOM -> model validation
       ngModel.$parsers.unshift(validate);
-      // For model -> DOM validation
       ngModel.$formatters.unshift(validate);
 
-      // Watch for changes in the model to update styling
       scope.$watch(function() {
         return ngModel.$viewValue;
       }, function(newValue) {
@@ -250,8 +337,6 @@ app.directive('validPhone', function() {
     }
   };
 });
-
-
 
 /**
  * @ngdoc directive
@@ -315,7 +400,7 @@ app.directive('phoneValidationMessage', function() {
         <span ng-show="form[field].$error.required">Phone number is required.</span>
         <span ng-show="form[field].$error.phoneFormat">Phone number can only contain digits and a leading +.</span>
         <span ng-show="form[field].$error.phoneE164">Phone number must start with + followed by a 1-3 digit country code (e.g., +12025550123).</span>
-        <span ng-show="form[field].$error.phoneLength">Phone number must have 8-15 digits.</span>
+        <span ng-show="form[field].$error.phoneLength">Phone number must have 10-15 digits.</span>
         <span ng-show="form[field].$error.phoneLeadingZero">Phone number cannot start with a zero after the country code.</span>
         <span ng-show="form[field].$error.phoneConsecutiveDigits">Phone number cannot have 6 or more consecutive identical digits.</span>
         <span ng-show="form[field].$error.phoneDummy">This phone number is not allowed (e.g., 1234567890 or 9999999999).</span>
@@ -340,148 +425,45 @@ app.directive('phoneValidationMessage', function() {
 });
 
 /**
- * @file email-link.directive.js
- * @description Directive for creating clickable email links with customizable mailto functionality
+ * @ngdoc directive
+ * @name contenteditableModel
+ * @description Enables two-way data binding for contenteditable elements.
+ * @restrict A
+ * @requires ngModel
  */
-
-app.directive('emailLink', ['$filter', function($filter) {
-  return {
-    restrict: 'E',
-    scope: {
-      email: '@',           // Email address (required)
-      name: '@',            // Student/Person name (optional)
-      subject: '@',         // Custom subject (optional)
-      body: '@',            // Custom body (optional)
-      displayText: '@',     // Custom display text (optional, can be masked)
-      cssClass: '@',        // Custom CSS class (optional)
-      target: '@'           // Link target (optional, defaults to '_blank')
-    },
-    template: '<a ng-href="{{ mailtoUrl }}" target="{{ linkTarget }}" ng-class="{{ linkClass }}">{{ linkText }}</a>',
-    link: function(scope) {
-      // Set default values
-      scope.linkTarget = scope.target || '_blank';
-      scope.linkClass = scope.cssClass || '';
-
-      // Use displayText if provided, otherwise use email (unmasked by default)
-      scope.linkText = scope.displayText || scope.email;
-
-      // Build mailto URL using unmasked email
-      function buildMailtoUrl() {
-        if (!scope.email) {
-          scope.mailtoUrl = '#';
-          return;
-        }
-
-        // Use the cleaned, unmasked email for mailto
-        var cleanEmail = $filter('emailFilter')(scope.email, 'clean');
-        let url = 'mailto:' + cleanEmail;
-        let params = [];
-
-        // Add subject
-        let subject = scope.subject;
-        if (!subject && scope.name) {
-          subject = 'Hello ' + scope.name;
-        }
-        if (subject) {
-          params.push('subject=' + encodeURIComponent(subject));
-        }
-
-        // Add body
-        let body = scope.body;
-        if (!body && scope.name) {
-          body = 'Dear ' + scope.name + ',';
-        }
-        if (body) {
-          params.push('body=' + encodeURIComponent(body));
-        }
-
-        // Combine URL with parameters
-        if (params.length > 0) {
-          url += '?' + params.join('&');
-        }
-
-        scope.mailtoUrl = url;
-      }
-
-      // Watch for changes in email, name, subject, or body
-      scope.$watchGroup(['email', 'name', 'subject', 'body'], function() {
-        buildMailtoUrl();
-      });
-
-      // Initial build
-      buildMailtoUrl();
-    }
-  };
-}]);
-
-/**
- * @file phone-link.directive.js
- * @description Directive for creating clickable phone links with tel: functionality
- */
-app.directive('phoneLink', ['$filter', function($filter) {
-  return {
-    restrict: 'E',
-    scope: {
-      phone: '@',           // Phone number
-      displayText: '@',     // Custom display text (optional)
-      emptyText: '@',       // Text when no phone (optional, defaults to 'N/A')
-      cssClass: '@'         // Custom CSS class (optional)
-    },
-    template: '<a ng-if="phone && phone.trim()" ng-href="tel:{{ cleanPhone }}" ng-class="cssClass">{{ displayText || phone }}</a>' +
-              '<span ng-if="!phone || !phone.trim()" ng-class="cssClass">{{ emptyText || "N/A" }}</span>',
-    link: function(scope, element, attrs) {
-      // Watch for phone changes and clean it for tel: URL
-      scope.$watch('phone', function(newPhone) {
-        if (newPhone && newPhone.trim()) {
-          // Use phoneFilter to clean the phone number
-          scope.cleanPhone = $filter('phoneFilter')(newPhone, 'clean');
-        }
-      });
-    }
-  };
-}]);
-
-// Contenteditable directive for two-way data binding
 app.directive('contenteditableModel', ['$sce', function($sce) {
   return {
     restrict: 'A',
     require: 'ngModel',
     link: function(scope, element, attrs, ngModel) {
-      
-      // View -> Model
       function read() {
         var html = element.html();
-        // When we clear the content editable the browser leaves a <br> behind
-        // If strip-br attribute is provided then we strip this out
         if (attrs.stripBr && html === '<br>') {
           html = '';
         }
         ngModel.$setViewValue(html);
       }
 
-      // Model -> View
       ngModel.$render = function() {
         var value = ngModel.$viewValue || '';
         element.html($sce.trustAsHtml(value));
       };
 
-      // Listen for change events to enable binding
       element.on('blur keyup change', function() {
         scope.$evalAsync(read);
       });
 
-      // Handle paste events
       element.on('paste', function(e) {
         setTimeout(function() {
           scope.$evalAsync(read);
         }, 0);
       });
 
-      // Initialize
       read();
     }
   };
 }]);
+
 
 /**
  * @ngdoc filter
@@ -489,7 +471,6 @@ app.directive('contenteditableModel', ['$sce', function($sce) {
  * @description Processes email strings with various operations including validation and typo correction.
  */
 app.filter('emailFilter', function() {
-  // Common domain typos and their corrections
   var DOMAIN_SUGGESTIONS = {
     'gmial.com': 'gmail.com',
     'gamil.com': 'gmail.com',
@@ -503,13 +484,11 @@ app.filter('emailFilter', function() {
   return function(input, operation) {
     console.log('emailFilter - Input:', input, 'Operation:', operation);
 
-    // Return empty string for null/undefined input
     if (!input) {
       console.log('emailFilter - No input provided, returning empty string');
       return '';
     }
 
-    // Ensure input is a string, convert to lowercase, and trim
     if (typeof input !== 'string') {
       console.log('emailFilter - Input is not a string:', typeof input);
       input = String(input);
@@ -520,7 +499,6 @@ app.filter('emailFilter', function() {
     switch (operation) {
       case 'validate':
         const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._%+-]{0,62}[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]{0,61}\.[a-zA-Z]{2,}$/;
-        console.log("my email", emailRegex)
         const hasSpaces = /\s/.test(cleanedInput);
         const atCount = (cleanedInput.match(/@/g) || []).length;
         const isValidLength = cleanedInput.length <= 100;
@@ -559,6 +537,7 @@ app.filter('emailFilter', function() {
           result = emailRegex.test(cleanedInput) ? 'Valid email' : 'Invalid email';
         }
         break;
+
 
       case 'domain':
         const domainParts = cleanedInput.split('@');
@@ -616,7 +595,6 @@ app.filter('emailFilter', function() {
  * @description Processes phone numbers with various operations including validation and formatting.
  */
 app.filter('phoneFilter', function() {
-  // Dummy/test numbers to block
   var BLOCKED_NUMBERS = [
     '1234567890',
     '0123456789',
@@ -631,23 +609,19 @@ app.filter('phoneFilter', function() {
     '8888888888',
     '9999999999'
   ];
-
-  return function(input, operation) {
+return function(input, operation) {
     console.log('phoneFilter - Input:', input, 'Operation:', operation);
 
-    // Return empty string for null/undefined input
     if (!input) {
       console.log('phoneFilter - No input provided, returning empty string');
       return '';
     }
 
-    // Ensure input is a string
     if (typeof input !== 'string') {
       console.log('phoneFilter - Input is not a string:', typeof input);
       input = String(input);
     }
 
-    // Clean input by removing spaces, dashes, parentheses, and dots
     var cleanedInput = input.replace(/[\s\-\(\)\.]/g, '');
     var result = cleanedInput;
 
@@ -657,29 +631,24 @@ app.filter('phoneFilter', function() {
         break;
 
       case 'format':
-        // Format based on country code
         var digitsOnly = cleanedInput.replace(/\+/, '');
         if (cleanedInput.startsWith('+1') && digitsOnly.length === 11) {
-          // USA: +1XXXXXXXXXX → +1 (XXX) XXX-XXXX
           result = cleanedInput.replace(/(\+1)(\d{3})(\d{3})(\d{4})/, '$1 ($2) $3-$4');
         } else if (cleanedInput.startsWith('+91') && digitsOnly.length === 12) {
-          // India: +91XXXXXXXXXX → +91 XXXXX-XXXXX
           result = cleanedInput.replace(/(\+91)(\d{5})(\d{5})/, '$1 $2-$3');
         } else {
-          // Default E.164 format: keep as is
           result = cleanedInput;
         }
         break;
 
       case 'validate':
-        // Validate E.164 format
         var validChars = /^\+\d+$/.test(cleanedInput);
         var e164Match = cleanedInput.match(/^\+(\d{1,3})(\d+)$/);
         var isValidE164 = e164Match && /^\+[1-9]\d{0,2}\d{7,14}$/.test(cleanedInput);
         var subscriberNumber = e164Match ? e164Match[2] : '';
         var noLeadingZero = subscriberNumber && !subscriberNumber.startsWith('0');
         var digitsOnly = cleanedInput.replace(/\+/, '');
-        var isValidLength = digitsOnly.length >= 8 && digitsOnly.length <= 15;
+        var isValidLength = digitsOnly.length >= 10 && digitsOnly.length <= 15;
         var noConsecutiveDigits = !/(\d)\1{5,}/.test(digitsOnly);
         var isNotDummy = !BLOCKED_NUMBERS.includes(digitsOnly);
 
@@ -700,16 +669,14 @@ app.filter('phoneFilter', function() {
         }
         break;
 
+
       case 'mask':
         var digitsOnly = cleanedInput.replace(/\+/, '');
         if (cleanedInput.startsWith('+91') && digitsOnly.length === 12) {
-          // India: +91XXXXX-XXXXX → +91XXXXX-***XX
           result = cleanedInput.substring(0, 8) + '***' + cleanedInput.substring(11);
         } else if (cleanedInput.startsWith('+1') && digitsOnly.length === 11) {
-          // USA: +1XXX-XXX-XXXX → +1XXX-XXX-**XX
           result = cleanedInput.substring(0, 8) + '**' + cleanedInput.substring(10);
         } else if (digitsOnly.length >= 8) {
-          // Generic: Mask last 3 digits
           result = cleanedInput.substring(0, cleanedInput.length - 3) + '***';
         } else {
           result = cleanedInput;
@@ -730,121 +697,262 @@ app.filter('phoneFilter', function() {
   };
 });
 
-// Address Filter - TEXT CLEANING AND FORMATTING
-// Updated Address Filter - Add this new case to your existing addressFilter in directives.js
+/**
+ * @ngdoc filter
+ * @name addressFilter
+ * @description Processes address strings with various operations including cleaning and formatting.
+ */
 
+
+app.directive('renderHtml', ['$sce', '$filter', function($sce, $filter) {
+  return {
+    restrict: 'A',
+    link: function(scope, element, attrs) {
+      // Get filter name, input, and operation from attributes
+      var filterName = attrs.renderHtml;
+      var inputAttr = attrs.input;
+      var operationAttr = attrs.operation;
+
+      // Watch for changes in the input value
+      scope.$watch(inputAttr, function(newValue) {
+        console.log('renderHtml - Input:', newValue, 'Filter:', filterName, 'Operation:', operationAttr);
+        if (newValue && filterName && operationAttr) {
+          try {
+            // Apply the filter
+            var filteredValue = $filter(filterName)(newValue, operationAttr);
+            console.log('renderHtml - Filtered Value:', filteredValue);
+            // Safely render the HTML
+            element.html($sce.trustAsHtml(filteredValue));
+          } catch (e) {
+            console.error('Error applying filter in renderHtml directive:', e);
+            // Fallback to plain text
+            element.text(newValue || '');
+          }
+        } else if (newValue) {
+          // If no filter specified, render as HTML
+          element.html($sce.trustAsHtml(newValue));
+        } else {
+          // Clear content if no value
+          element.html('');
+        }
+      });
+    }
+  };
+}]);
+
+
+// app.directive('safeHtml', ['$parse', function($parse) {
+//   return {
+//     restrict: 'A',
+//     link: function(scope, element, attrs) {
+//       scope.$watch(function() {
+//         // Evaluate the expression inside safe-html
+//         return scope.$eval(attrs.safeHtml);
+//       }, function(newVal) {
+//         if (newVal) {
+//           // If expression has HTML → render it
+//           element.html(newVal);
+//         } else {
+//           // If nothing or invalid → fall back to normal text
+//           // This keeps plain {{ }} behavior safe
+//           element.text(scope.$eval(attrs.safeHtml) || '');
+//         }
+//       });
+//     }
+//   };
+// }]);
+/**
+ * @ngdoc filter
+ * @name addressFilter
+ * @description Processes address strings with various operations including cleaning, formatting, and character limiting.
+ */
+
+/**
+ * @ngdoc filter
+ * @name addressFilter
+ * @description Processes address strings with various operations including cleaning, formatting, and character limiting.
+ */
 app.filter('addressFilter', function() {
   return function(input, operation) {
     console.log('addressFilter - Input:', input, 'Operation:', operation);
-    
+
     if (!input) {
       console.log('addressFilter - No input provided, returning empty string');
       return '';
     }
-    
+
     if (typeof input !== 'string') {
-      console.log('addressFilter - Input is not a string:', typeof input);
+      console.log('addressFilter - Input is not a string, converting:', typeof input);
       input = String(input);
     }
 
     var result = input;
-    
+
     switch (operation) {
+      case 'limitChars':
+        console.log('addressFilter - Processing limitChars operation');
+        // Clean HTML for character counting
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = input;
+        var textContent = (tempDiv.textContent || tempDiv.innerText || '').trim();
+
+        if (textContent.length <= 200) {
+          console.log('addressFilter - Character count <= 200, returning original:', textContent.length);
+          result = input;
+        } else {
+          console.log('addressFilter - Character count > 200, truncating:', textContent.length);
+          // Truncate to 200 characters while preserving HTML
+          try {
+            var charCount = 0;
+            var maxChars = 200;
+            var truncated = '';
+
+            function truncateHTML(node, remainingChars) {
+              if (remainingChars <= 0) return '';
+
+              if (node.nodeType === 3) { // Text node
+                var text = node.textContent;
+                if (text.length <= remainingChars) {
+                  charCount += text.length;
+                  return text;
+                } else {
+                  charCount += remainingChars;
+                  return text.substring(0, remainingChars);
+                }
+              } else if (node.nodeType === 1) { // Element node
+                var tag = node.tagName.toLowerCase();
+                var result = '<' + tag;
+
+                // Copy attributes
+                for (var i = 0; i < node.attributes.length; i++) {
+                  var attr = node.attributes[i];
+                  result += ' ' + attr.name + '="' + attr.value + '"';
+                }
+                result += '>';
+
+                // Process child nodes
+                for (var j = 0; j < node.childNodes.length; j++) {
+                  if (remainingChars <= 0) break;
+                  var childResult = truncateHTML(node.childNodes[j], remainingChars);
+                  result += childResult;
+                  var tempDivChild = document.createElement('div');
+                  tempDivChild.innerHTML = childResult;
+                  var childText = tempDivChild.textContent || tempDivChild.innerText || '';
+                  remainingChars -= childText.length;
+                }
+
+                result += '</' + tag + '>';
+                return result;
+              }
+              return '';
+            }
+
+            truncated = truncateHTML(tempDiv, maxChars);
+            // Append ellipsis only if truncation occurred
+            if (textContent.length > 200) {
+              truncated += '...';
+            }
+            result = truncated;
+            console.log('addressFilter - limitChars result:', result);
+          } catch (e) {
+            console.error('addressFilter - Error in limitChars HTML processing:', e);
+            // Fallback to plain text truncation
+            var cleaned = input
+              .replace(/<[^>]*>/g, '')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            result = cleaned.substring(0, 200) + (cleaned.length > 200 ? '...' : '');
+            console.log('addressFilter - Fallback to plain text:', result);
+          }
+        }
+        break;
+
       case 'clean':
-        // Remove HTML tags, extra whitespace, and normalize line breaks
         result = input
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
-          .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular space
-          .replace(/&amp;/g, '&')  // Replace &amp; with &
-          .replace(/&lt;/g, '<')   // Replace &lt; with <
-          .replace(/&gt;/g, '>')   // Replace &gt; with >
-          .replace(/\s+/g, ' ')    // Replace multiple spaces with single space
-          .trim();                 // Remove leading/trailing whitespace
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')
+          .trim();
         break;
 
       case 'shortWithFormatting':
-        // NEW CASE: Truncate but preserve HTML formatting tags
         var tempDiv = document.createElement('div');
         tempDiv.innerHTML = input;
         var textContent = tempDiv.textContent || tempDiv.innerText || '';
-        
+
         if (textContent.length > 50) {
-          // If text is too long, we need to truncate while preserving HTML
           var truncated = '';
           var charCount = 0;
-          var maxChars = 47; // 
-          
-          // Simple approach: iterate through the HTML and count text characters
+          var maxChars = 47;
+
           var tempContainer = document.createElement('div');
           tempContainer.innerHTML = input;
-          
+
           function truncateHTML(node, remainingChars) {
             if (remainingChars <= 0) return '';
-            
-            if (node.nodeType === 3) { // Text node
+
+            if (node.nodeType === 3) {
               var text = node.textContent;
               if (text.length <= remainingChars) {
                 return text;
               } else {
                 return text.substring(0, remainingChars);
               }
-            } else if (node.nodeType === 1) { // Element node
+            } else if (node.nodeType === 1) {
               var tag = node.tagName.toLowerCase();
               var result = '<' + tag;
-              
-              // Copy attributes if any
+
               for (var i = 0; i < node.attributes.length; i++) {
                 var attr = node.attributes[i];
                 result += ' ' + attr.name + '="' + attr.value + '"';
               }
               result += '>';
-              
+
               var usedChars = 0;
               for (var j = 0; j < node.childNodes.length; j++) {
                 if (remainingChars - usedChars <= 0) break;
                 var childResult = truncateHTML(node.childNodes[j], remainingChars - usedChars);
                 result += childResult;
-                
-                // Count text characters added
                 var tempDiv = document.createElement('div');
                 tempDiv.innerHTML = childResult;
                 usedChars += (tempDiv.textContent || tempDiv.innerText || '').length;
               }
-              
+
               result += '</' + tag + '>';
               return result;
             }
             return '';
           }
-          
+
           try {
             result = truncateHTML(tempContainer, maxChars) + '...';
           } catch (e) {
-            // Fallback: use the original 'short' method if HTML parsing fails
             result = input
               .replace(/<[^>]*>/g, '')
               .replace(/&nbsp;/g, ' ')
               .replace(/\s+/g, ' ')
               .trim();
-            
+
             if (result.length > 50) {
               result = result.substring(0, 47) + '...';
             }
           }
         } else {
-          // If content is short enough, return as-is
           result = input;
         }
         break;
-        
+
       case 'short':
-        // Keep the original 'short' case for backwards compatibility
         var cleaned = input
           .replace(/<[^>]*>/g, '')
           .replace(/&nbsp;/g, ' ')
           .replace(/\s+/g, ' ')
           .trim();
-        
+
         if (cleaned.length > 50) {
           result = cleaned.substring(0, 47) + '...';
         } else {
@@ -853,28 +961,29 @@ app.filter('addressFilter', function() {
         break;
 
       case 'displayFormatted':
-        // NEW CASE: Clean up contenteditable artifacts but preserve formatting
         result = input
-          .replace(/<div><br><\/div>/gi, '<br>') // Replace empty divs with br
-          .replace(/<div>/gi, '<br>')            // Replace div starts with br
-          .replace(/<\/div>/gi, '')              // Remove div ends
-          .replace(/<p><br><\/p>/gi, '<br>')     // Replace empty paragraphs
-          .replace(/^<br>/, '')                  // Remove leading br
-          .replace(/(<br>\s*){2,}/gi, '<br><br>') // Limit consecutive breaks
+          .replace(/<div><br><\/div>/gi, '<br>')
+          .replace(/<div>/gi, '<br>')
+          .replace(/<\/div>/gi, '')
+          .replace(/<p><br><\/p>/gi, '<br>')
+          .replace(/^<br>/, '')
+          .replace(/(<br>\s*){2,}/gi, '<br><br>')
           .trim();
         break;
-        
+
       case 'oneline':
         result = input
-          .replace(/<[^>]*>/g, '')
-          .replace(/&nbsp;/g, ' ')
-          .replace(/[\r\n]+/g, ', ')
-          .replace(/\s+/g, ' ')
-          .replace(/,\s*,/g, ',')
-          .replace(/,\s*$/, '')
+          .replace(/<div><br><\/div>/gi, ' ')
+          .replace(/<div>/gi, ' ')
+          .replace(/<\/div>/gi, '')
+          .replace(/<p><br><\/p>/gi, ' ')
+          .replace(/<br\s*\/?>/gi, ' ')
+          .replace(/^\s+/, '')
+          .replace(/\s+$/, '')
+          .replace(/\s{2,}/g, ' ')
           .trim();
         break;
-   
+
       case 'format':
         result = input
           .replace(/<[^>]*>/g, '')
@@ -896,14 +1005,14 @@ app.filter('addressFilter', function() {
           .filter(function(line) { return line.length > 0; })
           .join(', ');
         break;
-        
+
       case 'validate':
         var cleaned = input
           .replace(/<[^>]*>/g, '')
           .replace(/&nbsp;/g, ' ')
           .replace(/\s+/g, ' ')
           .trim();
-        
+
         if (cleaned.length < 5) {
           result = 'Too short (minimum 5 characters)';
         } else if (cleaned.length > 500) {
@@ -911,7 +1020,7 @@ app.filter('addressFilter', function() {
         } else {
           var hasLetters = /[a-zA-Z]/.test(cleaned);
           var hasNumbers = /[0-9]/.test(cleaned);
-          
+
           if (hasLetters && hasNumbers) {
             result = 'Valid address';
           } else if (hasLetters) {
@@ -921,38 +1030,38 @@ app.filter('addressFilter', function() {
           }
         }
         break;
-   
+
       case 'postal':
         var postalRegex = /\b(\d{5}(-\d{4})?|\d{6}|[A-Z]\d[A-Z]\s*\d[A-Z]\d)\b/g;
         var matches = input.match(postalRegex);
-        
+
         if (matches && matches.length > 0) {
           result = matches[0];
         } else {
           result = 'No postal code found';
         }
         break;
-        
+
       case 'count':
         var cleaned = input
           .replace(/<[^>]*>/g, '')
           .replace(/&nbsp;/g, ' ')
           .replace(/\s+/g, ' ')
           .trim();
-        
+
         result = cleaned.length + ' characters';
         break;
-        
+
       case 'lines':
         var lines = input
           .replace(/<[^>]*>/g, '')
           .replace(/&nbsp;/g, ' ')
           .split(/[\r\n]+/)
           .filter(function(line) { return line.trim().length > 0; });
-        
+
         result = lines.length + ' lines';
         break;
-        
+
       case 'html':
         result = input
           .replace(/&/g, '&amp;')
@@ -964,14 +1073,13 @@ app.filter('addressFilter', function() {
           .replace(/\s+/g, ' ')
           .trim();
         break;
-        
+
       default:
         console.log('addressFilter - Unknown operation:', operation, '- returning original input');
         result = input;
     }
-    
+
     console.log('addressFilter - Final Result:', result);
     return result;
   };
 });
-

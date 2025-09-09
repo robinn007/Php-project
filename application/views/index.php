@@ -82,6 +82,7 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
           <p>&copy; 2025 Student Management System. Built with CodeIgniter 2 and AngularJS 1.3.</p>
         </div>
       </div>
+      <?php echo $name; ?>
     </div>
   </footer>
 

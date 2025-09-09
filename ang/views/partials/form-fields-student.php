@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <!-- Email Field -->
+        <!-- Email Field valid-email -->
     <div class="form-group">
       <label for="email">Email *</label>
       <input 
@@ -37,6 +37,7 @@
         ng-model="student.email" 
         required 
         maxlength="100"
+        validEmail
         valid-email
         class="form-control"
         ng-class="{ 'error': studentForm.email.$invalid && studentForm.email.$touched }"
@@ -44,7 +45,7 @@
       <email-validation-message form="studentForm" field="email" email-suggestion="emailSuggestion"></email-validation-message>
     </div>
 
-    <!-- Phone Field -->
+    <!-- Phone Field   valid-phone -->
     <div class="form-group">
       <label for="phone">Phone *</label>
       <input 
@@ -54,7 +55,8 @@
         ng-model="student.phone" 
         required
         maxlength="18"
-        valid-phone
+        validPhone
+         valid-phone
         class="form-control"
         ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
         placeholder="+12025550123"

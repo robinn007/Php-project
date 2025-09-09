@@ -2,7 +2,7 @@
  * @file StudentFormController.js
  * @description Controller for managing the student form (add/edit) with contenteditable address field.
  */
-angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'StudentService', '$rootScope', '$sce', '$filter', function($scope, $routeParams, $location, StudentService, $rootScope, $sce, $filter) {
+angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'AjaxHelper', '$rootScope', '$sce', '$filter', function($scope, $routeParams, $location, AjaxHelper, $rootScope, $sce, $filter) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
   $scope.student = { name: '', email: '', phone: '', address: '' };
   $scope.action = $routeParams.id ? 'edit' : 'add';
@@ -15,28 +15,26 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
   // Load student data for editing if ID is provided
   if ($routeParams.id) {
     console.log('Fetching student data for ID:', $routeParams.id);
-    StudentService.getStudent($routeParams.id).then(function(response) {
-      console.log('getStudent response:', JSON.stringify(response.data, null, 2));
-      if (response.data.success && response.data.student) {
-        $scope.student = {
-          name: response.data.student.name || '',
-          email: $filter('emailFilter')(response.data.student.email || '', 'clean'),
-          phone: $filter('phoneFilter')(response.data.student.phone || '', 'clean'), // Clean phone
-          address: response.data.student.address || ''
-        };
-        console.log('Loaded address field:', $scope.student.address);
-        $scope.flashMessage = 'Student data loaded successfully.';
-        $scope.flashType = 'success';
-      } else {
-        $scope.flashMessage = response.data.message || 'Failed to load student data: No student found.';
-        $scope.flashType = 'error';
-        console.error('Failed to load student data for ID:', $routeParams.id, 'Message:', response.data.message);
-      }
-    }, function(error) {
-      console.error('Error loading student for ID:', $routeParams.id, JSON.stringify(error, null, 2));
-      $scope.flashMessage = 'Error loading student: ' + (error.statusText || 'Network or server error');
-      $scope.flashType = 'error';
-    });
+    AjaxHelper.ajaxRequest('GET', '/ci/students/get/' + $routeParams.id)
+      .then(function(response) {
+        console.log('getStudent response:', JSON.stringify(response.data, null, 2));
+        $scope.flashMessage = response.flashMessage;
+        $scope.flashType = response.flashType;
+        if (response.data.success && response.data.student) {
+          $scope.student = {
+            name: response.data.student.name || '',
+            email: $filter('emailFilter')(response.data.student.email || '', 'clean'),
+            phone: $filter('phoneFilter')(response.data.student.phone || '', 'clean'),
+            address: response.data.student.address || ''
+          };
+          console.log('Loaded address field:', $scope.student.address);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error loading student for ID:', $routeParams.id, JSON.stringify(error, null, 2));
+        $scope.flashMessage = error.flashMessage;
+        $scope.flashType = error.flashType;
+      });
   }
 
   /**
@@ -47,7 +45,8 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
    */
   $scope.cleanAddressContent = function(content) {
     if (!content) return '';
-    
+
+
     var cleaned = content.replace(/<p><br><\/p>/gi, '')
                         .replace(/<br\s*\/?>/gi, '\n')
                         .replace(/<div><br><\/div>/gi, '\n')
@@ -86,30 +85,27 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     // Clean the email, phone, and address before submitting
     var studentData = angular.copy($scope.student);
     studentData.email = $filter('emailFilter')(studentData.email, 'clean');
-    studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean'); // Clean phone
+    studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean');
     studentData.address = $scope.cleanAddressContent(studentData.address);
 
-    var promise = $scope.action === 'edit' ?
-      StudentService.updateStudent($routeParams.id, studentData) :
-      StudentService.addStudent(studentData);
+    var url = '/ci/students/manage';
+    var data = $scope.action === 'edit' ?
+      { action: 'edit', id: $routeParams.id, student: studentData } :
+      { action: 'add', student: studentData };
 
-    promise.then(function(response) {
-      console.log('Submit response:', JSON.stringify(response.data, null, 2));
-      if (response.data.success) {
-        $scope.flashMessage = response.data.message || ($scope.action === 'edit' ? 'Student updated successfully.' : 'Student added successfully.');
-        $scope.flashType = 'success';
-        $rootScope.$broadcast('studentUpdated');
-        $location.path('/students');
-      } else {
-        $scope.flashMessage = response.data.message || 'Operation failed: Unknown error.';
-        $scope.flashType = 'error';
-        console.error('Submit failed:', response.data.message);
-      }
-    }, function(error) {
-      console.error('Submit error:', JSON.stringify(error, null, 2));
-      $scope.flashMessage = 'Error: ' + (error.statusText || 'Network or server error');
-      $scope.flashType = 'error';
-    });
+    AjaxHelper.ajaxRequest('POST', url, data)
+      .then(function(response) {
+        $scope.flashMessage = response.flashMessage;
+        $scope.flashType = response.flashType;
+        if (response.data.success) {
+          $rootScope.$broadcast('studentUpdated');
+          $location.path('/students');
+        }
+      })
+      .catch(function(error) {
+        $scope.flashMessage = error.flashMessage;
+        $scope.flashType = error.flashType;
+      });
   };
 
   /**

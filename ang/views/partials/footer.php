@@ -1,12 +1,11 @@
-</div>
+  </div>
   </main>
 
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-content">
         <div class="footer-section">
-          <h4>Student Management System edit new 1.2
-          </h4>
+          <h4>Student Management System edit new 1.4</h4>
           <p>Efficiently manage student records with our comprehensive platform.</p>
         </div>
         <div class="footer-section">
@@ -44,9 +43,11 @@
   
   <!-- Application Scripts -->
   <script src="js/app.js"></script>
-  <script src="js/services.js"></script>
+   <script src="js/services.js"></script> 
   <script src="js/directives.js"></script>
   <script src="js/routes.js"></script>
+  <script src="js/common.js"></script> 
+  <script src="js/filters.js"></script>
   
   <!-- Controllers -->
   <script src="js/controllers/NavController.js"></script>
@@ -57,7 +58,5 @@
   <script src="js/controllers/TestDbController.js"></script>
   <script src="js/controllers/AuthController.js"></script>
   <script src="js/controllers/DashboardController.js"></script>
-  
-  <!-- <script src="js/filters/email-contact-filters.js"></script> -->
 </body>
 </html>

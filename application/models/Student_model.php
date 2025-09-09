@@ -47,7 +47,7 @@ class Student_model extends CI_Model {
                 return false;
             }
             // Validate address length (plain text)
-            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 500) {
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
                 log_message('error', 'Address exceeds maximum length of 500 characters');
                 return false;
             }
@@ -70,7 +70,7 @@ class Student_model extends CI_Model {
                 return false;
             }
             // Validate address length (plain text)
-            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 500) {
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
                 log_message('error', 'Address exceeds maximum length of 500 characters');
                 return false;
             }

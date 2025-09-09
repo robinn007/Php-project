@@ -470,7 +470,7 @@ table tbody tr td:nth-child(4) a {
 table tbody tr td:nth-child(3) a:hover,
 table tbody tr td:nth-child(4) a:hover {
   color: #007bff;
-  font-size: 20px;
+  /* font-size: 20px; */
 }
 
 table tbody tr td:nth-child(5){
@@ -482,6 +482,18 @@ table tbody tr td:nth-child(5) div p img{
   height: auto;
 }
 
+.address-display .email-link,
+.address-display .phone-link {
+    color: #007bff;
+    text-decoration: none;
+     border-bottom: 1px dotted #007bff;
+}
+
+.address-display .email-link:hover,
+.address-display .phone-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
 
 /* ==========================================================================
    FORMS

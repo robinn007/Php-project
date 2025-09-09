@@ -697,42 +697,30 @@ return function(input, operation) {
   };
 });
 
-/**
- * @ngdoc filter
- * @name addressFilter
- * @description Processes address strings with various operations including cleaning and formatting.
- */
 
-
+// renderHTML
 app.directive('renderHtml', ['$sce', '$filter', function($sce, $filter) {
   return {
     restrict: 'A',
     link: function(scope, element, attrs) {
-      // Get filter name, input, and operation from attributes
       var filterName = attrs.renderHtml;
       var inputAttr = attrs.input;
       var operationAttr = attrs.operation;
 
-      // Watch for changes in the input value
       scope.$watch(inputAttr, function(newValue) {
         console.log('renderHtml - Input:', newValue, 'Filter:', filterName, 'Operation:', operationAttr);
         if (newValue && filterName && operationAttr) {
           try {
-            // Apply the filter
             var filteredValue = $filter(filterName)(newValue, operationAttr);
             console.log('renderHtml - Filtered Value:', filteredValue);
-            // Safely render the HTML
             element.html($sce.trustAsHtml(filteredValue));
           } catch (e) {
             console.error('Error applying filter in renderHtml directive:', e);
-            // Fallback to plain text
             element.text(newValue || '');
           }
         } else if (newValue) {
-          // If no filter specified, render as HTML
           element.html($sce.trustAsHtml(newValue));
         } else {
-          // Clear content if no value
           element.html('');
         }
       });
@@ -761,18 +749,14 @@ app.directive('renderHtml', ['$sce', '$filter', function($sce, $filter) {
 //     }
 //   };
 // }]);
-/**
- * @ngdoc filter
- * @name addressFilter
- * @description Processes address strings with various operations including cleaning, formatting, and character limiting.
- */
+
 
 /**
  * @ngdoc filter
  * @name addressFilter
  * @description Processes address strings with various operations including cleaning, formatting, and character limiting.
  */
-app.filter('addressFilter', function() {
+app.filter('addressFilter', ['$filter', function($filter) {
   return function(input, operation) {
     console.log('addressFilter - Input:', input, 'Operation:', operation);
 
@@ -789,85 +773,200 @@ app.filter('addressFilter', function() {
     var result = input;
 
     switch (operation) {
-      case 'limitChars':
-        console.log('addressFilter - Processing limitChars operation');
-        // Clean HTML for character counting
-        var tempDiv = document.createElement('div');
-        tempDiv.innerHTML = input;
-        var textContent = (tempDiv.textContent || tempDiv.innerText || '').trim();
+      case 'linkify':
+        console.log('addressFilter - Processing linkify operation');
+        
+        // Updated regex patterns for better matching
+        var emailRegex = /\b[a-zA-Z0-9][a-zA-Z0-9._%+-]{0,62}[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]{0,61}\.[a-zA-Z]{2,}\b/g;
+        var phoneRegex = /\+\d{1,3}[\s-]?\d{3,4}[\s-]?\d{3,4}[\s-]?\d{3,4}|\+\d{10,15}|\b\d{10,15}\b/g;
 
-        if (textContent.length <= 200) {
-          console.log('addressFilter - Character count <= 200, returning original:', textContent.length);
-          result = input;
-        } else {
-          console.log('addressFilter - Character count > 200, truncating:', textContent.length);
-          // Truncate to 200 characters while preserving HTML
-          try {
-            var charCount = 0;
-            var maxChars = 200;
-            var truncated = '';
+        // Function to process HTML while preserving formatting and creating links
+        function processHTMLForLinks(htmlContent, maxChars) {
+          var processedEmails = new Set();
+          var processedPhones = new Set();
+          var result = htmlContent;
 
-            function truncateHTML(node, remainingChars) {
-              if (remainingChars <= 0) return '';
+          // First, check if we need to truncate based on text content length
+          var tempDiv = document.createElement('div');
+          tempDiv.innerHTML = htmlContent;
+          var textLength = (tempDiv.textContent || tempDiv.innerText || '').length;
+          
+          if (maxChars && textLength > maxChars) {
+            // Truncate while preserving HTML structure
+            result = truncateHTML(htmlContent, maxChars) + '...';
+          }
 
-              if (node.nodeType === 3) { // Text node
-                var text = node.textContent;
-                if (text.length <= remainingChars) {
-                  charCount += text.length;
-                  return text;
-                } else {
-                  charCount += remainingChars;
-                  return text.substring(0, remainingChars);
-                }
-              } else if (node.nodeType === 1) { // Element node
-                var tag = node.tagName.toLowerCase();
-                var result = '<' + tag;
+          // Process emails in the HTML - avoid processing emails inside existing links
+          result = result.replace(/(?<!href=["'][^"']*?)(?<!<a[^>]*>.*?)\b([a-zA-Z0-9][a-zA-Z0-9._%+-]{0,62}[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]{0,61}\.[a-zA-Z]{2,})\b(?![^<]*<\/a>)/g, function(match, email) {
+            var emailLower = email.toLowerCase();
+            if (processedEmails.has(emailLower)) {
+              return ''; // Remove duplicates
+            }
+            processedEmails.add(emailLower);
+            
+            var cleanEmail = $filter('emailFilter')(email, 'clean');
+            var isValidEmail = $filter('emailFilter')(email, 'validate') === 'Valid email';
+            
+            if (isValidEmail) {
+              var emailLink = $filter('emailLinkFilter')(cleanEmail, {});
+              return '<a href="' + emailLink + '" class="email-link">' + cleanEmail + '</a>';
+            }
+            return match;
+          });
 
-                // Copy attributes
-                for (var i = 0; i < node.attributes.length; i++) {
-                  var attr = node.attributes[i];
-                  result += ' ' + attr.name + '="' + attr.value + '"';
-                }
-                result += '>';
+          // Process phone numbers in the HTML - avoid processing phones inside existing links
+          result = result.replace(/(?<!href=["'][^"']*?)(?<!<a[^>]*>.*?)(\+\d{1,3}[\s-]?\d{3,4}[\s-]?\d{3,4}[\s-]?\d{3,4}|\+\d{10,15}|\b\d{10,15}\b)(?![^<]*<\/a>)/g, function(match, phone) {
+            var cleanMatch = phone.replace(/[\s-]/g, '');
+            if (processedPhones.has(cleanMatch)) {
+              return ''; // Remove duplicates
+            }
+            processedPhones.add(cleanMatch);
+            
+            var cleanPhone = $filter('phoneFilter')(phone, 'clean');
+            var isValidPhone = $filter('phoneFilter')(phone, 'validate') === 'Valid phone';
+            
+            if (isValidPhone) {
+              var formattedPhone = $filter('phoneFilter')(phone, 'format');
+              var phoneLink = $filter('phoneLinkFilter')(cleanPhone, {});
+              return '<a href="' + phoneLink + '" class="phone-link">' + formattedPhone + '</a>';
+            }
+            return match;
+          });
 
-                // Process child nodes
-                for (var j = 0; j < node.childNodes.length; j++) {
-                  if (remainingChars <= 0) break;
-                  var childResult = truncateHTML(node.childNodes[j], remainingChars);
-                  result += childResult;
-                  var tempDivChild = document.createElement('div');
-                  tempDivChild.innerHTML = childResult;
-                  var childText = tempDivChild.textContent || tempDivChild.innerText || '';
-                  remainingChars -= childText.length;
-                }
+          // Clean up multiple spaces while preserving HTML
+          result = result.replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+          
+          return result;
+        }
 
-                result += '</' + tag + '>';
-                return result;
+        // Helper function to truncate HTML while preserving structure
+        function truncateHTML(html, maxChars) {
+          var tempContainer = document.createElement('div');
+          tempContainer.innerHTML = html;
+          var totalTextLength = (tempContainer.textContent || tempContainer.innerText || '').length;
+          
+          // If content is within limit, return as-is
+          if (totalTextLength <= maxChars) {
+            return html;
+          }
+          
+          var charCount = 0;
+          var openTags = []; // Stack to track open tags
+          
+          function truncateNode(node, remainingChars) {
+            if (remainingChars <= 0) {
+              // Close any remaining open tags
+              var closingTags = '';
+              for (var k = openTags.length - 1; k >= 0; k--) {
+                closingTags += '</' + openTags[k] + '>';
               }
-              return '';
+              return closingTags;
             }
 
-            truncated = truncateHTML(tempDiv, maxChars);
-            // Append ellipsis only if truncation occurred
-            if (textContent.length > 200) {
-              truncated += '...';
+            if (node.nodeType === 3) { // Text node
+              var text = node.textContent;
+              if (text.length <= remainingChars) {
+                charCount += text.length;
+                return text;
+              } else {
+                charCount += remainingChars;
+                // Find last complete word within limit
+                var truncatedText = text.substring(0, remainingChars);
+                var lastSpaceIndex = truncatedText.lastIndexOf(' ');
+                if (lastSpaceIndex > 0 && lastSpaceIndex > remainingChars * 0.8) {
+                  truncatedText = truncatedText.substring(0, lastSpaceIndex);
+                }
+                return truncatedText;
+              }
+            } else if (node.nodeType === 1) { // Element node
+              var tagName = node.tagName.toLowerCase();
+              var output = '<' + tagName;
+
+              // Copy attributes
+              for (var i = 0; i < node.attributes.length; i++) {
+                var attr = node.attributes[i];
+                output += ' ' + attr.name + '="' + attr.value + '"';
+              }
+              output += '>';
+              
+              // Track opening tag
+              openTags.push(tagName);
+
+              // Process child nodes
+              var charsUsed = 0;
+              var hasContent = false;
+              
+              for (var j = 0; j < node.childNodes.length; j++) {
+                var remainingForChild = remainingChars - charsUsed;
+                if (remainingForChild <= 0) break;
+                
+                var childContent = truncateNode(node.childNodes[j], remainingForChild);
+                if (childContent.trim()) {
+                  hasContent = true;
+                  output += childContent;
+                  
+                  // Calculate actual text length added
+                  var tempEl = document.createElement('div');
+                  tempEl.innerHTML = childContent;
+                  var childTextLength = (tempEl.textContent || tempEl.innerText || '').length;
+                  charsUsed += childTextLength;
+                }
+                
+                if (charCount >= maxChars) break;
+              }
+
+              // Remove from stack and close tag only if we added content
+              openTags.pop();
+              if (hasContent || ['b', 'i', 'u', 'strong', 'em', 'span'].indexOf(tagName) !== -1) {
+                output += '</' + tagName + '>';
+              } else {
+                // If no content was added, don't include the opening tag either
+                return '';
+              }
+              
+              return output;
             }
-            result = truncated;
-            console.log('addressFilter - limitChars result:', result);
+            return '';
+          }
+
+          try {
+            var result = '';
+            for (var i = 0; i < tempContainer.childNodes.length; i++) {
+              if (charCount >= maxChars) break;
+              var nodeResult = truncateNode(tempContainer.childNodes[i], maxChars - charCount);
+              result += nodeResult;
+            }
+            return result;
           } catch (e) {
-            console.error('addressFilter - Error in limitChars HTML processing:', e);
-            // Fallback to plain text truncation
-            var cleaned = input
-              .replace(/<[^>]*>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-            result = cleaned.substring(0, 200) + (cleaned.length > 200 ? '...' : '');
-            console.log('addressFilter - Fallback to plain text:', result);
+            console.error('Error truncating HTML:', e);
+            // Fallback: try to preserve at least some formatting
+            var textContent = tempContainer.textContent || tempContainer.innerText || '';
+            var truncatedText = textContent.substring(0, maxChars);
+            
+            // Try to preserve bold/italic/underline for the truncated portion
+            var simpleFormatted = html.replace(/<(?!\/?(b|i|u|strong|em|span)[>\s])[^>]*>/gi, '');
+            if (simpleFormatted.length > maxChars) {
+              // Find the last complete tag within the limit
+              var truncated = simpleFormatted.substring(0, maxChars);
+              var lastOpenTag = truncated.lastIndexOf('<');
+              var lastCloseTag = truncated.lastIndexOf('>');
+              
+              if (lastOpenTag > lastCloseTag) {
+                // There's an unclosed tag, remove it
+                truncated = truncated.substring(0, lastOpenTag);
+              }
+              return truncated;
+            }
+            return simpleFormatted;
           }
         }
-        break;
 
+        // Process HTML content with 200 character limit
+        result = processHTMLForLinks(input, 200);
+        
+        console.log('addressFilter - linkify result:', result);
+        break;
+        
       case 'clean':
         result = input
           .replace(/<[^>]*>/g, '')
@@ -879,67 +978,118 @@ app.filter('addressFilter', function() {
           .trim();
         break;
 
+      case 'limitChars':
+        console.log('addressFilter - Processing limitChars operation');
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = input;
+        var textContent = (tempDiv.textContent || tempDiv.innerText || '').trim();
+
+        if (textContent.length <= 200) {
+          result = input;
+        } else {
+          // Simple truncation preserving HTML structure
+          var maxChars = 200;
+          var truncated = '';
+          var charCount = 0;
+          
+          try {
+            function truncateNode(node, remainingChars) {
+              if (remainingChars <= 0) return '';
+
+              if (node.nodeType === 3) { // Text node
+                var text = node.textContent;
+                if (text.length <= remainingChars) {
+                  return text;
+                } else {
+                  return text.substring(0, remainingChars);
+                }
+              } else if (node.nodeType === 1) { // Element node
+                var tag = node.tagName.toLowerCase();
+                var output = '<' + tag;
+
+                // Copy attributes
+                for (var i = 0; i < node.attributes.length; i++) {
+                  var attr = node.attributes[i];
+                  output += ' ' + attr.name + '="' + attr.value + '"';
+                }
+                output += '>';
+
+                // Process children
+                var charsUsed = 0;
+                for (var j = 0; j < node.childNodes.length; j++) {
+                  if (remainingChars - charsUsed <= 0) break;
+                  var childContent = truncateNode(node.childNodes[j], remainingChars - charsUsed);
+                  output += childContent;
+                  
+                  // Count characters in the child content
+                  var tempEl = document.createElement('div');
+                  tempEl.innerHTML = childContent;
+                  charsUsed += (tempEl.textContent || tempEl.innerText || '').length;
+                }
+
+                output += '</' + tag + '>';
+                return output;
+              }
+              return '';
+            }
+
+            tempDiv.innerHTML = input;
+            truncated = truncateNode(tempDiv, maxChars);
+            if (textContent.length > 200) {
+              truncated += '...';
+            }
+            result = truncated;
+          } catch (e) {
+            console.error('addressFilter - Error in limitChars:', e);
+            // Fallback
+            var cleaned = $filter('addressFilter')(input, 'clean');
+            result = cleaned.substring(0, 200) + (cleaned.length > 200 ? '...' : '');
+          }
+        }
+        break;
+
       case 'shortWithFormatting':
         var tempDiv = document.createElement('div');
         tempDiv.innerHTML = input;
         var textContent = tempDiv.textContent || tempDiv.innerText || '';
 
         if (textContent.length > 50) {
-          var truncated = '';
-          var charCount = 0;
           var maxChars = 47;
-
-          var tempContainer = document.createElement('div');
-          tempContainer.innerHTML = input;
-
-          function truncateHTML(node, remainingChars) {
-            if (remainingChars <= 0) return '';
-
-            if (node.nodeType === 3) {
-              var text = node.textContent;
-              if (text.length <= remainingChars) {
-                return text;
-              } else {
-                return text.substring(0, remainingChars);
-              }
-            } else if (node.nodeType === 1) {
-              var tag = node.tagName.toLowerCase();
-              var result = '<' + tag;
-
-              for (var i = 0; i < node.attributes.length; i++) {
-                var attr = node.attributes[i];
-                result += ' ' + attr.name + '="' + attr.value + '"';
-              }
-              result += '>';
-
-              var usedChars = 0;
-              for (var j = 0; j < node.childNodes.length; j++) {
-                if (remainingChars - usedChars <= 0) break;
-                var childResult = truncateHTML(node.childNodes[j], remainingChars - usedChars);
-                result += childResult;
-                var tempDiv = document.createElement('div');
-                tempDiv.innerHTML = childResult;
-                usedChars += (tempDiv.textContent || tempDiv.innerText || '').length;
-              }
-
-              result += '</' + tag + '>';
-              return result;
-            }
-            return '';
-          }
-
+          var truncated = '';
+          
           try {
-            result = truncateHTML(tempContainer, maxChars) + '...';
+            // Simple character-based truncation while preserving some HTML
+            var plainText = textContent.substring(0, maxChars);
+            
+            // Try to preserve email and phone links within the truncated portion
+            var emailMatches = plainText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+            var phoneMatches = plainText.match(/\+?\d{10,15}/g) || [];
+            
+            truncated = plainText;
+            
+            // Convert found emails to links
+            emailMatches.forEach(function(email) {
+              var cleanEmail = $filter('emailFilter')(email, 'clean');
+              if ($filter('emailFilter')(email, 'validate') === 'Valid email') {
+                var emailLink = $filter('emailLinkFilter')(cleanEmail, {});
+                truncated = truncated.replace(email, '<a href="' + emailLink + '" class="email-link">' + cleanEmail + '</a>');
+              }
+            });
+            
+            // Convert found phones to links
+            phoneMatches.forEach(function(phone) {
+              var cleanPhone = $filter('phoneFilter')(phone, 'clean');
+              if ($filter('phoneFilter')(phone, 'validate') === 'Valid phone') {
+                var formattedPhone = $filter('phoneFilter')(phone, 'format');
+                var phoneLink = $filter('phoneLinkFilter')(cleanPhone, {});
+                truncated = truncated.replace(phone, '<a href="' + phoneLink + '" class="phone-link">' + formattedPhone + '</a>');
+              }
+            });
+            
+            result = truncated + '...';
           } catch (e) {
-            result = input
-              .replace(/<[^>]*>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-
-            if (result.length > 50) {
-              result = result.substring(0, 47) + '...';
-            }
+            console.error('Error in shortWithFormatting:', e);
+            result = textContent.substring(0, 47) + '...';
           }
         } else {
           result = input;
@@ -1082,4 +1232,4 @@ app.filter('addressFilter', function() {
     console.log('addressFilter - Final Result:', result);
     return result;
   };
-});
+}]);

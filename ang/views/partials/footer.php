@@ -47,21 +47,21 @@
 
   
   <!-- Application Scripts -->
-  <script src="js/app.js"></script>
-   <script src="js/services.js"></script> 
-  <script src="js/directives.js"></script>
-  <script src="js/routes.js"></script>
-  <script src="js/common.js"></script> 
-  <script src="js/filters.js"></script>
+  <script src="app.js"></script>
+  <script src="routes.js"></script>
+   <script src="helpers/services.js"></script> 
+    <script src="helpers/common.js"></script> 
+  <script src="directives/directives.js"></script>
+  <script src="filters/filters.js"></script>
   
   <!-- Controllers -->
-  <script src="js/controllers/NavController.js"></script>
-  <script src="js/controllers/HomeController.js"></script>
-  <script src="js/controllers/StudentController.js"></script>
-  <script src="js/controllers/StudentFormController.js"></script>
-  <script src="js/controllers/DeletedStudentsController.js"></script>
-  <script src="js/controllers/TestDbController.js"></script>
-  <script src="js/controllers/AuthController.js"></script>
-  <script src="js/controllers/DashboardController.js"></script>
+  <script src="controllers/NavController.js"></script>
+  <script src="controllers/HomeController.js"></script>
+  <script src="controllers/StudentController.js"></script>
+  <script src="controllers/StudentFormController.js"></script>
+  <script src="controllers/DeletedStudentsController.js"></script>
+  <script src="controllers/TestDbController.js"></script>
+  <script src="controllers/AuthController.js"></script>
+  <script src="controllers/DashboardController.js"></script>
 </body>
 </html>

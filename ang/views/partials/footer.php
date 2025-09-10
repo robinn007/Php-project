@@ -36,10 +36,15 @@
   </footer>
 
   <!-- JavaScript Assets -->
-  <script src="assets/angular-1.3.0/angular.js"></script>
+  <!-- <script src="assets/angular-1.3.0/angular.js"></script>
   <script src="assets/angular-1.3.0/angular-route.min.js"></script>
   <script src="assets/angular-1.3.0/angular-cookies.js"></script>
-  <script src="assets/angular-1.3.0/angular-sanitize.min.js"></script>
+  <script src="assets/angular-1.3.0/angular-sanitize.min.js"></script> -->
+<script src="../assets/angular-1.3.0/angular.js"></script>
+<script src="../assets/angular-1.3.0/angular-route.min.js"></script>
+<script src="../assets/angular-1.3.0/angular-cookies.js"></script>
+<script src="../assets/angular-1.3.0/angular-sanitize.min.js"></script>
+
   
   <!-- Application Scripts -->
   <script src="js/app.js"></script>

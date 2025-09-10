@@ -10,7 +10,7 @@ $csrf_token = ''; // Replace with actual CSRF token from session or config
   <title>Student Management System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="/ci/ang/">
-  <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="/ci/assets/css/style.css">
   <meta name="csrf-token-name" content="<?php echo htmlspecialchars($csrf_token_name); ?>">
   <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token); ?>">
 </head>

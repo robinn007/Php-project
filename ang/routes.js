@@ -34,36 +34,36 @@ app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($ro
         .when('/students/dashboard', {
             templateUrl: '/ci/view/dashboard',
             controller: 'DashboardController',
-         //   requireAuth: true // Requires user to be logged in
+           requireAuth: true // Requires user to be logged in
         })
         .when('/students', {
           templateUrl: '/ci/view/students',
             controller: 'StudentController',
-         //   requireAuth: true // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students/add', {
                 templateUrl: '/ci/view/student-form',
             controller: 'StudentFormController',
-           // requireAuth: true // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/students/edit/:id', {
               templateUrl: '/ci/view/student-form',
             controller: 'StudentFormController',
-           // requireAuth: true // Requires user to be logged in
+         requireAuth: true // Requires user to be logged in
         })
         .when('/students/deleted', {
             templateUrl: '/ci/view/deleted-students',
             controller: 'DeletedStudentsController',
-            //requireAuth: true // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/test-db', {
        templateUrl: '/ci/view/test-db',
             controller: 'TestDbController',
-         //   requireAuth: true // Requires user to be logged in
+            requireAuth: true // Requires user to be logged in
         })
         .when('/about', {
             templateUrl: '/ci/view/about',
-           // controller: 'HomeController'
+           controller: 'HomeController'
         })
         .otherwise({
              redirectTo: '/students'

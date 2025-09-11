@@ -58,15 +58,35 @@
 #     ErrorDocument 404 /index.php
 # </IfModule>
 
+## old means upto 10th sept structure
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /ci/
+
+#     # Prevent direct access to application folder
+#     RewriteRule ^application/.* - [F,L]
+
+#     # Route all requests to index.php
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteRule ^(.*)$ index.php/$1 [L]
+# </IfModule>
+
+## new structure
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /ci/
 
-    # Prevent direct access to application folder
-    RewriteRule ^application/.* - [F,L]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
 
-    # Route all requests to index.php
+    RewriteCond %{REQUEST_URI} ^/ci/(auth|students|migrate|test|setup)/.*$ [NC]
+    RewriteRule ^(.*)$ index.php/$1 [L]
+
+    RewriteRule ^ang/.*$ index.php [L]
+
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L]

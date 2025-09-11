@@ -13,7 +13,8 @@ class Students extends CI_Controller {
       parent::__construct();
         $this->load->model('Student_model');
         $this->load->library('form_validation');
-        $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
+            //  comment out the following line in production
+       // $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
     }
 
       // Retrieve all active students
@@ -28,7 +29,8 @@ class Students extends CI_Controller {
                 ));
                 exit();
             }
-            $this->load->view('index'); // Load AngularJS app
+           // $this->load->view('index'); // Load AngularJS app
+             $this->load->view('ang/index'); // Updated path
         } else {
             redirect('/ci/ang/login'); // Redirect to login page
         }
@@ -434,39 +436,34 @@ class Students extends CI_Controller {
      * @return void
      */
 
-    public function setup_database() {
-        $this->load->dbforge();
+   public function setup_database() {
+    $this->load->dbforge();
 
-        if (!$this->db->table_exists('students')) {
-            $fields = array(
-                'id' => array('type' => 'INT', 'auto_increment' => TRUE),
-                'name' => array('type' => 'VARCHAR', 'constraint' => '100'),
-                'email' => array('type' => 'VARCHAR', 'constraint' => '100'),
-                'phone' => array('type' => 'VARCHAR', 'constraint' => '20', 'null' => TRUE),
-                'address' => array('type' => 'TEXT', 'null' => TRUE),
-                'is_deleted' => array('type' => 'TINYINT', 'default' => 0)
-            );
-            $this->dbforge->add_field($fields);
-            $this->dbforge->add_key('id', TRUE);
-            $this->dbforge->create_table('students');
+    if (!$this->db->table_exists('students')) {
+        $fields = array(
+            'id' => array('type' => 'INT', 'auto_increment' => TRUE),
+            'name' => array('type' => 'VARCHAR', 'constraint' => '100'),
+            'email' => array('type' => 'VARCHAR', 'constraint' => '100'),
+            'phone' => array('type' => 'VARCHAR', 'constraint' => '20', 'null' => TRUE),
+            'address' => array('type' => 'TEXT', 'null' => TRUE),
+            'is_deleted' => array('type' => 'TINYINT', 'default' => 0)
+        );
+        $this->dbforge->add_field($fields);
+        $this->dbforge->add_key('id', TRUE);
+        $this->dbforge->create_table('students');
 
-            $sample_data = array(
-                array('name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'address' => '123 Main St'),
-                array('name' => 'Jane Smith', 'email' => 'jane@example.com', 'phone' => '0987654321', 'address' => '456 Oak Ave'),
-                array('name' => 'Mike Johnson', 'email' => 'mike@example.com', 'phone' => '5551234567', 'address' => '789 Pine Rd'),
-                array('name' => 'Sarah Williams', 'email' => 'sarah@example.com', 'phone' => '4449876543', 'address' => '321 Elm St'),
-                array('name' => 'David Brown', 'email' => 'david@example.com', 'phone' => '7776543210', 'address' => '654 Birch Ln')
-            );
-            $this->db->insert_batch('students', $sample_data);
-        }
-
-        $this->output->set_content_type('text/html');
-        echo '<h2>Database Setup</h2>';
-        echo '<p>Database Setup Complete!</p>';
-        echo '<p>Users table created.</p>';
-        echo '<p>Students table created with sample data.</p>';
-        echo '<a href="/ci/ang/index.html#/students">Go to Students List</a>';
+        $sample_data = array(
+            array('name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'address' => '123 Main St'),
+            array('name' => 'Jane Smith', 'email' => 'jane@example.com', 'phone' => '0987654321', 'address' => '456 Oak Ave'),
+            array('name' => 'Mike Johnson', 'email' => 'mike@example.com', 'phone' => '5551234567', 'address' => '789 Pine Rd'),
+            array('name' => 'Sarah Williams', 'email' => 'sarah@example.com', 'phone' => '4449876543', 'address' => '321 Elm St'),
+            array('name' => 'David Brown', 'email' => 'david@example.com', 'phone' => '7776543210', 'address' => '654 Birch Ln')
+        );
+        $this->db->insert_batch('students', $sample_data);
     }
+
+    $this->load->view('ang/setup_database');
+}
 
      /**
      * Test Database Method

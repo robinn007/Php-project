@@ -23,9 +23,11 @@
 |
 */
 //$config['base_url'] = 'http://localhost/ci/';
-$config['base_url'] = 'http://localhost/students/';
+//$config['base_url'] = 'http://localhost/students/';  // base url upto or before 10th sept
 //$config['base_url'] = 'http://localhost.students/';
 //$config['encryption_key'] = 'd1a79fc037a40b3bd0740d9a6184f7b9';
+
+$config['base_url'] = 'http://localhost/ci/';
 
 
 // Session configuration
@@ -317,12 +319,16 @@ $config['global_xss_filtering'] = FALSE;
 | 'csrf_cookie_name' = The cookie name
 | 'csrf_expire' = The number in seconds the token should expire.
 */
-$config['csrf_protection'] = FALSE; // Enable CSRF protection FALSE is default to create unified method // Disabled for debugging
-$config['csrf_token_name'] = 'csrf_test_name';
-$config['csrf_cookie_name'] = 'csrf_cookie_name';
-$config['csrf_expire'] = 7200;
-$config['csrf_regenerate'] = TRUE;
-$config['csrf_exclude_uris'] = array();
+// $config['csrf_protection'] = FALSE; // Enable CSRF protection FALSE is default to create unified method // Disabled for debugging
+// $config['csrf_token_name'] = 'csrf_test_name';
+// $config['csrf_cookie_name'] = 'csrf_cookie_name';
+// $config['csrf_expire'] = 7200;
+$config['csrf_protection'] = FALSE;
+$config['csrf_token_name'] = 'ci_csrf_token';
+$config['csrf_cookie_name'] = 'ci_csrf_cookie';
+$config['csrf_expire'] = 600;
+ $config['csrf_regenerate'] = TRUE;
+ $config['csrf_exclude_uris'] = array();
 
 /*
 |--------------------------------------------------------------------------

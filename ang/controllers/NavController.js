@@ -28,14 +28,15 @@ angular.module('myApp').controller('NavController', ['$scope', '$location', 'Aut
     console.log('Logging out user:', $scope.currentUser);
     AjaxHelper.ajaxRequest('GET', '/ci/auth/logout')
       .then(function(response) {
-        AuthService.logout().then(function() {
-          $scope.isLoggedIn = false;
-          $scope.currentUser = '';
-          $location.path('/login');
-        });
+        console.log('Logout successful:', response.data);
+        AuthService.logout(); // Call synchronous logout method
+        $scope.isLoggedIn = false;
+        $scope.currentUser = '';
+        $location.path('/login');
       })
       .catch(function(error) {
         console.error('Logout failed:', JSON.stringify(error, null, 2));
+        AuthService.logout(); // Clear cookies even on error
         $scope.isLoggedIn = false;
         $scope.currentUser = '';
         $location.path('/login');

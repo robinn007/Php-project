@@ -23,48 +23,50 @@ app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($ro
 
     // Define application routes
     $routeProvider
-        .when('/login', {
-            templateUrl: 'views/login.php',
+     .when('/login', {
+            templateUrl: '/ci/view/login',
             controller: 'AuthController'
         })
-        .when('/signup', {
-            templateUrl: 'views/signup.php',
+          .when('/signup', {
+            templateUrl: '/ci/view/signup',
             controller: 'AuthController'
         })
         .when('/students/dashboard', {
-            templateUrl: 'views/dashboard.php',
+            templateUrl: '/ci/view/dashboard',
             controller: 'DashboardController',
-            requireAuth: true // Requires user to be logged in
+         //   requireAuth: true // Requires user to be logged in
         })
         .when('/students', {
-            templateUrl: 'views/students.php',
+          templateUrl: '/ci/view/students',
             controller: 'StudentController',
-            requireAuth: true // Requires user to be logged in
+         //   requireAuth: true // Requires user to be logged in
         })
         .when('/students/add', {
-            templateUrl: 'views/student-form.php',
+                templateUrl: '/ci/view/student-form',
             controller: 'StudentFormController',
-            requireAuth: true // Requires user to be logged in
+           // requireAuth: true // Requires user to be logged in
         })
         .when('/students/edit/:id', {
-            templateUrl: 'views/student-form.php',
+              templateUrl: '/ci/view/student-form',
             controller: 'StudentFormController',
-            requireAuth: true // Requires user to be logged in
+           // requireAuth: true // Requires user to be logged in
         })
         .when('/students/deleted', {
-            templateUrl: 'views/deleted-students.php',
+            templateUrl: '/ci/view/deleted-students',
             controller: 'DeletedStudentsController',
-            requireAuth: true // Requires user to be logged in
+            //requireAuth: true // Requires user to be logged in
         })
         .when('/test-db', {
-            templateUrl: 'views/test-db.php',
+       templateUrl: '/ci/view/test-db',
             controller: 'TestDbController',
-            requireAuth: true // Requires user to be logged in
+         //   requireAuth: true // Requires user to be logged in
+        })
+        .when('/about', {
+            templateUrl: '/ci/view/about',
+           // controller: 'HomeController'
         })
         .otherwise({
-            redirectTo: function($cookies) {
-                return $cookies.user_id ? '/dashboard' : '/login';
-            }
+             redirectTo: '/students'
         });
 
     /**

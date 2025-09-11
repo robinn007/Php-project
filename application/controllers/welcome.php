@@ -23,7 +23,8 @@ class Welcome extends CI_Controller {
 		//$this->load->view('students');
 		//$this->load->view('create');
 		//redirect('students');
-		 $this->load->view('index'); // Loads ci/ang/index.php
+		 //$this->load->view('index'); // Loads ci/ang/index.php
+		   $this->load->view('ang/index');
 	}
 }
 

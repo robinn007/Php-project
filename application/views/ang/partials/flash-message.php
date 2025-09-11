@@ -3,8 +3,11 @@
 </div> -->
 
 <!-- Flash message display with dynamic styling -->
-<div ng-show="flashMessage" style="padding: 10px; margin-bottom: 20px; border-radius: 4px; color: #fff;" 
+ <div ng-show="flashMessage" style="padding: 10px; margin-bottom: 20px; border-radius: 4px; color: #fff;" 
      ng-style="{'background-color': flashType === 'success' ? '#28a745' : flashType === 'error' ? '#dc3545' : '#17a2b8'}">
-  <!-- Display message with capitalize filter -->
   {{flashMessage | capitalizeFilter}}
-</div>
+</div> 
+
+<!-- <div ng-if="flashMessage" class="flash-message {{flashType}}">
+    <span ng-bind-html="flashMessage"></span>
+</div> -->

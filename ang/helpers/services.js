@@ -9,7 +9,7 @@
  * @description Provides methods for authentication-related operations.
  * @param {Object} $cookies - Angular cookies service
  */
-app.factory('AuthService', ['$cookies', function($cookies) {
+angular.module('myApp').factory('AuthService', ['$cookies', function($cookies) {
   return {
     /**
      * @function isLoggedIn
@@ -28,6 +28,16 @@ app.factory('AuthService', ['$cookies', function($cookies) {
      */
     getCurrentUser: function() {
       return $cookies.username || '';
+    },
+    /**
+     * @function logout
+     * @description Clears authentication-related cookies.
+     */
+    logout: function() {
+      console.log('AuthService: Clearing cookies');
+      delete $cookies['user_id'];
+      delete $cookies['username'];
+      console.log('AuthService: Cookies cleared');
     }
   };
 }]);

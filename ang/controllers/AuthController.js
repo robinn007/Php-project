@@ -87,3 +87,41 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
     }
   };
 }]);
+
+
+// angular.module('myApp').controller('AuthController', ['$scope', '$location', 'AjaxHelper', 'AuthService', function($scope, $location, AjaxHelper, AuthService) {
+//     $scope.user = {};
+//     $scope.flashMessage = '';
+//     $scope.flashType = '';
+//     $scope.isLoggedIn = AuthService.isLoggedIn();
+//     $scope.currentUser = AuthService.getCurrentUser();
+
+//     $scope.submitForm = function() {
+//         var url = $scope.isSignup ? '/ci/auth/signup' : '/ci/auth/login';
+//         AjaxHelper.ajaxRequest('POST', url, $scope.user).then(function(response) {
+//             if (response.data.success) {
+//                 $scope.flashMessage = $scope.isSignup ? 'Registration successful! Please log in.' : 'Login successful!';
+//                 $scope.flashType = 'success';
+//                 if ($scope.isSignup) {
+//                     $scope.user = {}; // Clear form
+//                     $location.path('/login');
+//                 } else {
+//                     // Set cookies for logged-in user
+//                     $cookies['user_id'] = response.data.user_id;
+//                     $cookies['username'] = response.data.username;
+//                     $scope.isLoggedIn = true;
+//                     $scope.currentUser = response.data.username;
+//                     $location.path('/students/dashboard');
+//                 }
+//                 // Update CSRF token in DOM
+//                 angular.element('meta[name="csrf-token"]').attr('content', response.data.csrf_token);
+//             } else {
+//                 $scope.flashMessage = response.data.message || ($scope.isSignup ? 'Registration failed' : 'Login failed');
+//                 $scope.flashType = 'error';
+//             }
+//         }, function(error) {
+//             $scope.flashMessage = 'Error: ' + (error.message || 'Unknown error');
+//             $scope.flashType = 'error';
+//         });
+//     };
+// }]);

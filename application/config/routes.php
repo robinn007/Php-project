@@ -1,9 +1,14 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller'] = 'welcome'; // Update to load AngularJS app
+$route['default_controller'] = 'welcome';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
+
+$route['ang/(:any)'] = 'welcome/index';
+$route['view/(:any)'] = 'view/index/$1';
+$route['partials/(:any)'] = 'view/partial/$1';
+$route['layout/(:any)'] = 'view/layout/$1'; // New route for layout files
 
 $route['auth/get_csrf'] = 'auth/get_csrf';
 $route['login'] = 'auth/login';

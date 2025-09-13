@@ -27,7 +27,7 @@
       </div>
     </div>
 
-        <!-- Email Field valid-email -->
+    <!-- Email Field -->
     <div class="form-group">
       <label for="email">Email *</label>
       <input 
@@ -45,7 +45,7 @@
       <email-validation-message form="studentForm" field="email" email-suggestion="emailSuggestion"></email-validation-message>
     </div>
 
-    <!-- Phone Field   valid-phone -->
+    <!-- Phone Field -->
     <div class="form-group">
       <label for="phone">Phone *</label>
       <input 
@@ -56,7 +56,7 @@
         required
         maxlength="18"
         validPhone
-         valid-phone
+        valid-phone
         class="form-control"
         ng-class="{ 'error': studentForm.phone.$invalid && studentForm.phone.$touched }"
         placeholder="+12025550123"
@@ -77,8 +77,51 @@
         contenteditable-model
       ></div>
     </div>
+
+    <!-- State Field with improved layout -->
+    <div class="form-group">
+      <label for="state">State *</label>
+      <select 
+        id="state" 
+        name="state" 
+        ng-model="student.state" 
+        required
+        class="form-control"
+        ng-class="{ 'error': studentForm.state.$invalid && studentForm.state.$touched }"
+      >
+        <option value="">Select a State</option>
+        <option ng-repeat="state in states" value="{{ state }}" ng-selected="student.state === state">{{ state }}</option>
+      </select>
+      <div ng-show="studentForm.state.$invalid && studentForm.state.$touched" class="error-message">
+        <span ng-show="studentForm.state.$error.required">State is required.</span>
+      </div>
+      
+      <!-- Available States List for better UX -->
+      <!-- <div class="available-states-info">
+        <small class="states-helper-text">Available states and union territories:</small>
+        <div class="states-grid">
+          <span ng-repeat="state in states" class="state-item" ng-class="{'selected-state': student.state === state}">
+            {{ state }}
+          </span>
+        </div>
+      </div> -->
+    </div>
+    
+    <!-- Form Actions -->
+    <!-- <div class="form-actions">
+      <button type="submit" class="btn btn-primary" ng-disabled="studentForm.$invalid">
+        {{ action === 'edit' ? 'Update Student' : 'Add Student' }}
+      </button>
+      <button type="button" class="btn btn-secondary" ng-click="goToStudents()">
+        Cancel
+      </button>
+    </div> -->
   </form>
 </div>
+
+
+
+
 
 
 

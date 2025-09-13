@@ -9,6 +9,7 @@
             <th>Email</th>
             <th>Phone</th>
             <th>Address</th>
+            <th>State</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -37,6 +38,7 @@
                     <span render-html="addressFilter" input="student.address" operation="linkify"></span>
                 </div>
             </td>
+            <td>{{ student.state || 'N/A' }}</td>
             <td>
                 <a href="/students/edit/{{ student.id }}" class="btn btn-edit" title="Edit Student" ng-if="showEdit">Edit</a>
                 <button class="btn btn-delete" ng-click="deleteStudent(student.id)" title="Delete Student" ng-if="showDelete">Delete</button>

@@ -1,14 +1,60 @@
 /**
  * @file StudentFormController.js
- * @description Controller for managing the student form (add/edit) with contenteditable address field.
+ * @description Controller for managing the student form (add/edit) with contenteditable address field and state dropdown.
  */
 angular.module('myApp').controller('StudentFormController', ['$scope', '$routeParams', '$location', 'AjaxHelper', '$rootScope', '$sce', '$filter', function($scope, $routeParams, $location, AjaxHelper, $rootScope, $sce, $filter) {
   $scope.title = $routeParams.id ? 'Edit Student' : 'Add Student';
-  $scope.student = { name: '', email: '', phone: '', address: '' };
+  $scope.student = {
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    state: 'Rajasthan' // Initialize state with default value
+  };
   $scope.action = $routeParams.id ? 'edit' : 'add';
   $scope.flashMessage = '';
   $scope.flashType = '';
   $scope.emailSuggestion = '';
+
+  // Define and sort states alphabetically
+  $scope.states = [
+    'Andaman and Nicobar Islands',
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chandigarh',
+    'Chhattisgarh',
+    'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jammu and Kashmir',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Ladakh',
+    'Lakshadweep',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Puducherry',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal'
+  ].sort(); // Sort alphabetically
 
   console.log('StudentFormController initialized. Action:', $scope.action, 'ID:', $routeParams.id);
 
@@ -25,9 +71,10 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
             name: response.data.student.name || '',
             email: $filter('emailFilter')(response.data.student.email || '', 'clean'),
             phone: $filter('phoneFilter')(response.data.student.phone || '', 'clean'),
-            address: response.data.student.address || ''
+            address: response.data.student.address || '',
+            state: response.data.student.state || 'Rajasthan' // Set state, default to Rajasthan if not present
           };
-          console.log('Loaded address field:', $scope.student.address);
+          console.log('Loaded student data:', JSON.stringify($scope.student, null, 2));
         }
       })
       .catch(function(error) {
@@ -45,7 +92,6 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
    */
   $scope.cleanAddressContent = function(content) {
     if (!content) return '';
-
 
     var cleaned = content.replace(/<p><br><\/p>/gi, '')
                         .replace(/<br\s*\/?>/gi, '\n')
@@ -76,17 +122,18 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
       return;
     }
 
-    if (!$scope.student.name || !$scope.student.email) {
+    if (!$scope.student.name || !$scope.student.email || !$scope.student.state) {
       $scope.flashMessage = 'Please fill in all required fields.';
       $scope.flashType = 'error';
       return;
     }
 
-    // Clean the email, phone, and address before submitting
+    // Clean the email, phone, address, and ensure state is included
     var studentData = angular.copy($scope.student);
     studentData.email = $filter('emailFilter')(studentData.email, 'clean');
     studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean');
     studentData.address = $scope.cleanAddressContent(studentData.address);
+    studentData.state = studentData.state || 'Rajasthan'; // Ensure state is included, default to Rajasthan
 
     var url = '/students/manage';
     var data = $scope.action === 'edit' ?

@@ -1,11 +1,11 @@
 <div class="auth-container">
-    <ng-include src="'/ci/partials/header'" ng-init="showBreadcrumb=false; title='Sign Up'"></ng-include>
-    <ng-include src="'/ci/partials/flash-message'"></ng-include>
+    <ng-include src="'/partials/header'" ng-init="showBreadcrumb=false; title='Sign Up'"></ng-include>
+    <ng-include src="'/partials/flash-message'"></ng-include>
     <form name="signupForm" ng-submit="submitForm()" novalidate>
-        <ng-include src="'/ci/partials/form-fields-auth'"></ng-include>
+        <ng-include src="'/partials/form-fields-auth'"></ng-include>
         <button type="submit" class="btn btn-primary" ng-disabled="signupForm.$invalid">Sign Up</button>
     </form>
-    <p>Already have an account? <a href="/ci/ang/login">Login</a></p>
+    <p>Already have an account? <a href="/login">Login</a></p>
 </div>
 
 <!-- <div class="auth-container">

@@ -14,7 +14,7 @@ class Students extends CI_Controller {
         $this->load->model('Student_model');
         $this->load->library('form_validation');
             //  comment out the following line in production
-       // $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
+        $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
     }
 
       // Retrieve all active students
@@ -32,7 +32,7 @@ class Students extends CI_Controller {
            // $this->load->view('index'); // Load AngularJS app
              $this->load->view('ang/index'); // Updated path
         } else {
-            redirect('/ci/ang/login'); // Redirect to login page
+            redirect('/login'); // Redirect to login page
         }
     }
 

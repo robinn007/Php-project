@@ -5,4 +5,4 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 <p>Database Setup Complete!</p>
 <p>Users table created.</p>
 <p>Students table created with sample data.</p>
-<a href="/ci/ang/students">Go to Students List</a>
+<a href="/students">Go to Students List</a>

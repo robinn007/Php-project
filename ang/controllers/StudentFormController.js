@@ -15,7 +15,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
   // Load student data for editing if ID is provided
   if ($routeParams.id) {
     console.log('Fetching student data for ID:', $routeParams.id);
-    AjaxHelper.ajaxRequest('GET', '/ci/students/get/' + $routeParams.id)
+    AjaxHelper.ajaxRequest('GET', '/students/get/' + $routeParams.id)
       .then(function(response) {
         console.log('getStudent response:', JSON.stringify(response.data, null, 2));
         $scope.flashMessage = response.flashMessage;
@@ -88,7 +88,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean');
     studentData.address = $scope.cleanAddressContent(studentData.address);
 
-    var url = '/ci/students/manage';
+    var url = '/students/manage';
     var data = $scope.action === 'edit' ?
       { action: 'edit', id: $routeParams.id, student: studentData } :
       { action: 'add', student: studentData };

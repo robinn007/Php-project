@@ -3,7 +3,7 @@
     <!-- Page title -->
     <h2 class="dashboard-title">{{title}}</h2>
     <!-- Flash message -->
-    <ng-include src="'/ci/partials/flash-message'"></ng-include>
+    <ng-include src="'/partials/flash-message'"></ng-include>
 
     <!-- Welcome message with current user's username -->
     <div class="welcome-section">

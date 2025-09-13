@@ -1,3 +1,3 @@
 <?php
-header('Location: /ci/students');
+header('Location: /students');
 exit;

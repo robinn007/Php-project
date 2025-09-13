@@ -76,17 +76,18 @@
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /ci/
+    RewriteBase /
 
+    # Prevent direct access to existing files or directories
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    RewriteCond %{REQUEST_URI} ^/ci/(auth|students|migrate|test|setup)/.*$ [NC]
+    # Route API requests (auth, students, migrate, test, setup) to index.php
+    RewriteCond %{REQUEST_URI} ^/(auth|students|migrate|test|setup|view|partials)/.*$ [NC]
     RewriteRule ^(.*)$ index.php/$1 [L]
 
-    RewriteRule ^ang/.*$ index.php [L]
-
+    # Route all other requests to index.php for AngularJS handling
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L]

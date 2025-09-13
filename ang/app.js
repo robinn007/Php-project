@@ -18,7 +18,7 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
     console.log('App run block initialized');
 
     // Fetch CSRF token on app start
-    AjaxHelper.ajaxRequest('GET', '/ci/auth/get_csrf')
+    AjaxHelper.ajaxRequest('GET', '/auth/get_csrf')
         .then(function(response) {
             if (response.data.csrf_token) {
                 $cookies.csrf_token = response.data.csrf_token;

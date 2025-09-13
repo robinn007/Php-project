@@ -1,6 +1,3 @@
-<?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-?>
 <footer class="footer">
     <div class="footer-container">
         <div class="footer-content">
@@ -11,24 +8,19 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             <div class="footer-section">
                 <h4>Quick Links</h4>
                 <ul class="footer-links">
-                    <li ng-show="isLoggedIn"><a href="/ci/ang/students/dashboard">Dashboard</a></li>
-                    <li ng-show="isLoggedIn"><a href="/ci/ang/students/add">Add Student</a></li>
-                    <li ng-show="isLoggedIn"><a href="/ci/ang/test-db">Database Status</a></li>
-                    <li ng-show="!isLoggedIn"><a href="/ci/ang/login">Login</a></li>
-                    <li ng-show="!isLoggedIn"><a href="/ci/ang/signup">Sign Up</a></li>
-                      <!-- <li ng-show="!isLoggedIn"><a href="/ci/ang/logout">Logout</a></li> -->
-                      <!-- <div class="user-info" ng-show="!isLoggedIn"> -->
-            <!-- <span class="user-name">Welcome, {{ currentUser }}</span> -->
-            <!-- <a href="/ci/ang/logout" class="btn-logout" ng-click="logout()">Logout</a>
-        </div>  -->
+                    <li ng-show="isLoggedIn"><a href="/students/dashboard">Dashboard</a></li>
+                    <li ng-show="isLoggedIn"><a href="/students/add">Add Student</a></li>
+                    <li ng-show="isLoggedIn"><a href="/test-db">Database Status</a></li>
+                    <li ng-show="!isLoggedIn"><a href="/login">Login</a></li>
+                    <li ng-show="!isLoggedIn"><a href="/signup">Sign Up</a></li>
                 </ul>
             </div>
             <div class="footer-section">
                 <h4>Support</h4>
                 <ul class="footer-links">
-                    <li><a href="/ci/migrate">Run Migrations</a></li>
-                    <li><a href="/ci/students/setup_database">Setup Database</a></li>
-                    <li ng-show="isLoggedIn"><a href="/ci/ang/students/dashboard">Dashboard</a></li>
+                    <li><a href="/migrate">Run Migrations</a></li>
+                    <li><a href="/students/setup_database">Setup Database</a></li>
+                    <li ng-show="isLoggedIn"><a href="/students/dashboard">Dashboard</a></li>
                 </ul>
             </div>
         </div>

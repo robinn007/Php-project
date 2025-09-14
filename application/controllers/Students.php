@@ -38,19 +38,31 @@ class Students extends CI_Controller {
             exit();
         }
 
-        // Added support for search and state query parameters in the manage method 
+        // Added support for search and multiple states query parameters in the manage method 
         $json_data = json_decode(file_get_contents('php://input'), true);
         $action = isset($json_data['action']) ? $json_data['action'] : $this->input->post('action');
         $search = $this->input->get('search') ? $this->input->get('search') : (isset($json_data['search']) ? $json_data['search'] : '');
-        $state = $this->input->get('state') ? $this->input->get('state') : (isset($json_data['state']) ? $json_data['state'] : '');
-        log_message('debug', 'Action received in manage: ' . $action . ', Search: ' . $search . ', State: ' . $state);
+        
+        // Handle multiple states - can come as JSON string or array
+        $states = array();
+        if ($this->input->get('states')) {
+            $states_param = $this->input->get('states');
+            if (is_string($states_param)) {
+                $decoded_states = json_decode($states_param, true);
+                $states = is_array($decoded_states) ? $decoded_states : array();
+            }
+        } elseif (isset($json_data['states'])) {
+            $states = is_array($json_data['states']) ? $json_data['states'] : array();
+        }
+        
+        log_message('debug', 'Action received in manage: ' . $action . ', Search: ' . $search . ', States: ' . json_encode($states));
 
         if (!$action) {
             log_message('debug', 'No action provided, returning filtered students');
             $this->output->set_content_type('application/json');
             echo json_encode(array(
                 'success' => true,
-                'students' => $this->Student_model->get_students($search, $state),
+                'students' => $this->Student_model->get_students($search, $states),
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -192,6 +204,7 @@ class Students extends CI_Controller {
         exit();
     }
 
+    // Rest of the methods remain unchanged...
     public function edit($id) {
         if (!$this->session->userdata('user_id')) {
             $this->output->set_content_type('application/json');
@@ -374,7 +387,6 @@ class Students extends CI_Controller {
         $this->load->view('ang/setup_database');
     }
     
-
     public function test_db() {
         $output = $this->Student_model->test_database();
         if ($this->input->is_ajax_request()) {
@@ -390,36 +402,34 @@ class Students extends CI_Controller {
     }
 
     public function add_created_at_field() {
-    $this->load->dbforge();
-    
-    // Check if created_at field exists
-    $query = $this->db->query("SHOW COLUMNS FROM students LIKE 'created_at'");
-    
-    if ($query->num_rows() == 0) {
-        // Add created_at field
-        $fields = array(
-            'created_at' => array(
-                'type' => 'TIMESTAMP',
-                'default' => 'CURRENT_TIMESTAMP'
-            )
-        );
+        $this->load->dbforge();
         
-        $this->dbforge->add_column('students', $fields);
+        // Check if created_at field exists
+        $query = $this->db->query("SHOW COLUMNS FROM students LIKE 'created_at'");
         
-        // Update existing records with current timestamp
-        $this->db->query("UPDATE students SET created_at = NOW() WHERE created_at IS NULL");
-        
-        echo "created_at field added successfully to students table";
-    } else {
-        echo "created_at field already exists in students table";
+        if ($query->num_rows() == 0) {
+            // Add created_at field
+            $fields = array(
+                'created_at' => array(
+                    'type' => 'TIMESTAMP',
+                    'default' => 'CURRENT_TIMESTAMP'
+                )
+            );
+            
+            $this->dbforge->add_column('students', $fields);
+            
+            // Update existing records with current timestamp
+            $this->db->query("UPDATE students SET created_at = NOW() WHERE created_at IS NULL");
+            
+            echo "created_at field added successfully to students table";
+        } else {
+            echo "created_at field already exists in students table";
+        }
     }
-}
-
-    
 
     public function update_existing_states() {
-    $this->db->where('state IS NULL');
-    $this->db->update('students', array('state' => 'Rajasthan'));
-    echo 'Existing student records updated with default state: Rajasthan';
-}
+        $this->db->where('state IS NULL');
+        $this->db->update('students', array('state' => 'Rajasthan'));
+        echo 'Existing student records updated with default state: Rajasthan';
+    }
 }

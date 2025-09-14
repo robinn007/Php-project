@@ -8,7 +8,7 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
     $scope.flashMessage = 'Loading students...';
     $scope.flashType = 'info';
     $scope.searchText = '';
-    $scope.selectedState = '';
+    $scope.selectedStates = [];
     var lastRequestPromise = null; // Track the last AJAX request promise
 
     // Define and sort states alphabetically
@@ -24,15 +24,32 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
     console.log('StudentController initialized');
 
     // Initialize filters from URL parameters
-function initFilters() {
-    var searchParams = $location.search();
-    $scope.searchText = searchParams.search || '';
-    $scope.selectedState = searchParams.state || '';
-    console.log('Controller: Setting selectedState to:', $scope.selectedState); // ADD THIS
-    console.log('Initialized filters from URL:', { search: $scope.searchText, state: $scope.selectedState });
-}
+    function initFilters() {
+        var searchParams = $location.search();
+        $scope.searchText = searchParams.search || '';
+        
+        // Handle selectedStates from URL
+        if (searchParams.states) {
+            try {
+                $scope.selectedStates = JSON.parse(searchParams.states);
+                if (!Array.isArray($scope.selectedStates)) {
+                    $scope.selectedStates = [$scope.selectedStates];
+                }
+            } catch (e) {
+                console.error('Error parsing states from URL:', e);
+                $scope.selectedStates = angular.copy($scope.states); // Default to all states
+            }
+        } else {
+            $scope.selectedStates = angular.copy($scope.states); // Default to all states
+        }
+        
+        console.log('Initialized filters from URL:', { 
+            search: $scope.searchText, 
+            states: $scope.selectedStates.length + ' states selected'
+        });
+    }
 
-    $scope.loadStudents = function(searchText, selectedState) {
+    $scope.loadStudents = function(searchText, selectedStates) {
         // Cancel any previous request
         if (lastRequestPromise) {
             console.log('StudentController: Cancelling previous loadStudents request');
@@ -42,12 +59,19 @@ function initFilters() {
         $scope.flashMessage = 'Loading students...';
         $scope.flashType = 'info';
         var params = {};
+        
         if (searchText) {
             params.search = searchText;
         }
-        if (selectedState) {
-            params.state = selectedState;
+        
+        // Handle multiple states
+        if (selectedStates && selectedStates.length > 0) {
+            // If all states are selected, don't send state filter (equivalent to no filter)
+            if (selectedStates.length < $scope.states.length) {
+                params.states = JSON.stringify(selectedStates);
+            }
         }
+        
         console.log('Loading students with params:', params);
 
         // Store the new request promise
@@ -80,8 +104,8 @@ function initFilters() {
         if ($scope.searchText) {
             params.search = $scope.searchText;
         }
-        if ($scope.selectedState) {
-            params.state = $scope.selectedState;
+        if ($scope.selectedStates && $scope.selectedStates.length > 0 && $scope.selectedStates.length < $scope.states.length) {
+            params.states = JSON.stringify($scope.selectedStates);
         }
         console.log('Updating URL with params:', params);
         $location.search(params);
@@ -92,26 +116,26 @@ function initFilters() {
         $scope.searchText = searchText || '';
         console.log('Search triggered with:', $scope.searchText);
         updateUrlParams();
-        $scope.loadStudents($scope.searchText, $scope.selectedState);
+        $scope.loadStudents($scope.searchText, $scope.selectedStates);
     };
 
     // State filter handler
-    $scope.handleStateChange = function(state) {
-        $scope.selectedState = state || '';
-        console.log('State filter changed to:', $scope.selectedState);
+    $scope.handleStateChange = function(states) {
+        $scope.selectedStates = states || [];
+        console.log('State filter changed to:', $scope.selectedStates.length + ' states selected');
         updateUrlParams();
-        $scope.loadStudents($scope.searchText, $scope.selectedState);
+        $scope.loadStudents($scope.searchText, $scope.selectedStates);
     };
 
     // Watch for URL parameter changes
     $scope.$on('$locationChangeSuccess', function() {
         initFilters();
-        $scope.loadStudents($scope.searchText, $scope.selectedState);
+        $scope.loadStudents($scope.searchText, $scope.selectedStates);
     });
 
     // Initial load
     initFilters();
-    $scope.loadStudents($scope.searchText, $scope.selectedState);
+    $scope.loadStudents($scope.searchText, $scope.selectedStates);
 
     $scope.deleteStudent = function(id) {
         if (confirm('Are you sure you want to delete this student?')) {
@@ -136,6 +160,6 @@ function initFilters() {
     };
 
     $scope.$on('studentUpdated', function() {
-        $scope.loadStudents($scope.searchText, $scope.selectedState);
+        $scope.loadStudents($scope.searchText, $scope.selectedStates);
     });
 }]);

@@ -1,7 +1,7 @@
 <?php
 class Student_model extends CI_Model {
     
-     public function get_students($search = '', $state = '') {
+    public function get_students($search = '', $states = array()) {
         $this->db->where('is_deleted', 0);
         
         if ($search) {
@@ -9,11 +9,19 @@ class Student_model extends CI_Model {
             // Manually construct WHERE clause with parentheses for OR conditions across name, email, phone, and address
             $this->db->where("(name LIKE '%$search%' OR email LIKE '%$search%' OR phone LIKE '%$search%' OR address LIKE '%$search%')", NULL, FALSE);
         }
-        if ($state) {
-            $this->db->where('state', $state);
+        
+        // Handle multiple states filtering
+        if (!empty($states) && is_array($states) && count($states) > 0) {
+            // If specific states are provided, filter by them
+            $this->db->where_in('state', $states);
+            log_message('debug', 'Filtering by states: ' . json_encode($states));
         }
+        // If no states provided or empty array, return all states (no additional filter)
+        
         $query = $this->db->get('students');
-        return $query->result_array();
+        $result = $query->result_array();
+        log_message('debug', 'Found ' . count($result) . ' students matching criteria');
+        return $result;
     }
 
     public function get_student($id) {
@@ -56,7 +64,7 @@ class Student_model extends CI_Model {
                 }
                 // Validate address length (plain text)
                 if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
-                    log_message('error', 'Address exceeds maximum length of 500 characters');
+                    log_message('error', 'Address exceeds maximum length of 5000 characters');
                     return false;
                 }
                 // Validate state
@@ -90,7 +98,7 @@ class Student_model extends CI_Model {
                 }
                 // Validate address length (plain text)
                 if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
-                    log_message('error', 'Address exceeds maximum length of 500 characters');
+                    log_message('error', 'Address exceeds maximum length of 5000 characters');
                     return false;
                 }
                 // Validate state
@@ -162,3 +170,4 @@ class Student_model extends CI_Model {
         return $output;
     }
 }
+?>

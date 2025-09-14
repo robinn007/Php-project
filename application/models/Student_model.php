@@ -64,6 +64,12 @@ class Student_model extends CI_Model {
                     log_message('error', 'Invalid state value: ' . $data['state']);
                     return false;
                 }
+
+                 // Add created_at timestamp if not present
+                if (!isset($data['created_at'])) {
+                    $data['created_at'] = date('Y-m-d H:i:s');
+                }
+                
                 log_message('debug', 'Attempting to insert student: ' . json_encode($data));
                 $result = $this->db->insert('students', $data);
                 if ($result) {

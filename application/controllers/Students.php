@@ -373,6 +373,7 @@ class Students extends CI_Controller {
 
         $this->load->view('ang/setup_database');
     }
+    
 
     public function test_db() {
         $output = $this->Student_model->test_database();
@@ -387,6 +388,34 @@ class Students extends CI_Controller {
         }
         echo $output;
     }
+
+    public function add_created_at_field() {
+    $this->load->dbforge();
+    
+    // Check if created_at field exists
+    $query = $this->db->query("SHOW COLUMNS FROM students LIKE 'created_at'");
+    
+    if ($query->num_rows() == 0) {
+        // Add created_at field
+        $fields = array(
+            'created_at' => array(
+                'type' => 'TIMESTAMP',
+                'default' => 'CURRENT_TIMESTAMP'
+            )
+        );
+        
+        $this->dbforge->add_column('students', $fields);
+        
+        // Update existing records with current timestamp
+        $this->db->query("UPDATE students SET created_at = NOW() WHERE created_at IS NULL");
+        
+        echo "created_at field added successfully to students table";
+    } else {
+        echo "created_at field already exists in students table";
+    }
+}
+
+    
 
     public function update_existing_states() {
     $this->db->where('state IS NULL');

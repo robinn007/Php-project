@@ -2,7 +2,7 @@
  * @file DashboardController.js
  * @description Manages the dashboard view, including student counts and recent students.
  */
-angular.module('myApp').controller('DashboardController', ['$scope', 'AuthService', '$location', '$sce', 'AjaxHelper', function($scope, AuthService, $location, $sce, AjaxHelper) {
+angular.module('myApp').controller('DashboardController', ['$scope', 'AuthService', '$location', '$sce', 'AjaxHelper', '$q', function($scope, AuthService, $location, $sce, AjaxHelper, $q) {
     $scope.title = 'Student Management Dashboard';
     $scope.totalStudents = 0;
     $scope.totalDeletedStudents = 0;
@@ -21,43 +21,64 @@ angular.module('myApp').controller('DashboardController', ['$scope', 'AuthServic
         return;
     }
 
-    AjaxHelper.ajaxRequest('GET', '/students/manage')
-        .then(function(response) {
-            console.log('getStudents response:', JSON.stringify(response.data, null, 2));
-            $scope.flashMessage = response.flashMessage;
-            $scope.flashType = response.flashType;
-            if (response.data.success) {
-                $scope.totalStudents = response.data.students ? response.data.students.length : 0;
-                $scope.recentStudents = response.data.students
-                    ? response.data.students
+    // Load all dashboard data
+    function loadDashboardData() {
+        $scope.flashMessage = 'Loading dashboard data...';
+        $scope.flashType = 'info';
+
+        // Create promises for both requests
+        var studentsPromise = AjaxHelper.ajaxRequest('GET', '/students/manage');
+        var deletedStudentsPromise = AjaxHelper.ajaxRequest('GET', '/students/deleted');
+
+        // Wait for both requests to complete
+        $q.all([studentsPromise, deletedStudentsPromise])
+            .then(function(responses) {
+                var studentsResponse = responses[0];
+                var deletedStudentsResponse = responses[1];
+
+                console.log('Active students response:', JSON.stringify(studentsResponse.data, null, 2));
+                console.log('Deleted students response:', JSON.stringify(deletedStudentsResponse.data, null, 2));
+
+                // Process active students
+                if (studentsResponse.data.success) {
+                    var allStudents = studentsResponse.data.students || [];
+                    $scope.totalStudents = allStudents.length;
+                    
+                    // Sort by created_at if available, otherwise by ID (newest first)
+                    $scope.recentStudents = allStudents
                         .sort(function(a, b) {
-                            return new Date(b.created_at) - new Date(a.created_at);
+                            // Try to sort by created_at first
+                            if (a.created_at && b.created_at) {
+                                return new Date(b.created_at) - new Date(a.created_at);
+                            }
+                            // Fallback to ID-based sorting (higher ID = more recent)
+                            return parseInt(b.id) - parseInt(a.id);
                         })
-                        .slice(0, 5)
-                    : [];
-            }
-        })
-        .catch(function(error) {
-            console.error('Error loading students:', JSON.stringify(error, null, 2));
-            $scope.flashMessage = error.flashMessage;
-            $scope.flashType = error.flashType;
-        });
+                        .slice(0, 5); // Get top 5
+                }
 
-    AjaxHelper.ajaxRequest('GET', '/students/deleted')
-        .then(function(response) {
-            console.log('getDeletedStudents response:', JSON.stringify(response.data, null, 2));
-            $scope.flashMessage = response.flashMessage;
-            $scope.flashType = response.flashType;
-            if (response.data.success) {
-                $scope.totalDeletedStudents = response.data.students ? response.data.students.length : 0;
-            }
-        })
-        .catch(function(error) {
-            console.error('Error loading deleted students:', JSON.stringify(error, null, 2));
-            $scope.flashMessage = error.flashMessage;
-            $scope.flashType = error.flashType;
-        });
+                // Process deleted students
+                if (deletedStudentsResponse.data.success) {
+                    $scope.totalDeletedStudents = deletedStudentsResponse.data.students ? deletedStudentsResponse.data.students.length : 0;
+                }
 
+                // Set success message
+                $scope.flashMessage = 'Dashboard loaded successfully';
+                $scope.flashType = 'success';
+
+                console.log('Dashboard data loaded - Active:', $scope.totalStudents, 'Deleted:', $scope.totalDeletedStudents, 'Recent:', $scope.recentStudents.length);
+            })
+            .catch(function(error) {
+                console.error('Error loading dashboard data:', JSON.stringify(error, null, 2));
+                $scope.flashMessage = error.flashMessage || 'Failed to load dashboard data';
+                $scope.flashType = 'error';
+            });
+    }
+
+    // Load dashboard data on initialization
+    loadDashboardData();
+
+    // Navigation functions
     $scope.goToAddStudent = function() {
         console.log('Navigating to /students/add');
         $location.path('/students/add');

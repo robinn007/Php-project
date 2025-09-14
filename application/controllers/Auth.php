@@ -270,6 +270,7 @@ class Auth extends CI_Controller {
     exit();
 }
 
+
 // In your Auth controller constructor or a base controller
 public function check_session_expiry() {
     $last_activity = $this->session->userdata('last_activity');

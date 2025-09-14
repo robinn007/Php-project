@@ -5,20 +5,29 @@
 angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', function($http, $cookies, $q) {
     console.log('AjaxHelper initialized');
 
-    // Store the canceller for the last request
-    var lastRequestCanceller = null;
+    // Store cancellers by URL to avoid cancelling unrelated requests
+    var requestCancellers = {};
 
     var ajaxRequest = function(method, url, data, config) {
         var deferred = $q.defer();
-
-        // Cancel the previous request if it exists
-        if (lastRequestCanceller) {
-            console.log('AjaxHelper: Cancelling previous request to', url);
-            lastRequestCanceller.resolve();
+        
+        // Create a unique key for this request type
+        var requestKey = method + ':' + url;
+        
+        // Only cancel previous requests to the same endpoint for GET requests
+        if (method === 'GET' && requestCancellers[requestKey]) {
+            console.log('AjaxHelper: Cancelling previous GET request to', url);
+            requestCancellers[requestKey].resolve();
+            delete requestCancellers[requestKey];
         }
 
-        // Create a new canceller for this request
-        lastRequestCanceller = $q.defer();
+        // Create a new canceller for GET requests only
+        var currentCanceller = null;
+        if (method === 'GET') {
+            currentCanceller = $q.defer();
+            requestCancellers[requestKey] = currentCanceller;
+        }
+
         console.log('AjaxHelper: Initiating', method, 'request to', url, 'with data:', data);
 
         // Get CSRF token name from meta tag
@@ -34,10 +43,13 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-Token': csrfToken,
                 'Content-Type': 'application/json'
-            },
-            // Add timeout promise for cancellation
-            timeout: lastRequestCanceller.promise
+            }
         }, config || {});
+
+        // Add timeout promise for cancellation only for GET requests
+        if (currentCanceller) {
+            requestConfig.timeout = currentCanceller.promise;
+        }
 
         // Handle GET requests with query parameters
         if (method === 'GET' && data) {
@@ -60,7 +72,9 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                 console.log('AjaxHelper: Response from', url, ':', response.data);
 
                 // Clear the canceller since the request completed
-                lastRequestCanceller = null;
+                if (currentCanceller && requestCancellers[requestKey] === currentCanceller) {
+                    delete requestCancellers[requestKey];
+                }
 
                 // Check if response is HTML (indicating an error)
                 if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
@@ -112,7 +126,9 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
             },
             function(error) {
                 // Clear the canceller if the request was cancelled or failed
-                lastRequestCanceller = null;
+                if (currentCanceller && requestCancellers[requestKey] === currentCanceller) {
+                    delete requestCancellers[requestKey];
+                }
 
                 console.error('AjaxHelper: Error in', method, 'request to', url, ':', {
                     status: error.status,
@@ -121,9 +137,15 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                     headers: error.headers ? error.headers() : 'No headers'
                 });
 
-                // Ignore cancellation errors
-                if (error.status === -1 && error.xhrStatus === 'abort') {
+                // Handle cancellation errors more gracefully
+                if (error.status === -1 && (error.xhrStatus === 'abort' || !error.statusText)) {
                     console.log('AjaxHelper: Request to', url, 'was cancelled');
+                    deferred.reject({
+                        message: 'cancelled',
+                        status: -1,
+                        flashMessage: 'Request cancelled',
+                        flashType: 'info'
+                    });
                     return;
                 }
 

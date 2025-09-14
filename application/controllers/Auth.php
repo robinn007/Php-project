@@ -2,7 +2,6 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
-    
     public function __construct() {
         parent::__construct();
         error_reporting(E_ALL);
@@ -40,7 +39,6 @@ class Auth extends CI_Controller {
         log_message('debug', 'Auth::login method called');
         log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
 
-        // Try to parse JSON input if POST data is empty
         $post_data = $this->input->post();
         if ($post_data === false || empty($post_data)) {
             $raw_input = file_get_contents('php://input');
@@ -52,7 +50,6 @@ class Auth extends CI_Controller {
 
         log_message('debug', 'Is AJAX request: ' . ($this->input->is_ajax_request() ? 'Yes' : 'No'));
 
-        // Check CSRF token
         $csrf_token = isset($post_data[$this->security->get_csrf_token_name()]) ? $post_data[$this->security->get_csrf_token_name()] : null;
         log_message('debug', 'Received CSRF token: ' . ($csrf_token ?: 'null') . ', Expected: ' . $this->security->get_csrf_hash());
 
@@ -85,6 +82,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Email and password are required',
+                'flashMessage' => 'Email and password are required',
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -96,6 +95,8 @@ class Auth extends CI_Controller {
                 echo json_encode(array(
                     'success' => false,
                     'message' => 'Server error: Login functionality unavailable',
+                    'flashMessage' => 'Server error: Login functionality unavailable',
+                    'flashType' => 'error',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
                 exit();
@@ -109,9 +110,12 @@ class Auth extends CI_Controller {
                 echo json_encode(array(
                     'success' => true,
                     'message' => 'Login successful',
+                    'flashMessage' => 'Login successful',
+                    'flashType' => 'success',
                     'user' => array(
                         'id' => $user['id'],
-                        'username' => $user['username']
+                        'username' => $user['username'],
+                        'email' => $user['email']
                     ),
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
@@ -120,6 +124,8 @@ class Auth extends CI_Controller {
                 echo json_encode(array(
                     'success' => false,
                     'message' => 'Invalid email or password',
+                    'flashMessage' => 'Invalid email or password',
+                    'flashType' => 'error',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
             }
@@ -128,6 +134,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage(),
+                'flashMessage' => 'Server error: ' . $e->getMessage(),
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
         }
@@ -138,7 +146,6 @@ class Auth extends CI_Controller {
         log_message('debug', 'Auth::signup method called');
         log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
 
-        // Try to parse JSON input if POST data is empty
         $post_data = $this->input->post();
         if ($post_data === false || empty($post_data)) {
             $raw_input = file_get_contents('php://input');
@@ -152,6 +159,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'User already logged in',
+                'flashMessage' => 'User already logged in',
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -162,6 +171,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Invalid request method',
+                'flashMessage' => 'Invalid request method',
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -177,12 +188,16 @@ class Auth extends CI_Controller {
                 echo json_encode(array(
                     'success' => true,
                     'message' => 'Registration successful',
+                    'flashMessage' => 'Registration successful',
+                    'flashType' => 'success',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
             } else {
                 echo json_encode(array(
                     'success' => false,
                     'message' => 'Registration failed: Email or username already exists',
+                    'flashMessage' => 'Registration failed: Email or username already exists',
+                    'flashType' => 'error',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
             }
@@ -191,6 +206,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage(),
+                'flashMessage' => 'Server error: ' . $e->getMessage(),
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
         }
@@ -199,13 +216,68 @@ class Auth extends CI_Controller {
 
     public function logout() {
         log_message('debug', 'Auth::logout method called');
-           $this->output->set_content_type('application/json'); // add new line here 
-        $this->session->sess_destroy();
-        echo json_encode(array(
-            'success' => true,
-            'message' => 'Logout successful',
-            'csrf_token' => $this->security->get_csrf_hash()
-        ));
+        if ($this->input->method() === 'post') {
+            $this->session->unset_userdata('user_id');
+            $this->session->unset_userdata('username');
+            $this->session->sess_destroy();
+            log_message('debug', 'Session destroyed successfully');
+            echo json_encode(array(
+                'success' => true,
+                'message' => 'Logout successful',
+                'flashMessage' => 'Logout successful',
+                'flashType' => 'success',
+                'csrf_token' => $this->security->get_csrf_hash()
+            ));
+        } else {
+            log_message('error', 'Invalid logout request method: ' . $this->input->method());
+            echo json_encode(array(
+                'success' => false,
+                'message' => 'Invalid request method, POST required',
+                'flashMessage' => 'Invalid request method, POST required',
+                'flashType' => 'error',
+                'csrf_token' => $this->security->get_csrf_hash()
+            ));
+        }
         exit();
     }
+
+    public function check_auth() {
+    log_message('debug', 'Auth::check_auth method called');
+    $is_logged_in = $this->session->userdata('user_id') ? true : false;
+    
+    $response = array(
+        'success' => true,
+        'is_logged_in' => $is_logged_in,
+        'csrf_token' => $this->security->get_csrf_hash()
+    );
+    
+    // Add user data if logged in
+    if ($is_logged_in) {
+        $user_id = $this->session->userdata('user_id');
+        $this->load->model('User_model');
+        $user = $this->User_model->get_user_by_id($user_id);
+        
+        if ($user) {
+            $response['user'] = array(
+                'id' => $user['id'],
+                'username' => $user['username'],
+                'email' => $user['email']
+            );
+        }
+    }
+    
+    echo json_encode($response);
+    exit();
+}
+
+// In your Auth controller constructor or a base controller
+public function check_session_expiry() {
+    $last_activity = $this->session->userdata('last_activity');
+    if ($last_activity && (time() - $last_activity > 3600)) { // 1 hour
+        $this->session->sess_destroy();
+        return false;
+    }
+    $this->session->set_userdata('last_activity', time());
+    return true;
+}
 }

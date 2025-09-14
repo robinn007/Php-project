@@ -33,32 +33,32 @@ app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($ro
         .when('/students/dashboard', {
             templateUrl: '/view/dashboard',
             controller: 'DashboardController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/students', {
             templateUrl: '/view/students',
             controller: 'StudentController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/students/add', {
             templateUrl: '/view/student-form',
             controller: 'StudentFormController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/students/edit/:id', {
             templateUrl: '/view/student-form',
             controller: 'StudentFormController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/students/deleted', {
             templateUrl: '/view/deleted-students',
             controller: 'DeletedStudentsController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/test-db', {
             templateUrl: '/view/test-db',
             controller: 'TestDbController',
-            requireAuth: true
+            requireLogin: true
         })
         .when('/about', {
             templateUrl: '/view/about',

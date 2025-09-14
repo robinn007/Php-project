@@ -26,7 +26,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
         </ul>
         <div class="user-info" ng-show="isLoggedIn">
             <span class="user-name">Welcome, {{ currentUser }}</span>
-            <a href="/logout" class="btn-logout" ng-click="logout()">Logout</a>
+            <a href="#" class="btn-logout" ng-click="logout()">Logout</a>
         </div>
+        <div flash-message ng-class="flashType">{{ flashMessage }}</div>
     </div>
 </nav>

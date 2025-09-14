@@ -1,15 +1,24 @@
 /**
  * @file common.js
  * @description Utility module for handling AJAX calls across the Student Management System.
- * Provides a centralized AJAX helper function for making HTTP requests with CSRF token handling,
- * response processing, and error handling.
  */
-
 angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', function($http, $cookies, $q) {
     console.log('AjaxHelper initialized');
 
+    // Store the canceller for the last request
+    var lastRequestCanceller = null;
+
     var ajaxRequest = function(method, url, data, config) {
         var deferred = $q.defer();
+
+        // Cancel the previous request if it exists
+        if (lastRequestCanceller) {
+            console.log('AjaxHelper: Cancelling previous request to', url);
+            lastRequestCanceller.resolve();
+        }
+
+        // Create a new canceller for this request
+        lastRequestCanceller = $q.defer();
         console.log('AjaxHelper: Initiating', method, 'request to', url, 'with data:', data);
 
         // Get CSRF token name from meta tag
@@ -25,11 +34,18 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-Token': csrfToken,
                 'Content-Type': 'application/json'
-            }
+            },
+            // Add timeout promise for cancellation
+            timeout: lastRequestCanceller.promise
         }, config || {});
 
+        // Handle GET requests with query parameters
+        if (method === 'GET' && data) {
+            requestConfig.params = data;
+            console.log('AjaxHelper: GET params:', data);
+        }
         // Add CSRF token to POST data for POST/PUT requests
-        if (data && (method === 'POST' || method === 'PUT')) {
+        else if (data && (method === 'POST' || method === 'PUT')) {
             data[csrfTokenName] = csrfToken;
             console.log('AjaxHelper: POST data with CSRF:', data);
             requestConfig.data = data;
@@ -42,6 +58,9 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
         $http(requestConfig).then(
             function(response) {
                 console.log('AjaxHelper: Response from', url, ':', response.data);
+
+                // Clear the canceller since the request completed
+                lastRequestCanceller = null;
 
                 // Check if response is HTML (indicating an error)
                 if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
@@ -92,12 +111,22 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                 }
             },
             function(error) {
+                // Clear the canceller if the request was cancelled or failed
+                lastRequestCanceller = null;
+
                 console.error('AjaxHelper: Error in', method, 'request to', url, ':', {
                     status: error.status,
                     statusText: error.statusText,
                     data: error.data || 'No data',
                     headers: error.headers ? error.headers() : 'No headers'
                 });
+
+                // Ignore cancellation errors
+                if (error.status === -1 && error.xhrStatus === 'abort') {
+                    console.log('AjaxHelper: Request to', url, 'was cancelled');
+                    return;
+                }
+
                 var errorMessage = error.statusText || 'Network or server error';
                 if (error.data && error.data.message) {
                     errorMessage = error.data.message;

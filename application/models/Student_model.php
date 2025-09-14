@@ -1,7 +1,17 @@
 <?php
 class Student_model extends CI_Model {
-    public function get_students() {
+    
+     public function get_students($search = '', $state = '') {
         $this->db->where('is_deleted', 0);
+        
+        if ($search) {
+            $search = $this->db->escape_like_str($search);
+            // Manually construct WHERE clause with parentheses for OR conditions across name, email, phone, and address
+            $this->db->where("(name LIKE '%$search%' OR email LIKE '%$search%' OR phone LIKE '%$search%' OR address LIKE '%$search%')", NULL, FALSE);
+        }
+        if ($state) {
+            $this->db->where('state', $state);
+        }
         $query = $this->db->get('students');
         return $query->result_array();
     }

@@ -38,16 +38,19 @@ class Students extends CI_Controller {
             exit();
         }
 
+        // Added support for search and state query parameters in the manage method 
         $json_data = json_decode(file_get_contents('php://input'), true);
         $action = isset($json_data['action']) ? $json_data['action'] : $this->input->post('action');
-        log_message('debug', 'Action received in manage: ' . $action);
+        $search = $this->input->get('search') ? $this->input->get('search') : (isset($json_data['search']) ? $json_data['search'] : '');
+        $state = $this->input->get('state') ? $this->input->get('state') : (isset($json_data['state']) ? $json_data['state'] : '');
+        log_message('debug', 'Action received in manage: ' . $action . ', Search: ' . $search . ', State: ' . $state);
 
         if (!$action) {
-            log_message('debug', 'No action provided, returning all students');
+            log_message('debug', 'No action provided, returning filtered students');
             $this->output->set_content_type('application/json');
             echo json_encode(array(
                 'success' => true,
-                'students' => $this->Student_model->get_students(),
+                'students' => $this->Student_model->get_students($search, $state),
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -69,7 +72,7 @@ class Students extends CI_Controller {
                 $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
                 $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
                 $this->form_validation->set_rules('student[address]', 'Address', 'trim');
-                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh, Arunachal Pradesh, Assam, Bihar, Chhattisgarh, Goa, Gujarat, Haryana,,Jharkhand,Karnataka, Kerala, Madhya Pradesh, Maharashtra, Manipur, Meghalaya, Mizoram, Nagaland, Odisha, Andaman and Nicobar Islands, Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry, Sikkim, Tamil Nadu, Telangana, Tripura, Uttarakhand, West Bengal]');
+                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
 
                 log_message('debug', 'POST data for add: ' . json_encode($this->input->post()));
 
@@ -120,7 +123,7 @@ class Students extends CI_Controller {
                 $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
                 $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
                 $this->form_validation->set_rules('student[address]', 'Address', 'trim');
-                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh, Arunachal Pradesh, Assam, Bihar, Chhattisgarh, Goa, Gujarat, Haryana,,Jharkhand,Karnataka, Kerala, Madhya Pradesh, Maharashtra, Manipur, Meghalaya, Mizoram, Nagaland, Odisha, Andaman and Nicobar Islands, Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry, Sikkim, Tamil Nadu, Telangana, Tripura, Uttarakhand, West Bengal]');
+                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
 
                 log_message('debug', 'POST data for edit: ' . json_encode($this->input->post()));
 

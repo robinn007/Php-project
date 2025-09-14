@@ -32,7 +32,7 @@ $config['base_url'] = 'http://localhost/';
 
 // Session configuration
 $config['sess_cookie_name'] = 'ci_session';
-$config['sess_expiration'] = 7200; // 2 hours
+$config['sess_expiration'] = 600; // 2 hours
 $config['sess_encrypt_cookie'] = TRUE;
 $config['sess_use_database'] = FALSE; // Set to TRUE if using database sessions
 $config['sess_table_name'] = 'ci_sessions';

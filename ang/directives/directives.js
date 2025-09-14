@@ -374,3 +374,47 @@ app.directive('renderHtml', ['$sce', '$filter', function($sce, $filter) {
     }
   };
 }]);
+
+
+
+/**
+ * @file searchFilter.js
+ * @description Directive for a debounced search input field.
+ */
+angular.module('myApp').directive('searchFilter', ['$timeout', function($timeout) {
+    return {
+        restrict: 'E',
+        scope: {
+            searchText: '=',
+            onSearch: '&'
+        },
+        template: `
+            <div class="form-group search-filter">
+                <label for="search">Search Students</label>
+                <input type="text" id="search" ng-model="searchText" placeholder="Search by name, email, phone, or address..." class="form-control">
+            </div>
+        `,
+        link: function(scope, element, attrs) {
+            var debounceTimeout;
+            scope.$watch('searchText', function(newValue, oldValue) {
+                if (newValue === oldValue) return;
+                // Clear previous timeout
+                if (debounceTimeout) {
+                    $timeout.cancel(debounceTimeout);
+                }
+                // Set new timeout for debouncing (500ms delay)
+                debounceTimeout = $timeout(function() {
+                    console.log('Search filter triggered with value:', newValue);
+                    scope.onSearch({ searchText: newValue || '' });
+                }, 1000);
+            });
+            // Cleanup on scope destroy
+            scope.$on('$destroy', function() {
+                if (debounceTimeout) {
+                    $timeout.cancel(debounceTimeout);
+                }
+            });
+        }
+    };
+}]);
+

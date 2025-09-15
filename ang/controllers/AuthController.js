@@ -2,7 +2,7 @@
  * @file AuthController.js
  * @description Controller for managing user authentication.
  */
-angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', function($scope, $location, $cookies, AjaxHelper, $rootScope) {
+angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', 'AuthService', function($scope, $location, $cookies, AjaxHelper, $rootScope, AuthService) {
     $scope.user = { email: '', password: '', username: '', confirm_password: '' };
     $scope.flashMessage = '';
     $scope.flashType = '';
@@ -11,45 +11,45 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
     console.log('AuthController initialized');
 
     // Check if user is already logged in
-function checkAuth() {
-    console.log('Checking auth status');
-    AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
-        .then(function(response) {
-            console.log('checkAuth response:', response);
-            if (response.data.is_logged_in) {
-                console.log('User is already logged in, redirecting to /students');
-                
-                // Set cookies with user data if available
-                if (response.data.user) {
-                    $cookies.user_id = response.data.user.id.toString();
-                    $cookies.username = response.data.user.username;
-                    $cookies.email = response.data.user.email;
-                    console.log('User cookies set from check_auth response');
+    function checkAuth() {
+        console.log('Checking auth status');
+        AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
+            .then(function(response) {
+                console.log('checkAuth response:', response);
+                if (response.data.is_logged_in) {
+                    console.log('User is already logged in, redirecting to /students');
+                    
+                    // Set cookies with user data if available
+                    if (response.data.user) {
+                        $cookies.user_id = response.data.user.id.toString();
+                        $cookies.username = response.data.user.username;
+                        $cookies.email = response.data.user.email;
+                        console.log('User cookies set from check_auth response');
+                    }
+                    
+                    $location.path('/students');
+                    $scope.$applyAsync(); // Ensure digest cycle runs for redirection
                 }
-                
-                $location.path('/students');
-                $scope.$applyAsync(); // Ensure digest cycle runs for redirection
-            }
-        })
-        .catch(function(error) {
-            console.error('Error checking auth:', error);
-            $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
-            $scope.flashType = error.flashType || 'error';
-            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-        });
-}
+            })
+            .catch(function(error) {
+                console.error('Error checking auth:', error);
+                $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
+                $scope.flashType = error.flashType || 'error';
+                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            });
+    }
 
     $scope.submitForm = function() {
-if (!$scope.isSignup) {
-    // If already logged in, prevent login attempt
-    if (AuthService.isLoggedIn()) {
-        $scope.flashMessage = 'You are already logged in.';
-        $scope.flashType = 'info';
-        $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-        $location.path('/students');
-        return;
-    }
-}
+        if (!$scope.isSignup) {
+            // If already logged in, prevent login attempt
+            if (AuthService.isLoggedIn()) {
+                $scope.flashMessage = 'You are already logged in.';
+                $scope.flashType = 'info';
+                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+                $location.path('/students');
+                return;
+            }
+        }
         if ($scope.isSignup) {
             if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
                 $scope.flashMessage = 'Please fill in all required fields.';

@@ -26,6 +26,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     <script src="/assets/angular-1.3.0/angular-route.min.js"></script>
     <script src="/assets/angular-1.3.0/angular-cookies.js"></script>
     <script src="/assets/angular-1.3.0/angular-sanitize.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0/angular-cookies.js"></script>
 
     <!-- Application Scripts -->
     <script src="/ang/app.js"></script>

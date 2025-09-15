@@ -58,6 +58,7 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
         }
         // Add CSRF token to POST data for POST/PUT requests
         else if (data && (method === 'POST' || method === 'PUT')) {
+            data = data || {};
             data[csrfTokenName] = csrfToken;
             console.log('AjaxHelper: POST data with CSRF:', data);
             requestConfig.data = data;

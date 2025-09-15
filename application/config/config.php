@@ -39,6 +39,7 @@ $config['sess_table_name'] = 'ci_sessions';
 $config['sess_match_ip'] = FALSE;
 $config['sess_match_useragent'] = TRUE;
 $config['sess_time_to_update'] = 300; // timer to regenrate session id every 5 hrs
+$config['sess_save_path'] = APPPATH . 'sessions'; // Ensure this directory exists
 
 /*
 |--------------------------------------------------------------------------
@@ -327,7 +328,7 @@ $config['csrf_protection'] = FALSE;
 $config['csrf_token_name'] = 'ci_csrf_token';
 $config['csrf_cookie_name'] = 'ci_csrf_cookie';
 $config['csrf_expire'] = 600;
- $config['csrf_regenerate'] = TRUE;
+ $config['csrf_regenerate'] = FALSE; // Set to FALSE to avoid regenerating CSRF token on every request
  $config['csrf_exclude_uris'] = array();
 
 /*

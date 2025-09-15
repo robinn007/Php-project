@@ -58,6 +58,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'User already logged in',
+                'flashMessage' => 'User already logged in',
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -68,6 +70,8 @@ class Auth extends CI_Controller {
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Invalid request method',
+                'flashMessage' => 'Invalid request method',
+                'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
             exit();
@@ -216,24 +220,40 @@ class Auth extends CI_Controller {
 
     public function logout() {
         log_message('debug', 'Auth::logout method called');
-        if ($this->input->method() === 'post') {
-            $this->session->unset_userdata('user_id');
-            $this->session->unset_userdata('username');
-            $this->session->sess_destroy();
-            log_message('debug', 'Session destroyed successfully');
-            echo json_encode(array(
-                'success' => true,
-                'message' => 'Logout successful',
-                'flashMessage' => 'Logout successful',
-                'flashType' => 'success',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-        } else {
-            log_message('error', 'Invalid logout request method: ' . $this->input->method());
+        log_message('debug', 'Request method: ' . $this->input->method());
+        log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
+
+        try {
+            if ($this->input->method() === 'post') {
+                // Clear session data
+                $this->session->unset_userdata('user_id');
+                $this->session->unset_userdata('username');
+                $this->session->unset_userdata('last_activity');
+                $this->session->sess_destroy();
+                log_message('debug', 'Session destroyed successfully');
+                echo json_encode(array(
+                    'success' => true,
+                    'message' => 'Logout successful',
+                    'flashMessage' => 'Logout successful',
+                    'flashType' => 'success',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                ));
+            } else {
+                log_message('error', 'Invalid logout request method: ' . $this->input->method());
+                echo json_encode(array(
+                    'success' => false,
+                    'message' => 'Invalid request method, POST required',
+                    'flashMessage' => 'Invalid request method, POST required',
+                    'flashType' => 'error',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                ));
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Logout error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             echo json_encode(array(
                 'success' => false,
-                'message' => 'Invalid request method, POST required',
-                'flashMessage' => 'Invalid request method, POST required',
+                'message' => 'Server error during logout: ' . $e->getMessage(),
+                'flashMessage' => 'Server error during logout',
                 'flashType' => 'error',
                 'csrf_token' => $this->security->get_csrf_hash()
             ));
@@ -242,43 +262,85 @@ class Auth extends CI_Controller {
     }
 
     public function check_auth() {
-    log_message('debug', 'Auth::check_auth method called');
-    $is_logged_in = $this->session->userdata('user_id') ? true : false;
-    
-    $response = array(
-        'success' => true,
-        'is_logged_in' => $is_logged_in,
-        'csrf_token' => $this->security->get_csrf_hash()
-    );
-    
-    // Add user data if logged in
-    if ($is_logged_in) {
-        $user_id = $this->session->userdata('user_id');
-        $this->load->model('User_model');
-        $user = $this->User_model->get_user_by_id($user_id);
+        log_message('debug', 'Auth::check_auth method called');
+        $is_logged_in = $this->session->userdata('user_id') ? true : false;
         
-        if ($user) {
-            $response['user'] = array(
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'email' => $user['email']
-            );
+        $response = array(
+            'success' => true,
+            'is_logged_in' => $is_logged_in,
+            'csrf_token' => $this->security->get_csrf_hash()
+        );
+        
+        // Add user data if logged in
+        if ($is_logged_in) {
+            $user_id = $this->session->userdata('user_id');
+            $this->load->model('User_model');
+            $user = $this->User_model->get_user_by_id($user_id);
+            
+            if ($user) {
+                $response['user'] = array(
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email']
+                );
+            }
         }
+        
+        echo json_encode($response);
+        exit();
     }
-    
-    echo json_encode($response);
-    exit();
-}
 
+    public function check_session() {
+        log_message('debug', 'Auth::check_session method called');
+        try {
+            $is_logged_in = $this->session->userdata('user_id') ? true : false;
+            $response = array(
+                'success' => true,
+                'logged_in' => $is_logged_in,
+                'csrf_token' => $this->security->get_csrf_hash()
+            );
 
-// In your Auth controller constructor or a base controller
-public function check_session_expiry() {
-    $last_activity = $this->session->userdata('last_activity');
-    if ($last_activity && (time() - $last_activity > 3600)) { // 1 hour
-        $this->session->sess_destroy();
-        return false;
+            if ($is_logged_in) {
+                $user_id = $this->session->userdata('user_id');
+                $user = $this->User_model->get_user_by_id($user_id);
+                
+                if ($user) {
+                    $response['user'] = array(
+                        'id' => $user['id'],
+                        'username' => $user['username'],
+                        'email' => $user['email']
+                    );
+                } else {
+                    // If user_id exists but user not found, clear session
+                    $this->session->unset_userdata('user_id');
+                    $this->session->unset_userdata('username');
+                    $this->session->sess_destroy();
+                    $response['logged_in'] = false;
+                    log_message('error', 'User not found for ID: ' . $user_id . ', session cleared');
+                }
+            }
+
+            echo json_encode($response);
+        } catch (Exception $e) {
+            log_message('error', 'check_session error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            echo json_encode(array(
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage(),
+                'flashMessage' => 'Server error during session check',
+                'flashType' => 'error',
+                'csrf_token' => $this->security->get_csrf_hash()
+            ));
+        }
+        exit();
     }
-    $this->session->set_userdata('last_activity', time());
-    return true;
-}
+
+    public function check_session_expiry() {
+        $last_activity = $this->session->userdata('last_activity');
+        if ($last_activity && (time() - $last_activity > 3600)) { // 1 hour
+            $this->session->sess_destroy();
+            return false;
+        }
+        $this->session->set_userdata('last_activity', time());
+        return true;
+    }
 }

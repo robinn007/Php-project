@@ -38,33 +38,35 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
         });
 
     // Sync session with server on app start
-if (AuthService.isLoggedIn() || window.location.pathname.includes('/students')) {
-    console.log('App init: Syncing session with server');
-    AuthService.syncSessionWithServer()
-        .then(function(user) {
-            console.log('App init: Session synced successfully', user);
-            $rootScope.isLoggedIn = true;
-            $rootScope.currentUser = user.username;
-            $rootScope.$broadcast('userLoggedIn');
-            
-            // If already on login/signup page but logged in, redirect to students
-            if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
-                $location.path('/students');
-            }
-        })
-        .catch(function(error) {
-            console.log('App init: Session sync failed, user not logged in');
-            $rootScope.isLoggedIn = false;
-            $rootScope.currentUser = '';
-            
-            // Only redirect if trying to access protected pages without auth
-            if (window.location.pathname.includes('/students') || 
-                window.location.pathname.includes('/dashboard') ||
-                window.location.pathname.includes('/test-db')) {
-                $location.path('/login');
-            }
-        });
-}
+    if (AuthService.isLoggedIn() || window.location.pathname.includes('/students')) {
+        console.log('App init: Syncing session with server');
+        AuthService.syncSessionWithServer()
+            .then(function(user) {
+                console.log('App init: Session synced successfully', user);
+                $rootScope.isLoggedIn = true;
+                $rootScope.currentUser = user.username;
+                $rootScope.$broadcast('userLoggedIn');
+                
+                // If already on login/signup page but logged in, redirect to students
+                if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+                    $location.path('/students');
+                    $scope.$applyAsync();
+                }
+            })
+            .catch(function(error) {
+                console.log('App init: Session sync failed, user not logged in');
+                $rootScope.isLoggedIn = false;
+                $rootScope.currentUser = '';
+                
+                // Only redirect if trying to access protected pages without auth
+                if (window.location.pathname.includes('/students') || 
+                    window.location.pathname.includes('/dashboard') ||
+                    window.location.pathname.includes('/test-db')) {
+                    $location.path('/login');
+                    $scope.$applyAsync();
+                }
+            });
+    }
 
     // Global authentication state tracking
     $rootScope.isLoggedIn = AuthService.isLoggedIn();

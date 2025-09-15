@@ -9,6 +9,8 @@ $route['login'] = 'auth/login';
 $route['signup'] = 'auth/signup';
 $route['logout'] = 'auth/logout';
 $route['auth/get_csrf'] = 'auth/get_csrf';
+$route['auth/check_auth'] = 'auth/check_auth';
+$route['auth/check_session'] = 'auth/check_session'; // Added new route
 
 $route['students'] = 'students/index';
 $route['students/dashboard'] = 'students/dashboard';
@@ -24,7 +26,7 @@ $route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2';
 $route['students/test_db'] = 'students/test_db';
 $route['students/setup_database'] = 'students/setup_database';
 
-// Clicks routes -
+// Clicks routes
 $route['clicks'] = 'students/clicks';
 $route['clicks/export'] = 'students/export'; 
 

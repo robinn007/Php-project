@@ -125,6 +125,15 @@
     gap: 10px;
     align-items: center;
 }
+ .page-controls label {
+    font-size: 20px;
+ }
+ .page-controls select{
+    width: 100px;
+    height : 28px;
+    font-size: 18px;
+} 
+
 
 .search-input {
     padding: 8px 12px;

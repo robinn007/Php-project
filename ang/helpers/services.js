@@ -58,7 +58,7 @@ angular.module('myApp').factory('AuthService', ['$cookies', '$http', '$q', funct
       
       $http({
         method: 'GET',
-        url: '/auth/check_session',
+        url: '/auth/check_auth', // Changed from /auth/check_session to /auth/check_auth
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
           'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ angular.module('myApp').factory('AuthService', ['$cookies', '$http', '$q', funct
       }).then(
         function(response) {
           console.log('AuthService: Session check response:', response.data);
-          if (response.data.success && response.data.logged_in && response.data.user) {
+          if (response.data.success && response.data.is_logged_in && response.data.user) {
             // Update cookies with server data
             $cookies.user_id = response.data.user.id.toString();
             $cookies.username = response.data.user.username;
@@ -89,31 +89,27 @@ angular.module('myApp').factory('AuthService', ['$cookies', '$http', '$q', funct
     },
     /**
      * @function logout
-     * @description Clears authentication-related cookies.
+     * @description Clears authentication-related cookies and session data.
      */
-    /**
- * @function logout
- * @description Clears authentication-related cookies and session data.
- */
-logout: function() {
-    console.log('AuthService: Clearing cookies and session data');
-    
-    // Clear all auth-related cookies
-    var cookies = $cookies.getAll();
-    Object.keys(cookies).forEach(function(key) {
-        if (key === 'user_id' || key === 'username' || key === 'email' || key === 'csrf_token') {
-            delete $cookies[key];
-            console.log('AuthService: Cleared cookie:', key);
+    logout: function() {
+      console.log('AuthService: Clearing cookies and session data');
+      
+      // Explicitly clear known auth-related cookies
+      var authCookies = ['user_id', 'username', 'email', 'csrf_token'];
+      authCookies.forEach(function(key) {
+        if ($cookies[key]) {
+          $cookies[key] = null; // Set to null to clear in AngularJS 1.3.0
+          console.log('AuthService: Cleared cookie:', key);
         }
-    });
-    
-    // Also clear from document.cookie to ensure complete removal
-    document.cookie = 'user_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    console.log('AuthService: All auth cookies cleared');
-}
+      });
+      
+      // Also clear from document.cookie to ensure complete removal
+      authCookies.forEach(function(key) {
+        document.cookie = key + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        console.log('AuthService: Cleared document.cookie:', key);
+      });
+      
+      console.log('AuthService: All auth cookies cleared');
+    }
   };
 }]);

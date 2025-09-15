@@ -2,7 +2,7 @@
  * @file NavController.js
  * @description Controller for managing navigation and user authentication state and logout.
  */
-angular.module('myApp').controller('NavController', ['$scope', '$location', '$rootScope', 'AuthService', 'AjaxHelper', function($scope, $location, $rootScope, AuthService, AjaxHelper) {
+angular.module('myApp').controller('NavController', ['$scope', '$location', '$rootScope', 'AuthService', 'AjaxHelper', '$cookies', function($scope, $location, $rootScope, AuthService, AjaxHelper, $cookies) {
     
     // Initialize authentication state
     function updateAuthState() {
@@ -43,7 +43,7 @@ angular.module('myApp').controller('NavController', ['$scope', '$location', '$ro
         updateAuthState();
     });
 
-    // Watch for cookie changes (for cases where cookies are set directly)
+    // Watch for cookie changes
     $scope.$watch(function() {
         return AuthService.isLoggedIn();
     }, function(newValue, oldValue) {
@@ -54,35 +54,44 @@ angular.module('myApp').controller('NavController', ['$scope', '$location', '$ro
     });
 
     $scope.logout = function() {
-    console.log('Logging out user:', $scope.currentUser);
-    
-    // Change from GET to POST
-    AjaxHelper.ajaxRequest('POST', '/auth/logout')
-        .then(function(response) {
-            console.log('Logout successful:', response.data);
-            
-            // Clear authentication data
-            AuthService.logout();
-            updateAuthState();
-            
-            // Broadcast logout event
-            $rootScope.$broadcast('userLoggedOut');
-            
-            // Redirect to login page
-            $location.path('/login');
-        })
-        .catch(function(error) {
-            console.error('Logout failed:', JSON.stringify(error, null, 2));
-            
-            // Even if the server request fails, clear local authentication data
-            AuthService.logout();
-            updateAuthState();
-            
-            // Broadcast logout event
-            $rootScope.$broadcast('userLoggedOut');
-            
-            // Redirect to login page regardless of server response
-            $location.path('/login');
-        });
-};
+        console.log('Logging out user:', $scope.currentUser);
+        
+        // Prepare data with CSRF token
+        var csrfTokenName = document.querySelector('meta[name="csrf-token-name"]')?.getAttribute('content') || 'ci_csrf_token';
+        var csrfToken = $cookies.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        var data = {};
+        data[csrfTokenName] = csrfToken;
+
+        console.log('NavController - Sending logout request with CSRF token:', csrfToken?.substring(0, 10) + '...');
+
+        AjaxHelper.ajaxRequest('POST', '/auth/logout', data)
+            .then(function(response) {
+                console.log('Logout successful:', response.data);
+                
+                // Clear authentication data
+                AuthService.logout();
+                updateAuthState();
+                
+                // Broadcast logout event
+                $rootScope.$broadcast('userLoggedOut');
+                
+                // Redirect to login page
+                $location.path('/login');
+                $scope.$applyAsync();
+            })
+            .catch(function(error) {
+                console.error('Logout failed:', JSON.stringify(error, null, 2));
+                
+                // Even if the server request fails, clear local authentication data
+                AuthService.logout();
+                updateAuthState();
+                
+                // Broadcast logout event
+                $rootScope.$broadcast('userLoggedOut');
+                
+                // Redirect to login page regardless of server response
+                $location.path('/login');
+                $scope.$applyAsync();
+            });
+    };
 }]);

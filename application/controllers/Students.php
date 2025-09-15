@@ -510,4 +510,153 @@ public function test_clicks() {
         $this->db->update('students', array('state' => 'Rajasthan'));
         echo 'Existing student records updated with default state: Rajasthan';
     }
+
+    // export for a  clicks() method
+
+   public function export() {
+    // Check authentication
+    if (!$this->session->userdata('user_id')) {
+        log_message('error', 'Export: User not authenticated');
+        $this->output->set_content_type('application/json');
+        echo json_encode(array(
+            'success' => false,
+            'message' => 'Please log in to perform this action.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        ));
+        return;
+    }
+
+    if ($this->input->is_ajax_request()) {
+        try {
+            $export_type = $this->input->get('export') ?: 'csv';
+            $search = $this->input->get('search') ?: null;
+            
+            log_message('debug', "Export: Starting export - Type: $export_type, Search: " . ($search ?: 'none'));
+            
+            if ($export_type !== 'csv') {
+                throw new Exception('Only CSV export is currently supported');
+            }
+            
+            // First, let's try the regular get_clicks method to see if data exists
+            log_message('debug', 'Export: Testing regular clicks query first');
+            $test_clicks = $this->Clicks_model->get_clicks(10, 0, $search);
+            log_message('debug', 'Export: Test query returned ' . count($test_clicks) . ' records');
+            
+            if (empty($test_clicks)) {
+                log_message('error', 'Export: No data found even in test query');
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode(array(
+                        'success' => false,
+                        'message' => 'No clicks data available for export. Please check if clicks table has data.',
+                        'debug_info' => 'Test query returned 0 records',
+                        'csrf_token' => $this->security->get_csrf_hash()
+                    )));
+                return;
+            }
+            
+            // Now try the export method
+            log_message('debug', 'Export: Calling get_all_clicks_for_export');
+            $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
+            log_message('debug', 'Export: get_all_clicks_for_export returned ' . count($clicks) . ' records');
+            
+            if (empty($clicks)) {
+                log_message('error', 'Export: get_all_clicks_for_export returned empty but test query had data');
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode(array(
+                        'success' => false,
+                        'message' => 'Export method failed to retrieve data, but data exists. Check get_all_clicks_for_export method.',
+                        'debug_info' => 'Export query failed, but test query returned ' . count($test_clicks) . ' records',
+                        'csrf_token' => $this->security->get_csrf_hash()
+                    )));
+                return;
+            }
+            
+            // Generate CSV content
+            log_message('debug', 'Export: Generating CSV');
+            $csv_content = $this->generate_csv($clicks);
+            
+            if (empty($csv_content)) {
+                throw new Exception('Failed to generate CSV content');
+            }
+            
+            log_message('debug', 'Export: CSV generated successfully with ' . count($clicks) . ' records');
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => true,
+                    'csv_data' => $csv_content,
+                    'total_records' => count($clicks),
+                    'message' => 'Export generated successfully',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error in export method: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Export failed: ' . $e->getMessage(),
+                    'debug_info' => 'Check application logs for details',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+        }
+        return;
+    }
+    
+    // For non-AJAX requests, redirect to clicks page
+    redirect('/clicks');
+}
+    
+    // Helper method to generate CSV content
+    private function generate_csv($data) {
+        if (empty($data)) {
+            return '';
+        }
+        
+        // CSV headers
+        $headers = array('ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp');
+        
+        // Start building CSV content
+        $csv_content = '';
+        
+        // Add headers
+        $csv_content .= '"' . implode('","', $headers) . '"' . "\n";
+        
+        // Add data rows
+        foreach ($data as $row) {
+            $csv_row = array(
+                $this->escape_csv_field($row['id']),
+                $this->escape_csv_field($row['pid']),
+                $this->escape_csv_field($row['link']),
+                $this->escape_csv_field($row['campaignId']),
+                $this->escape_csv_field($row['eidt']),
+                $this->escape_csv_field($row['eid']),
+                $this->escape_csv_field($row['timestamp'])
+            );
+            
+            $csv_content .= '"' . implode('","', $csv_row) . '"' . "\n";
+        }
+        
+        return $csv_content;
+    }
+    
+    // Helper method to properly escape CSV fields
+    private function escape_csv_field($field) {
+        // Handle null/empty values
+        if ($field === null || $field === '') {
+            return '';
+        }
+        
+        // Convert to string and escape quotes
+        $field = (string)$field;
+        $field = str_replace('"', '""', $field);
+        
+        return $field;
+    }
 }

@@ -24,7 +24,9 @@ $route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2';
 $route['students/test_db'] = 'students/test_db';
 $route['students/setup_database'] = 'students/setup_database';
 
+// Clicks routes -
 $route['clicks'] = 'students/clicks';
+$route['clicks/export'] = 'students/export'; 
 
 $route['test'] = 'test/index';
 $route['test/(:any)'] = 'test/$1';

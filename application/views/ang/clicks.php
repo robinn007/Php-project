@@ -7,6 +7,10 @@
         <input type="text" ng-model="searchQuery" placeholder="Search clicks..." class="search-input">
         <button ng-click="search()" class="btn btn-primary">Search</button>
         <button ng-click="clearSearch()" class="btn btn-secondary" ng-show="searchQuery">Clear</button>
+        <button ng-click="exportClicks()" class="btn btn-success" ng-disabled="isExporting">
+            <span ng-show="!isExporting">Export CSV</span>
+            <span ng-show="isExporting">Exporting...</span>
+        </button>
     </div>
     
     <div class="page-controls">
@@ -28,6 +32,7 @@
     Total Clicks: <strong>{{ totalCount | number }}</strong> 
     <span ng-show="searchQuery"> (filtered)</span>
 </div>
+
 
 <!-- Loading indicator -->
 <div class="loading" ng-show="isLoading">

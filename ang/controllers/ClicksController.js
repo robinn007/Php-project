@@ -4,6 +4,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.title = 'Clicks Dashboard';
     $scope.clicks = [];
     $scope.isLoading = true;
+    $scope.isExporting = false;
     $scope.flashMessage = 'Loading clicks...';
     $scope.flashType = 'info';
     
@@ -62,6 +63,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.hasNext = response.data.pagination.has_next;
                         $scope.hasPrev = response.data.pagination.has_prev;
                     }
+
                     
                     console.log('Clicks loaded:', $scope.clicks.length, 'of', $scope.totalCount, 'total');
                     
@@ -101,6 +103,72 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                 $scope.isLoading = false;
             });
     }
+
+    // Export functionality
+    $scope.exportClicks = function() {
+        $scope.isExporting = true;
+        
+        var exportParams = {
+            export: 'csv'
+        };
+        
+        // Include search query in export if present
+        if ($scope.searchQuery && $scope.searchQuery.trim()) {
+            exportParams.search = $scope.searchQuery.trim();
+        }
+        
+        console.log('Exporting clicks with params:', exportParams);
+        
+        AjaxHelper.ajaxRequest('GET', '/clicks/export', exportParams)
+            .then(function(response) {
+                if (response.data.success && response.data.csv_data) {
+                    // Create a blob with CSV data
+                    var blob = new Blob([response.data.csv_data], { type: 'text/csv;charset=utf-8;' });
+                    
+                    // Create download link
+                    var link = document.createElement('a');
+                    var url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    
+                    // Generate filename with current date
+                    var now = new Date();
+                    var dateStr = now.getFullYear() + '-' + 
+                                 ('0' + (now.getMonth() + 1)).slice(-2) + '-' + 
+                                 ('0' + now.getDate()).slice(-2) + '_' +
+                                 ('0' + now.getHours()).slice(-2) + '-' +
+                                 ('0' + now.getMinutes()).slice(-2);
+                    
+                    var filename = 'clicks_export_' + dateStr + '.csv';
+                    if ($scope.searchQuery && $scope.searchQuery.trim()) {
+                        filename = 'clicks_filtered_export_' + dateStr + '.csv';
+                    }
+                    
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    $scope.flashMessage = 'Export completed successfully!';
+                    $scope.flashType = 'success';
+                    
+                    console.log('Export completed:', filename);
+                } else {
+                    console.error('Export failed:', response);
+                    $scope.flashMessage = 'Export failed: ' + (response.data.message || 'Unknown error');
+                    $scope.flashType = 'error';
+                }
+            })
+            .catch(function(error) {
+                console.error('Export error:', error);
+                $scope.flashMessage = 'Export failed: ' + (error.message || 'Unknown error');
+                $scope.flashType = 'error';
+            })
+            .finally(function() {
+                $scope.isExporting = false;
+            });
+    };
 
     // Pagination functions
     $scope.goToPage = function(page) {

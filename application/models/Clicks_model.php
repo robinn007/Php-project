@@ -90,6 +90,56 @@ class Clicks_model extends CI_Model {
     public function get_recent_clicks($limit = 50) {
         return $this->get_clicks($limit, 0);
     }
+    
+    // Get all clicks for export (without pagination)
+    public function get_all_clicks_for_export($search = null) {
+        try {
+            log_message('debug', "Exporting all clicks with search: " . ($search ?: 'none'));
+            
+            if (!$this->db->table_exists('clicks')) {
+                log_message('error', 'Clicks table does not exist');
+                throw new Exception('Clicks table does not exist');
+            }
+            
+            $this->db->select('id, pid, link, campaignId, eidt, eid, timestamp');
+            $this->db->from('clicks');
+            
+            // Add search functionality if provided
+            if (!empty($search)) {
+                $search = $this->db->escape_like_str($search);
+                $this->db->where("(link LIKE '%$search%' OR pid LIKE '%$search%' OR campaignId LIKE '%$search%' OR id LIKE '%$search%' OR eidt LIKE '%$search%' OR eid LIKE '%$search%' OR timestamp LIKE '%$search%')");
+            }
+            
+            // Order by timestamp ascending
+            $this->db->order_by('timestamp', 'ASC');
+            
+            $query = $this->db->get();
+            
+            if (!$query) {
+                $error = $this->db->error();
+                log_message('error', 'Database query failed: ' . json_encode($error));
+                throw new Exception('Database query failed: ' . $error['message']);
+            }
+            
+            $result = $query->result_array();
+            log_message('debug', 'Export query found ' . count($result) . ' clicks');
+
+            // Clean up data for export
+            foreach ($result as &$click) {
+                $click['campaignId'] = $click['campaignId'] ?? '';
+                $click['eidt'] = $click['eidt'] ?? '';
+                $click['eid'] = $click['eid'] ?? '';
+                $click['link'] = $click['link'] ?? '';
+                $click['pid'] = $click['pid'] ?? '';
+            }
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error in get_all_clicks_for_export: ' . $e->getMessage());
+            throw $e;
+        }
+    }
  
     // Test method to verify table structure
     public function test_clicks_table() {

@@ -115,7 +115,7 @@ $autoload['language'] = array();
 */
 
 //$autoload['model'] = array();
-$autoload['model'] = array('Student_model','User_model');
+$autoload['model'] = array('Student_model', 'User_model', 'Clicks_model');
 
 
 /* End of file autoload.php */

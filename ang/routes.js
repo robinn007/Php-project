@@ -3,16 +3,6 @@
  * @description Configures routes and HTTP interceptors for the Student Management System.
  * Separated from app.js for better code organization and maintainability.
  */
-
-/**
- * @ngdoc config
- * @name routeConfig
- * @description Configures application routes and HTTP interceptors.
- * @param {Object} $routeProvider - Angular route provider
- * @param {Object} $httpProvider - Angular HTTP provider
- * @param {Object} $locationProvider - Angular location provider
- */
-
 app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($routeProvider, $httpProvider, $locationProvider) {
     console.log('Routes configuration initialized');
 
@@ -53,6 +43,11 @@ app.config(['$routeProvider', '$httpProvider', '$locationProvider', function($ro
         .when('/students/deleted', {
             templateUrl: '/view/deleted-students',
             controller: 'DeletedStudentsController',
+            requireLogin: true
+        })
+        .when('/clicks', {
+            templateUrl: '/view/clicks',
+            controller: 'ClicksController',
             requireLogin: true
         })
         .when('/test-db', {

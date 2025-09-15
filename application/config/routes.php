@@ -6,16 +6,14 @@ $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
 $route['login'] = 'auth/login';
- $route['signup'] = 'auth/signup';
- $route['logout'] = 'auth/logout';
-// $route['login'] = 'view/index'; // Changed from 'auth/login'
-// $route['signup'] = 'view/index'; // Changed from 'auth/signup'
+$route['signup'] = 'auth/signup';
+$route['logout'] = 'auth/logout';
 $route['auth/get_csrf'] = 'auth/get_csrf';
 
 $route['students'] = 'students/index';
 $route['students/dashboard'] = 'students/dashboard';
-$route['students/add'] = 'students/index'; // Points to AngularJS route
-$route['students/edit/(:num)'] = 'students/index'; // Points to AngularJS route
+$route['students/add'] = 'students/index';
+$route['students/edit/(:num)'] = 'students/index';
 $route['students/deleted'] = 'students/deleted';
 $route['students/restore/(:num)'] = 'students/restore/$1';
 $route['students/permanent_delete/(:num)'] = 'students/permanent_delete/$1';
@@ -25,6 +23,8 @@ $route['students/manage/(:any)'] = 'students/manage/$1';
 $route['students/manage/(:any)/(:num)'] = 'students/manage/$1/$2';
 $route['students/test_db'] = 'students/test_db';
 $route['students/setup_database'] = 'students/setup_database';
+
+$route['clicks'] = 'students/clicks';
 
 $route['test'] = 'test/index';
 $route['test/(:any)'] = 'test/$1';

@@ -33,7 +33,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     <script src="/ang/helpers/common.js"></script>
     <script src="/ang/directives/directives.js"></script>
     <script src="/ang/directives/searchFilter.js"></script>
-     <script src="/ang/directives/stateFilter.js"></script> 
+    <script src="/ang/directives/stateFilter.js"></script>
     <script src="/ang/routes.js"></script>
     <script src="/ang/filters/filters.js"></script>
 
@@ -46,5 +46,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     <script src="/ang/controllers/TestDbController.js"></script>
     <script src="/ang/controllers/AuthController.js"></script>
     <script src="/ang/controllers/DashboardController.js"></script>
+    <script src="/ang/controllers/ClicksController.js"></script>
 </body>
 </html>

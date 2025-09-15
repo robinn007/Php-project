@@ -14,6 +14,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             <li ng-show="isLoggedIn">
                 <a href="/students/deleted" class="nav-link" ng-class="{ active: currentPath == '/students/deleted' }">Deleted Students</a>
             </li>
+
+             <li ng-show="isLoggedIn">
+                <a href="/clicks" class="nav-link" ng-class="{ active: currentPath == '/clicks' }">Clicks</a>
+            </li>
+
             <li ng-show="isLoggedIn">
                 <a href="/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
             </li>

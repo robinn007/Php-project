@@ -5,6 +5,7 @@ class Students extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('Student_model');
+        $this->load->model('Clicks_model');
         $this->load->library('form_validation');
         $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
     }
@@ -26,6 +27,89 @@ class Students extends CI_Controller {
         }
     }
 
+    public function clicks() {
+    // Check authentication
+    if (!$this->session->userdata('user_id')) {
+        $this->output->set_content_type('application/json');
+        echo json_encode(array(
+            'success' => false,
+            'message' => 'Please log in to perform this action.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        ));
+        return;
+    }
+
+    if ($this->input->is_ajax_request()) {
+        try {
+            // Get pagination parameters
+            $page = (int)$this->input->get('page') ?: 1;
+            $limit = (int)$this->input->get('limit') ?: 100; // Default 100 records per page
+            $search = $this->input->get('search') ?: null;
+            
+            // Calculate offset
+            $offset = ($page - 1) * $limit;
+            
+            // Validate limits to prevent abuse
+            $limit = min($limit, 500); // Max 500 records per request
+            
+            log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset");
+            
+            // Get clicks data with pagination
+            $clicks = $this->Clicks_model->get_clicks($limit, $offset, $search);
+            
+            // Get total count for pagination info
+            $total_count = $this->Clicks_model->get_clicks_count($search);
+            $total_pages = ceil($total_count / $limit);
+            
+            log_message('debug', 'Clicks retrieved: ' . count($clicks) . ' out of ' . $total_count . ' total');
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => true,
+                    'clicks' => $clicks,
+                    'pagination' => array(
+                        'current_page' => $page,
+                        'total_pages' => $total_pages,
+                        'total_count' => $total_count,
+                        'per_page' => $limit,
+                        'has_next' => $page < $total_pages,
+                        'has_prev' => $page > 1
+                    ),
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error in clicks method: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Server error: ' . $e->getMessage(),
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+        }
+        return;
+    }
+
+    // For non-AJAX requests, load the main view
+    $this->load->view('ang/index');
+}
+
+// Add this helper method for testing large datasets
+public function test_clicks() {
+    if (!$this->session->userdata('user_id')) {
+        redirect('/login');
+        return;
+    }
+    
+    $result = $this->Clicks_model->test_clicks_table();
+    $this->output->set_content_type('application/json');
+    echo json_encode($result);
+}
+
     public function manage() {
         log_message('debug', 'Received manage request with input: ' . file_get_contents('php://input'));
         if (!$this->session->userdata('user_id')) {
@@ -38,12 +122,10 @@ class Students extends CI_Controller {
             exit();
         }
 
-        // Added support for search and multiple states query parameters in the manage method 
         $json_data = json_decode(file_get_contents('php://input'), true);
         $action = isset($json_data['action']) ? $json_data['action'] : $this->input->post('action');
         $search = $this->input->get('search') ? $this->input->get('search') : (isset($json_data['search']) ? $json_data['search'] : '');
         
-        // Handle multiple states - can come as JSON string or array
         $states = array();
         if ($this->input->get('states')) {
             $states_param = $this->input->get('states');
@@ -204,7 +286,6 @@ class Students extends CI_Controller {
         exit();
     }
 
-    // Rest of the methods remain unchanged...
     public function edit($id) {
         if (!$this->session->userdata('user_id')) {
             $this->output->set_content_type('application/json');
@@ -404,11 +485,9 @@ class Students extends CI_Controller {
     public function add_created_at_field() {
         $this->load->dbforge();
         
-        // Check if created_at field exists
         $query = $this->db->query("SHOW COLUMNS FROM students LIKE 'created_at'");
         
         if ($query->num_rows() == 0) {
-            // Add created_at field
             $fields = array(
                 'created_at' => array(
                     'type' => 'TIMESTAMP',
@@ -418,7 +497,6 @@ class Students extends CI_Controller {
             
             $this->dbforge->add_column('students', $fields);
             
-            // Update existing records with current timestamp
             $this->db->query("UPDATE students SET created_at = NOW() WHERE created_at IS NULL");
             
             echo "created_at field added successfully to students table";

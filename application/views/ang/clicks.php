@@ -20,6 +20,7 @@
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
+                <option value="500">500</option>
             </select>
             per page
         </label>
@@ -27,9 +28,9 @@
 </div>
 
 <!-- Stats -->
-<div class="stats" ng-show="::totalCount > 0">
-    Total Clicks: <strong>{{ ::totalCount | number }}</strong> 
-    <span ng-show="::searchQuery"> (filtered)</span>
+<div class="stats" ng-show="totalCount > 0">
+    Total Clicks: <strong>{{ totalCount | number }}</strong> 
+    <span ng-show="searchQuery"> (filtered)</span>
 </div>
 
 <!-- Loading indicator -->
@@ -73,28 +74,28 @@
 </div>
 
 <!-- Pagination -->
-<div class="pagination-container" ng-show="::totalPages > 1 && !isLoading">
+<div class="pagination-container" ng-show="totalPages > 1 && !isLoading">
     <div class="pagination-info">
-        Page {{ ::currentPage }} of {{ ::totalPages }} 
-        ({{ ::clicks.length }} of {{ ::totalCount | number }} total records)
+        Page {{ currentPage }} of {{ totalPages }} 
+        ({{ clicks.length }} of {{ totalCount | number }} total records)
     </div>
     
     <div class="pagination-controls">
         <button ng-click="prevPage()" ng-disabled="!hasPrev" class="btn btn-pagination">← Previous</button>
         
         <span class="page-numbers">
-            <button ng-show="::currentPage > 3" ng-click="goToPage(1)" class="btn btn-page">1</button>
-            <span ng-show="::currentPage > 4">...</span>
+            <button ng-show="currentPage > 3" ng-click="goToPage(1)" class="btn btn-page">1</button>
+            <span ng-show="currentPage > 4">...</span>
             
             <button ng-repeat="page in getPageNumbers() track by page" 
                     ng-click="goToPage(page)" 
                     ng-class="{ 'active': page === currentPage }"
                     class="btn btn-page">
-                {{ ::page }}
+                {{ page }}
             </button>
             
-            <span ng-show="::currentPage < totalPages - 3">...</span>
-            <button ng-show="::currentPage < totalPages - 2" ng-click="goToPage(totalPages)" class="btn btn-page">{{ ::totalPages }}</button>
+            <span ng-show="currentPage < totalPages - 3">...</span>
+            <button ng-show="currentPage < totalPages - 2" ng-click="goToPage(totalPages)" class="btn btn-page">{{ totalPages }}</button>
         </span>
         
         <button ng-click="nextPage()" ng-disabled="!hasNext" class="btn btn-pagination">Next →</button>

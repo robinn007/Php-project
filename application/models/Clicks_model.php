@@ -27,16 +27,8 @@ class Clicks_model extends CI_Model {
             
             if (!empty($search)) {
                 $search = $this->db->escape_like_str($search);
-                // Prefer full-text search if index exists
-                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
-                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
-                } else {
-                    $this->db->group_start();
-                    $this->db->like('link', $search, 'after'); // Search from start to leverage index
-                    $this->db->or_like('pid', $search, 'after');
-                    $this->db->or_like('campaignId', $search, 'after');
-                    $this->db->group_end();
-                }
+                $where = "(id LIKE '$search%' OR pid LIKE '$search%' OR link LIKE '$search%' OR campaignId LIKE '$search%' OR eidt LIKE '$search%' OR eid LIKE '$search%')";
+                $this->db->where($where);
             }
             
             $this->db->order_by('timestamp', 'ASC');
@@ -75,11 +67,8 @@ class Clicks_model extends CI_Model {
             
             if (!empty($search)) {
                 $search = $this->db->escape_like_str($search);
-                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
-                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
-                } else {
-                    $this->db->where("(link LIKE '$search%' OR pid LIKE '$search%' OR campaignId LIKE '$search%')");
-                }
+                $where = "(id LIKE '$search%' OR pid LIKE '$search%' OR link LIKE '$search%' OR campaignId LIKE '$search%' OR eidt LIKE '$search%' OR eid LIKE '$search%')";
+                $this->db->where($where);
             }
             
             return $this->db->count_all_results();
@@ -104,15 +93,12 @@ class Clicks_model extends CI_Model {
             
             if (!empty($search)) {
                 $search = $this->db->escape_like_str($search);
-                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
-                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
-                } else {
-                    $this->db->where("(link LIKE '$search%' OR pid LIKE '$search%' OR campaignId LIKE '$search%')");
-                }
+                $where = "(id LIKE '$search%' OR pid LIKE '$search%' OR link LIKE '$search%' OR campaignId LIKE '$search%' OR eidt LIKE '$search%' OR eid LIKE '$search%')";
+                $this->db->where($where);
             }
             
             $this->db->order_by('timestamp', 'ASC');
-            $this->db->limit(200000); // Prevent memory issues
+            $this->db->limit(10000); // Prevent memory issues
             
             $query = $this->db->get();
             

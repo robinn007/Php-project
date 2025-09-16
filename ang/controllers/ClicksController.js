@@ -9,9 +9,11 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.flashType = 'info';
     
     $scope.currentPage = 1;
-    $scope.itemsPerPage = 50; // Reduced default
+    $scope.itemsPerPage = 50;
     $scope.totalCount = 0;
     $scope.totalPages = 0;
+    $scope.hasNext = false;
+    $scope.hasPrev = false;
     $scope.searchQuery = '';
 
     console.log('ClicksController initialized');
@@ -54,13 +56,29 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                 if (response.data.success) {
                     $scope.clicks = response.data.clicks || [];
                     
+                    // Ensure pagination data is properly set
                     if (response.data.pagination) {
-                        $scope.currentPage = response.data.pagination.current_page;
-                        $scope.totalPages = response.data.pagination.total_pages;
-                        $scope.totalCount = response.data.pagination.total_count;
-                        $scope.hasNext = response.data.pagination.has_next;
-                        $scope.hasPrev = response.data.pagination.has_prev;
+                        $scope.currentPage = parseInt(response.data.pagination.current_page) || 1;
+                        $scope.totalPages = parseInt(response.data.pagination.total_pages) || 0;
+                        $scope.totalCount = parseInt(response.data.pagination.total_count) || 0;
+                        $scope.hasNext = Boolean(response.data.pagination.has_next);
+                        $scope.hasPrev = Boolean(response.data.pagination.has_prev);
+                    } else {
+                        // Fallback if pagination data is missing
+                        $scope.currentPage = 1;
+                        $scope.totalPages = $scope.clicks.length > 0 ? 1 : 0;
+                        $scope.totalCount = $scope.clicks.length;
+                        $scope.hasNext = false;
+                        $scope.hasPrev = false;
                     }
+                    
+                    console.log('Pagination data:', {
+                        currentPage: $scope.currentPage,
+                        totalPages: $scope.totalPages,
+                        totalCount: $scope.totalCount,
+                        hasNext: $scope.hasNext,
+                        hasPrev: $scope.hasPrev
+                    });
                     
                     console.log('Clicks loaded:', $scope.clicks.length, 'of', $scope.totalCount, 'total');
                     
@@ -83,8 +101,8 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                 if (error && error.data) {
                     if (error.data.message) {
                         $scope.flashMessage = error.data.message;
-                    } else if (typeof error.data === 'string') {
-                        $scope.flashMessage = 'Server error: ' + error.data;
+                    } else if (typeof error.data === 'string' && error.data.includes('<b>Fatal error</b>')) {
+                        $scope.flashMessage = 'Server error: Unexpected response format';
                     } else {
                         $scope.flashMessage = 'Error: Invalid response format';
                     }
@@ -147,13 +165,13 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                     console.log('Export completed:', filename);
                 } else {
                     console.error('Export failed:', response);
-                    $scope.flashMessage = 'Export failed: ' + (response.data.message || 'Unknown error');
+                    $scope.flashMessage = response.data.message || 'Export failed: Unknown error';
                     $scope.flashType = 'error';
                 }
             })
             .catch(function(error) {
                 console.error('Export error:', error);
-                $scope.flashMessage = 'Export failed: ' + (error.message || 'Unknown error');
+                $scope.flashMessage = error.data && error.data.message ? error.data.message : 'Export failed: Unknown error';
                 $scope.flashType = 'error';
             })
             .finally(function() {
@@ -163,6 +181,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.goToPage = function(page) {
         if (page >= 1 && page <= $scope.totalPages && page !== $scope.currentPage) {
+            console.log('Going to page:', page);
             $scope.currentPage = page;
             loadClicksData();
         }
@@ -170,6 +189,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.nextPage = function() {
         if ($scope.hasNext) {
+            console.log('Going to next page:', $scope.currentPage + 1);
             $scope.currentPage++;
             loadClicksData();
         }
@@ -177,23 +197,27 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.prevPage = function() {
         if ($scope.hasPrev) {
+            console.log('Going to previous page:', $scope.currentPage - 1);
             $scope.currentPage--;
             loadClicksData();
         }
     };
 
     $scope.search = function() {
+        console.log('Search triggered with query:', $scope.searchQuery);
         $scope.currentPage = 1;
         loadClicksData();
     };
 
     $scope.clearSearch = function() {
+        console.log('Clearing search');
         $scope.searchQuery = '';
         $scope.currentPage = 1;
         loadClicksData();
     };
 
     $scope.changeItemsPerPage = function() {
+        console.log('Items per page changed to:', $scope.itemsPerPage);
         $scope.currentPage = 1;
         loadClicksData();
     };
@@ -209,5 +233,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         return pages;
     };
 
+    // Initialize
     loadClicksData();
 }]);

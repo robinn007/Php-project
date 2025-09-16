@@ -43,12 +43,11 @@ class Students extends CI_Controller {
         if ($this->input->is_ajax_request()) {
             try {
                 $page = (int)$this->input->get('page') ?: 1;
-                $limit = (int)$this->input->get('limit') ?: 50; // Reduced default
+                $limit = (int)$this->input->get('limit') ?: 50;
                 $search = $this->input->get('search') ?: null;
                 $offset = ($page - 1) * $limit;
-                $limit = min($limit, 100); // Reduced max limit
+                $limit = min($limit, 100);
                 
-                // Cache key based on parameters
                 $cache_key = 'clicks_' . md5($page . '_' . $limit . '_' . ($search ?: 'no_search'));
                 $cached_data = $this->cache->get($cache_key);
                 
@@ -60,7 +59,7 @@ class Students extends CI_Controller {
                     return;
                 }
                 
-                log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset");
+                log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset, Search: " . ($search ?: 'none'));
                 
                 $clicks = $this->Clicks_model->get_clicks($limit, $offset, $search);
                 $total_count = $this->Clicks_model->get_clicks_count($search);
@@ -83,21 +82,22 @@ class Students extends CI_Controller {
                 );
                 
                 // Cache for 5 minutes
-                $this->cache->save($cache_key, $response, 300);
+                 $this->cache->save($cache_key, $response, 300);
                 
                 $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode($response));
                 
             } catch (Exception $e) {
-                log_message('error', 'Error in clicks method: ' . $e->getMessage());
+                               log_message('error', 'Error in clicks method: ' . $e->getMessage());
                 log_message('error', 'Stack trace: ' . $e->getTraceAsString());
                 
                 $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode(array(
                         'success' => false,
-                        'message' => 'Server error: ' . $e->getMessage(),
+                        'message' => 'Server error: Unable to fetch clicks data.',
+                        'debug_info' => $e->getMessage(),
                         'csrf_token' => $this->security->get_csrf_hash()
                     )));
             }
@@ -105,9 +105,9 @@ class Students extends CI_Controller {
         }
 
         $this->load->view('ang/index');
+
     }
 
-    // Other methods (index, manage, etc.) remain unchanged
 
 // Add this helper method for testing large datasets
 public function test_clicks() {
@@ -537,7 +537,7 @@ public function test_clicks() {
         }
 
         if ($this->input->is_ajax_request()) {
-            try {
+           try {
                 $export_type = $this->input->get('export') ?: 'csv';
                 $search = $this->input->get('search') ?: null;
                 
@@ -550,7 +550,7 @@ public function test_clicks() {
                 $cache_key = 'export_clicks_' . md5($search ?: 'no_search');
                 $cached_data = $this->cache->get($cache_key);
                 
-                if ($cached_data) {
+                 if ($cached_data) {
                     log_message('debug', "Serving export from cache for key: $cache_key");
                     $this->output
                         ->set_content_type('application/json')
@@ -558,7 +558,7 @@ public function test_clicks() {
                     return;
                 }
                 
-                $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
+                 $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
                 
                 if (empty($clicks)) {
                     log_message('error', 'Export: No data found');
@@ -588,22 +588,22 @@ public function test_clicks() {
                     'csrf_token' => $this->security->get_csrf_hash()
                 );
                 
-                $this->cache->save($cache_key, $response, 600); // Cache for 10 minutes
+                $this->cache->save($cache_key, $response, 600);
                 
                 $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode($response));
-                
+
             } catch (Exception $e) {
-                log_message('error', 'Error in export method: ' . $e->getMessage());
+                  log_message('error', 'Error in export method: ' . $e->getMessage());
                 log_message('error', 'Stack trace: ' . $e->getTraceAsString());
                 
                 $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode(array(
                         'success' => false,
-                        'message' => 'Export failed: ' . $e->getMessage(),
-                        'debug_info' => 'Check application logs for details',
+                        'message' => 'Export failed: Unable to generate export data.',
+                        'debug_info' => $e->getMessage(),
                         'csrf_token' => $this->security->get_csrf_hash()
                     )));
             }
@@ -639,7 +639,7 @@ public function test_clicks() {
         return $csv_content;
     }
 
-    private function escape_csv_field($field) {
+     private function escape_csv_field($field) {
         if ($field === null || $field === '') {
             return '';
         }

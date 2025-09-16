@@ -274,7 +274,7 @@ angular.module("myApp").directive("stateFilter", [
           scope.selectedStates = newSelectedStates;
           updateSelectAllState();
 
-          // FIXED: Check if current selection differs from applied states
+          //  Check if current selection differs from applied states
           scope.pendingChanges = !arraysEqual(scope.selectedStates, scope.appliedStates);
 
           console.log("Pending selected states:", scope.selectedStates);
@@ -305,7 +305,7 @@ angular.module("myApp").directive("stateFilter", [
           console.log("Filter applied with states:", scope.selectedStates);
         };
 
-        // FIXED: Check if there are pending changes
+        // Check if there are pending changes
         scope.hasChanges = function () {
           // Always allow applying if states are selected but never been applied
           if (scope.appliedStates.length === 0 && scope.selectedStates.length > 0) {

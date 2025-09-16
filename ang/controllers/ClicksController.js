@@ -8,9 +8,8 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.flashMessage = 'Loading clicks...';
     $scope.flashType = 'info';
     
-    // Pagination variables
     $scope.currentPage = 1;
-    $scope.itemsPerPage = 100; // Start with 100 for better performance
+    $scope.itemsPerPage = 50; // Reduced default
     $scope.totalCount = 0;
     $scope.totalPages = 0;
     $scope.searchQuery = '';
@@ -55,7 +54,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                 if (response.data.success) {
                     $scope.clicks = response.data.clicks || [];
                     
-                    // Handle pagination data
                     if (response.data.pagination) {
                         $scope.currentPage = response.data.pagination.current_page;
                         $scope.totalPages = response.data.pagination.total_pages;
@@ -63,7 +61,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.hasNext = response.data.pagination.has_next;
                         $scope.hasPrev = response.data.pagination.has_prev;
                     }
-
                     
                     console.log('Clicks loaded:', $scope.clicks.length, 'of', $scope.totalCount, 'total');
                     
@@ -104,7 +101,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
             });
     }
 
-    // Export functionality
     $scope.exportClicks = function() {
         $scope.isExporting = true;
         
@@ -112,7 +108,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
             export: 'csv'
         };
         
-        // Include search query in export if present
         if ($scope.searchQuery && $scope.searchQuery.trim()) {
             exportParams.search = $scope.searchQuery.trim();
         }
@@ -122,15 +117,11 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         AjaxHelper.ajaxRequest('GET', '/clicks/export', exportParams)
             .then(function(response) {
                 if (response.data.success && response.data.csv_data) {
-                    // Create a blob with CSV data
                     var blob = new Blob([response.data.csv_data], { type: 'text/csv;charset=utf-8;' });
-                    
-                    // Create download link
                     var link = document.createElement('a');
                     var url = URL.createObjectURL(blob);
                     link.setAttribute('href', url);
                     
-                    // Generate filename with current date
                     var now = new Date();
                     var dateStr = now.getFullYear() + '-' + 
                                  ('0' + (now.getMonth() + 1)).slice(-2) + '-' + 
@@ -170,7 +161,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
             });
     };
 
-    // Pagination functions
     $scope.goToPage = function(page) {
         if (page >= 1 && page <= $scope.totalPages && page !== $scope.currentPage) {
             $scope.currentPage = page;
@@ -192,9 +182,8 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         }
     };
 
-    // Search functionality
     $scope.search = function() {
-        $scope.currentPage = 1; // Reset to first page when searching
+        $scope.currentPage = 1;
         loadClicksData();
     };
 
@@ -204,13 +193,11 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         loadClicksData();
     };
 
-    // Change items per page
     $scope.changeItemsPerPage = function() {
         $scope.currentPage = 1;
         loadClicksData();
     };
 
-    // Generate page numbers for pagination
     $scope.getPageNumbers = function() {
         var pages = [];
         var start = Math.max(1, $scope.currentPage - 2);
@@ -222,6 +209,5 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         return pages;
     };
 
-    // Initial load
     loadClicksData();
 }]);

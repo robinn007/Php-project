@@ -13,10 +13,9 @@ class Clicks_model extends CI_Model {
         }
     }
 
-    // Get clicks with pagination - MUCH better for large datasets
-    public function get_clicks($limit = 100, $offset = 0, $search = null) {
+    public function get_clicks($limit = 50, $offset = 0, $search = null) {
         try {
-            log_message('debug', "Querying clicks with limit: $limit, offset: $offset");
+            log_message('debug', "Querying clicks with limit: $limit, offset: $offset, search: " . ($search ?: 'none'));
             
             if (!$this->db->table_exists('clicks')) {
                 log_message('error', 'Clicks table does not exist');
@@ -26,16 +25,20 @@ class Clicks_model extends CI_Model {
             $this->db->select('id, pid, link, campaignId, eidt, eid, timestamp');
             $this->db->from('clicks');
             
-            // Add search functionality if provided
             if (!empty($search)) {
-                $this->db->group_start();
-                $this->db->like('link', $search);
-                $this->db->or_like('pid', $search);
-                $this->db->or_like('campaignId', $search);
-                $this->db->group_end();
+                $search = $this->db->escape_like_str($search);
+                // Prefer full-text search if index exists
+                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
+                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
+                } else {
+                    $this->db->group_start();
+                    $this->db->like('link', $search, 'after'); // Search from start to leverage index
+                    $this->db->or_like('pid', $search, 'after');
+                    $this->db->or_like('campaignId', $search, 'after');
+                    $this->db->group_end();
+                }
             }
             
-            // Changed from DESC to ASC for ascending order
             $this->db->order_by('timestamp', 'ASC');
             $this->db->limit($limit, $offset);
             
@@ -49,9 +52,7 @@ class Clicks_model extends CI_Model {
             
             $result = $query->result_array();
             log_message('debug', 'Found ' . count($result) . ' clicks');
-
- 
-            // Clean up data for JSON
+            
             foreach ($result as &$click) {
                 $click['campaignId'] = $click['campaignId'] ?? '';
                 $click['eidt'] = $click['eidt'] ?? '';
@@ -67,15 +68,18 @@ class Clicks_model extends CI_Model {
             throw $e;
         }
     }
-    
-    // Get total count for pagination
+
     public function get_clicks_count($search = null) {
         try {
             $this->db->from('clicks');
             
             if (!empty($search)) {
                 $search = $this->db->escape_like_str($search);
-                $this->db->where("(link LIKE '%$search%' OR pid LIKE '%$search%' OR campaignId LIKE '%$search%' OR id LIKE '%$search%' OR eidt LIKE '%$search%' OR eid LIKE '%$search%' OR timestamp LIKE '%$search%')");
+                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
+                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
+                } else {
+                    $this->db->where("(link LIKE '$search%' OR pid LIKE '$search%' OR campaignId LIKE '$search%')");
+                }
             }
             
             return $this->db->count_all_results();
@@ -85,13 +89,7 @@ class Clicks_model extends CI_Model {
             return 0;
         }
     }
-    
-    // Get recent clicks only - for dashboard overview
-    public function get_recent_clicks($limit = 50) {
-        return $this->get_clicks($limit, 0);
-    }
-    
-    // Get all clicks for export (without pagination)
+
     public function get_all_clicks_for_export($search = null) {
         try {
             log_message('debug', "Exporting all clicks with search: " . ($search ?: 'none'));
@@ -104,14 +102,17 @@ class Clicks_model extends CI_Model {
             $this->db->select('id, pid, link, campaignId, eidt, eid, timestamp');
             $this->db->from('clicks');
             
-            // Add search functionality if provided
             if (!empty($search)) {
                 $search = $this->db->escape_like_str($search);
-                $this->db->where("(link LIKE '%$search%' OR pid LIKE '%$search%' OR campaignId LIKE '%$search%' OR id LIKE '%$search%' OR eidt LIKE '%$search%' OR eid LIKE '%$search%' OR timestamp LIKE '%$search%')");
+                if ($this->db->field_exists('link', 'clicks') && $this->db->index_exists('idx_clicks_link_fulltext', 'clicks')) {
+                    $this->db->where("MATCH(link) AGAINST(? IN BOOLEAN MODE)", $search);
+                } else {
+                    $this->db->where("(link LIKE '$search%' OR pid LIKE '$search%' OR campaignId LIKE '$search%')");
+                }
             }
             
-            // Order by timestamp ascending
             $this->db->order_by('timestamp', 'ASC');
+            $this->db->limit(200000); // Prevent memory issues
             
             $query = $this->db->get();
             
@@ -123,8 +124,7 @@ class Clicks_model extends CI_Model {
             
             $result = $query->result_array();
             log_message('debug', 'Export query found ' . count($result) . ' clicks');
-
-            // Clean up data for export
+            
             foreach ($result as &$click) {
                 $click['campaignId'] = $click['campaignId'] ?? '';
                 $click['eidt'] = $click['eidt'] ?? '';
@@ -140,8 +140,7 @@ class Clicks_model extends CI_Model {
             throw $e;
         }
     }
- 
-    // Test method to verify table structure
+
     public function test_clicks_table() {
         try {
             if (!$this->db->table_exists('clicks')) {
@@ -151,12 +150,10 @@ class Clicks_model extends CI_Model {
                 );
             }
             
-            // Test with a small query first
             $this->db->limit(1);
             $query = $this->db->get('clicks');
             $sample = $query->result_array();
             
-            // Get table info
             $count_query = $this->db->query("SELECT COUNT(*) as total FROM clicks");
             $total = $count_query->row()->total;
             

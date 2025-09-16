@@ -20,7 +20,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             </li>
 
             <li ng-show="isLoggedIn">
-                <a href="/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
+                <a href="/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB...</a>
             </li>
             <li ng-show="!isLoggedIn">
                 <a href="/login" class="nav-link" ng-class="{ active: currentPath == '/login' }">Login</a>
@@ -36,3 +36,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
         <div flash-message ng-class="flashType">{{ flashMessage }}</div>
     </div>
 </nav>
+
+
+
+<!-- -- Add indexes for frequently queried columns
+CREATE INDEX idx_clicks_link ON clicks (link(50));
+CREATE INDEX idx_clicks_pid ON clicks (pid);
+CREATE INDEX idx_clicks_campaignId ON clicks (campaignId);
+CREATE INDEX idx_clicks_timestamp ON clicks (timestamp);
+
+-- Optional: Add full-text index for search if using MySQL with InnoDB/MyISAM
+CREATE FULLTEXT INDEX idx_clicks_link_fulltext ON clicks (link); -->

@@ -3,16 +3,35 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
     public function __construct() {
+        // parent::__construct();
+        // error_reporting(E_ALL);
+        // ini_set('display_errors', 0);
+        // $this->load->model('User_model');
+        // $this->load->library('session');
+        // $this->load->library('security');
+        // $this->output->set_content_type('application/json');
+        // log_message('debug', 'Auth controller constructor called');
+        // log_message('debug', 'Request headers: ' . json_encode(getallheaders()));
+        // log_message('debug', 'CSRF token expected: ' . $this->security->get_csrf_token_name() . ' = ' . $this->security->get_csrf_hash());
+
         parent::__construct();
         error_reporting(E_ALL);
-        ini_set('display_errors', 0);
-        $this->load->model('User_model');
-        $this->load->library('session');
-        $this->load->library('security');
-        $this->output->set_content_type('application/json');
-        log_message('debug', 'Auth controller constructor called');
-        log_message('debug', 'Request headers: ' . json_encode(getallheaders()));
-        log_message('debug', 'CSRF token expected: ' . $this->security->get_csrf_token_name() . ' = ' . $this->security->get_csrf_hash());
+        ini_set('display_errors', 1); // Enable for debugging
+        
+        try {
+            $this->load->model('User_model');
+            $this->load->library('session');
+            
+            // Only load security if CSRF is enabled
+            if ($this->config->item('csrf_protection')) {
+                $this->load->library('security');
+            }
+            
+            log_message('debug', 'Auth controller constructor completed successfully');
+        } catch (Exception $e) {
+            log_message('error', 'Auth constructor error: ' . $e->getMessage());
+            // Don't set JSON here in constructor
+        }
     }
 
     public function get_csrf() {
@@ -219,47 +238,131 @@ class Auth extends CI_Controller {
     }
 
     public function logout() {
-        log_message('debug', 'Auth::logout method called');
+        // Set JSON content type first
+        $this->output->set_content_type('application/json');
+        
+        log_message('debug', '=== LOGOUT METHOD STARTED ===');
         log_message('debug', 'Request method: ' . $this->input->method());
-        log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
-
+        log_message('debug', 'Request URI: ' . $this->input->server('REQUEST_URI'));
+        log_message('debug', 'User Agent: ' . $this->input->user_agent());
+        
+        // Log raw input
+        $raw_input = file_get_contents('php://input');
+        log_message('debug', 'Raw POST data: ' . $raw_input);
+        log_message('debug', 'POST array: ' . json_encode($_POST));
+        log_message('debug', 'GET array: ' . json_encode($_GET));
+        
         try {
-            if ($this->input->method() === 'post') {
-                // Clear session data
-                $this->session->unset_userdata('user_id');
-                $this->session->unset_userdata('username');
-                $this->session->unset_userdata('last_activity');
-                $this->session->sess_destroy();
-                log_message('debug', 'Session destroyed successfully');
-                echo json_encode(array(
-                    'success' => true,
-                    'message' => 'Logout successful',
-                    'flashMessage' => 'Logout successful',
-                    'flashType' => 'success',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
-            } else {
-                log_message('error', 'Invalid logout request method: ' . $this->input->method());
-                echo json_encode(array(
+            // Check if user is logged in before logout
+            $current_user_id = $this->session->userdata('user_id');
+            $current_username = $this->session->userdata('username');
+            
+            log_message('debug', 'Current session user_id: ' . ($current_user_id ?: 'null'));
+            log_message('debug', 'Current session username: ' . ($current_username ?: 'null'));
+            log_message('debug', 'Session ID: ' . session_id());
+            
+            // Validate request method
+            if (strtolower($this->input->method()) !== 'post') {
+                log_message('error', 'Invalid request method: ' . $this->input->method());
+                $response = array(
                     'success' => false,
                     'message' => 'Invalid request method, POST required',
-                    'flashMessage' => 'Invalid request method, POST required',
+                    'flashMessage' => 'Invalid request method',
                     'flashType' => 'error',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
+                    'debug_info' => array(
+                        'method' => $this->input->method(),
+                        'expected' => 'POST'
+                    )
+                );
+                echo json_encode($response);
+                return;
             }
+            
+            // Clear session data step by step
+            log_message('debug', 'Starting session cleanup...');
+            
+            // Method 1: Unset specific userdata
+            $session_keys_to_clear = array('user_id', 'username', 'last_activity');
+            foreach ($session_keys_to_clear as $key) {
+                if ($this->session->userdata($key)) {
+                    log_message('debug', 'Clearing session key: ' . $key);
+                    $this->session->unset_userdata($key);
+                }
+            }
+            
+            // Method 2: Destroy session
+            log_message('debug', 'Destroying session...');
+            $this->session->sess_destroy();
+            
+            log_message('debug', 'Session cleanup completed');
+            
+            // Prepare success response
+            $response = array(
+                'success' => true,
+                'message' => 'Logout successful',
+                'flashMessage' => 'You have been logged out successfully',
+                'flashType' => 'success',
+                'debug_info' => array(
+                    'previous_user' => $current_username,
+                    'session_destroyed' => true
+                )
+            );
+            
+            // Add CSRF token if protection is enabled
+            if ($this->config->item('csrf_protection') && method_exists($this->security, 'get_csrf_hash')) {
+                $response['csrf_token'] = $this->security->get_csrf_hash();
+                log_message('debug', 'CSRF token added to response');
+            }
+            
+            log_message('debug', 'Logout successful for user: ' . $current_username);
+            echo json_encode($response);
+            
         } catch (Exception $e) {
-            log_message('error', 'Logout error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            echo json_encode(array(
+            log_message('error', 'Logout exception: ' . $e->getMessage());
+            log_message('error', 'Exception trace: ' . $e->getTraceAsString());
+            
+            // Even if there's an error, try to clear the session
+            try {
+                $this->session->sess_destroy();
+            } catch (Exception $nested_e) {
+                log_message('error', 'Failed to destroy session: ' . $nested_e->getMessage());
+            }
+            
+            $error_response = array(
                 'success' => false,
-                'message' => 'Server error during logout: ' . $e->getMessage(),
-                'flashMessage' => 'Server error during logout',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
+                'message' => 'Logout error: ' . $e->getMessage(),
+                'flashMessage' => 'Logout completed with errors',
+                'flashType' => 'warning',
+                'debug_info' => array(
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            
+            echo json_encode($error_response);
         }
+        
+        log_message('debug', '=== LOGOUT METHOD ENDED ===');
         exit();
     }
+
+    // Add this method for testing
+    public function test_logout() {
+        $this->output->set_content_type('application/json');
+        
+        echo json_encode(array(
+            'success' => true,
+            'message' => 'Test endpoint working',
+            'session_id' => session_id(),
+            'user_id' => $this->session->userdata('user_id'),
+            'username' => $this->session->userdata('username'),
+            'request_method' => $this->input->method(),
+            'timestamp' => date('Y-m-d H:i:s')
+        ));
+        exit();
+    }
+
 
     public function check_auth() {
         log_message('debug', 'Auth::check_auth method called');

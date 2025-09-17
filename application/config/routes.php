@@ -42,3 +42,6 @@ $route['migrate/rollback/(:num)'] = 'migrate/rollback/$1';
 $route['view/(:any)'] = 'view/index/$1';
 $route['partials/(:any)'] = 'view/partial/$1';
 $route['layout/(:any)'] = 'view/layout/$1';
+
+
+$route['auth/test_logout'] = 'auth/test_logout';

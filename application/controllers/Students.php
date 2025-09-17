@@ -523,97 +523,108 @@ public function test_clicks() {
     }
 
     // export for a  clicks() method
+    public function export() {
+    if (!$this->session->userdata('user_id')) {
+        log_message('error', 'Export: User not authenticated');
+        $this->output->set_content_type('application/json');
+        echo json_encode(array(
+            'success' => false,
+            'message' => 'Please log in to perform this action.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        ));
+        return;
+    }
 
-   public function export() {
-        if (!$this->session->userdata('user_id')) {
-            log_message('error', 'Export: User not authenticated');
-            $this->output->set_content_type('application/json');
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Please log in to perform this action.',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            return;
-        }
-
-        if ($this->input->is_ajax_request()) {
-           try {
-                $export_type = $this->input->get('export') ?: 'csv';
-                $search = $this->input->get('search') ?: null;
-                
-                log_message('debug', "Export: Starting export - Type: $export_type, Search: " . ($search ?: 'none'));
-                
-                if ($export_type !== 'csv') {
-                    throw new Exception('Only CSV export is currently supported');
-                }
-                
-                $cache_key = 'export_clicks_' . md5($search ?: 'no_search');
-                $cached_data = $this->cache->get($cache_key);
-                
-                 if ($cached_data) {
-                    log_message('debug', "Serving export from cache for key: $cache_key");
-                    $this->output
-                        ->set_content_type('application/json')
-                        ->set_output(json_encode($cached_data));
-                    return;
-                }
-                
-                 $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
-                
-                if (empty($clicks)) {
-                    log_message('error', 'Export: No data found');
-                    $this->output
-                        ->set_content_type('application/json')
-                        ->set_output(json_encode(array(
-                            'success' => false,
-                            'message' => 'No clicks data available for export.',
-                            'csrf_token' => $this->security->get_csrf_hash()
-                        )));
-                    return;
-                }
-                
-                $csv_content = $this->generate_csv($clicks);
-                
-                if (empty($csv_content)) {
-                    throw new Exception('Failed to generate CSV content');
-                }
-                
-                log_message('debug', 'Export: CSV generated successfully with ' . count($clicks) . ' records');
-                
-                $response = array(
-                    'success' => true,
-                    'csv_data' => $csv_content,
-                    'total_records' => count($clicks),
-                    'message' => 'Export generated successfully',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                );
-                
-                $this->cache->save($cache_key, $response, 600);
-                
+    if ($this->input->is_ajax_request()) {
+        try {
+            $export_type = $this->input->get('export') ?: 'csv';
+            $search = $this->input->get('search') ?: null;
+            
+            log_message('debug', "Export: Starting export - Type: $export_type, Search: " . ($search ?: 'none'));
+            
+            if ($export_type !== 'csv') {
+                throw new Exception('Only CSV export is currently supported');
+            }
+            
+            $cache_key = 'export_clicks_' . md5($search ?: 'no_search');
+            $cached_data = $this->cache->get($cache_key);
+            
+            if ($cached_data) {
+                log_message('debug', "Serving export from cache for key: $cache_key");
                 $this->output
                     ->set_content_type('application/json')
-                    ->set_output(json_encode($response));
-
-            } catch (Exception $e) {
-                  log_message('error', 'Error in export method: ' . $e->getMessage());
-                log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-                
+                    ->set_output(json_encode($cached_data));
+                return;
+            }
+            
+            
+            $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
+            
+            if (empty($clicks)) {
+                log_message('error', 'Export: No data found');
                 $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode(array(
                         'success' => false,
-                        'message' => 'Export failed: Unable to generate export data.',
-                        'debug_info' => $e->getMessage(),
+                        'message' => 'No clicks data available for export.',
                         'csrf_token' => $this->security->get_csrf_hash()
                     )));
+                return;
             }
-            return;
-        }
-        
-        redirect('/clicks');
-    }
 
+            $csv_content = $this->generate_csv($clicks);
+            
+            if (empty($csv_content)) {
+                throw new Exception('Failed to generate CSV content');
+            }
+            
+            log_message('debug', 'Export: CSV generated successfully with ' . count($clicks) . ' records');
+            
+            $response = array(
+                'success' => true,
+                'csv_data' => $csv_content,
+                'total_records' => count($clicks),
+                'message' => 'Export generated successfully',
+                'csrf_token' => $this->security->get_csrf_hash()
+            );
+            
+            $this->cache->save($cache_key, $response, 600);
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode($response));
+
+        } catch (Exception $e) {
+            log_message('error', 'Error in export method: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Export failed: Unable to generate export data.',
+                    'debug_info' => $e->getMessage(),
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+        }
+        return;
+    }
     
+    // For non-AJAX requests, redirect to clicks page with current parameters
+    $params = array();
+    if ($this->input->get('page')) $params['page'] = $this->input->get('page');
+    if ($this->input->get('limit')) $params['limit'] = $this->input->get('limit');
+    if ($this->input->get('search')) $params['search'] = $this->input->get('search');
+    
+    $redirect_url = '/clicks';
+    if (!empty($params)) {
+        $redirect_url .= '?' . http_build_query($params);
+    }
+    
+    redirect($redirect_url);
+}
+    
+
     // Helper method to generate CSV content
     private function generate_csv($data) {
         if (empty($data)) {

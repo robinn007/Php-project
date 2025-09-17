@@ -8,13 +8,16 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.flashMessage = 'Loading clicks...';
     $scope.flashType = 'info';
     
-    $scope.currentPage = 1;
-    $scope.itemsPerPage = 50;
+    // Initialize from URL parameters or defaults
+    var urlParams = $location.search();
+    $scope.currentPage = parseInt(urlParams.page) || 1;
+    $scope.itemsPerPage = parseInt(urlParams.limit) || 50;
+    $scope.searchQuery = urlParams.search || '';
+    
     $scope.totalCount = 0;
     $scope.totalPages = 0;
     $scope.hasNext = false;
     $scope.hasPrev = false;
-    $scope.searchQuery = '';
 
     console.log('ClicksController initialized');
 
@@ -24,6 +27,20 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         $scope.flashType = 'error';
         $location.path('/login');
         return;
+    }
+
+    // Function to update URL parameters
+    function updateUrlParams() {
+        var params = {
+            page: $scope.currentPage,
+            limit: $scope.itemsPerPage
+        };
+        
+        if ($scope.searchQuery && $scope.searchQuery.trim()) {
+            params.search = $scope.searchQuery.trim();
+        }
+        
+        $location.search(params);
     }
 
     function loadClicksData() {
@@ -71,6 +88,9 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.hasNext = false;
                         $scope.hasPrev = false;
                     }
+                    
+                    // Update URL after successful load
+                    updateUrlParams();
                     
                     console.log('Pagination data:', {
                         currentPage: $scope.currentPage,
@@ -232,6 +252,26 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         }
         return pages;
     };
+
+    // Watch for URL parameter changes (browser back/forward navigation)
+    $scope.$on('$locationChangeSuccess', function() {
+        var urlParams = $location.search();
+        var newPage = parseInt(urlParams.page) || 1;
+        var newLimit = parseInt(urlParams.limit) || 50;
+        var newSearch = urlParams.search || '';
+        
+        // Only reload if parameters actually changed
+        if (newPage !== $scope.currentPage || 
+            newLimit !== $scope.itemsPerPage || 
+            newSearch !== $scope.searchQuery) {
+            
+            $scope.currentPage = newPage;
+            $scope.itemsPerPage = newLimit;
+            $scope.searchQuery = newSearch;
+            
+            loadClicksData();
+        }
+    });
 
     // Initialize
     loadClicksData();

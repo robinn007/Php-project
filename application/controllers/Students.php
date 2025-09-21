@@ -1,72 +1,72 @@
-<?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+    <?php
+    defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Students extends CI_Controller {
-      public function __construct() {
-        parent::__construct();
-        $this->load->model('Student_model');
-        $this->load->model('Clicks_model');
-        $this->load->library('form_validation');
-        $this->load->driver('cache', array('adapter' => 'file')); // Enable caching
-        $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
-    }
+    class Students extends CI_Controller {
+        public function __construct() {
+            parent::__construct();
+            $this->load->model('Student_model');
+            $this->load->model('Clicks_model');
+            $this->load->library('form_validation');
+            $this->load->driver('cache', array('adapter' => 'file')); // Enable caching
+            $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
+        }
 
 
-    public function index() {
-        if ($this->session->userdata('user_id')) {
-            if ($this->input->is_ajax_request()) {
+        public function index() {
+            if ($this->session->userdata('user_id')) {
+                if ($this->input->is_ajax_request()) {
+                    $this->output->set_content_type('application/json');
+                    echo json_encode(array(
+                        'success' => true,
+                        'students' => $this->Student_model->get_students(),
+                        'csrf_token' => $this->security->get_csrf_hash()
+                    ));
+                    exit();
+                }
+                $this->load->view('ang/index');
+            } else {
+                redirect('/login');
+            }
+        }
+
+    public function clicks() {
+            if (!$this->session->userdata('user_id')) {
                 $this->output->set_content_type('application/json');
                 echo json_encode(array(
-                    'success' => true,
-                    'students' => $this->Student_model->get_students(),
+                    'success' => false,
+                    'message' => 'Please log in to perform this action.',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
-                exit();
+                return;
             }
-            $this->load->view('ang/index');
-        } else {
-            redirect('/login');
-        }
-    }
 
-   public function clicks() {
-        if (!$this->session->userdata('user_id')) {
-            $this->output->set_content_type('application/json');
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Please log in to perform this action.',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            return;
-        }
-
-        if ($this->input->is_ajax_request()) {
-            try {
-                $page = (int)$this->input->get('page') ?: 1;
-                $limit = (int)$this->input->get('limit') ?: 50;
-                $search = $this->input->get('search') ?: null;
-                $offset = ($page - 1) * $limit;
-                $limit = min($limit, 100);
-                
-                $cache_key = 'clicks_' . md5($page . '_' . $limit . '_' . ($search ?: 'no_search'));
-                $cached_data = $this->cache->get($cache_key);
-                
-                if ($cached_data) {
-                    log_message('debug', "Serving clicks from cache for key: $cache_key");
-                    $this->output
-                        ->set_content_type('application/json')
-                        ->set_output(json_encode($cached_data));
-                    return;
-                }
-                
-                log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset, Search: " . ($search ?: 'none'));
-                
-                $clicks = $this->Clicks_model->get_clicks($limit, $offset, $search);
-                $total_count = $this->Clicks_model->get_clicks_count($search);
-                $total_pages = ceil($total_count / $limit);
-                
-                log_message('debug', 'Clicks retrieved: ' . count($clicks) . ' out of ' . $total_count . ' total');
-                
+            if ($this->input->is_ajax_request()) {
+                try {
+                    $page = (int)$this->input->get('page') ?: 1;
+                    $limit = (int)$this->input->get('limit') ?: 50;
+                    $search = $this->input->get('search') ?: null;
+                    $offset = ($page - 1) * $limit;
+                    $limit = min($limit, 100);
+                    
+                    $cache_key = 'clicks_' . md5($page . '_' . $limit . '_' . ($search ?: 'no_search'));
+                    $cached_data = $this->cache->get($cache_key);
+                    
+                    if ($cached_data) {
+                        log_message('debug', "Serving clicks from cache for key: $cache_key");
+                        $this->output
+                            ->set_content_type('application/json')
+                            ->set_output(json_encode($cached_data));
+                        return;
+                    }
+                    
+                    log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset, Search: " . ($search ?: 'none'));
+                    
+                    $clicks = $this->Clicks_model->get_clicks($limit, $offset, $search);
+                    $total_count = $this->Clicks_model->get_clicks_count($search);
+                    $total_pages = ceil($total_count / $limit);
+                    
+                    log_message('debug', 'Clicks retrieved: ' . count($clicks) . ' out of ' . $total_count . ' total');
+                    
                 $response = array(
                     'success' => true,
                     'clicks' => $clicks,
@@ -82,14 +82,14 @@ class Students extends CI_Controller {
                 );
                 
                 // Cache for 5 minutes
-                 $this->cache->save($cache_key, $response, 300);
-                
-                $this->output
+                $this->cache->save($cache_key, $response, 300);
+
+   $this->output
                     ->set_content_type('application/json')
                     ->set_output(json_encode($response));
                 
             } catch (Exception $e) {
-                               log_message('error', 'Error in clicks method: ' . $e->getMessage());
+                log_message('error', 'Error in clicks method: ' . $e->getMessage());
                 log_message('error', 'Stack trace: ' . $e->getTraceAsString());
                 
                 $this->output
@@ -105,7 +105,6 @@ class Students extends CI_Controller {
         }
 
         $this->load->view('ang/index');
-
     }
 
 
@@ -160,8 +159,7 @@ public function test_clicks() {
             ));
             exit();
         }
-
-        $response = array();
+ $response = array();
         switch ($action) {
             case 'add':
                 if (isset($json_data['student'])) {
@@ -195,7 +193,6 @@ public function test_clicks() {
                         $data = $json_data['student'];
                     }
                     log_message('debug', 'Student data to add: ' . json_encode($data));
-
                     if ($this->Student_model->manage_student('add', null, $data)) {
                         $response = array(
                             'success' => true,
@@ -232,7 +229,7 @@ public function test_clicks() {
 
                 log_message('debug', 'POST data for edit: ' . json_encode($this->input->post()));
 
-                if ($this->form_validation->run() === FALSE) {
+if ($this->form_validation->run() === FALSE) {
                     $validation_errors = validation_errors();
                     $response = array(
                         'success' => false,
@@ -297,7 +294,7 @@ public function test_clicks() {
         exit();
     }
 
-    public function edit($id) {
+public function edit($id) {
         if (!$this->session->userdata('user_id')) {
             $this->output->set_content_type('application/json');
             echo json_encode(array(
@@ -351,7 +348,7 @@ public function test_clicks() {
             exit();
         }
 
-        $student = $this->Student_model->get_student($id);
+ $student = $this->Student_model->get_student($id);
         if ($student) {
             log_message('debug', 'Student found for ID: ' . $id . ': ' . json_encode($student));
             $this->output->set_content_type('application/json');
@@ -431,6 +428,7 @@ public function test_clicks() {
             exit();
         }
 
+
         if ($this->Student_model->permanent_delete($id)) {
             $this->output->set_content_type('application/json');
             echo json_encode(array(
@@ -449,7 +447,7 @@ public function test_clicks() {
         exit();
     }
 
-    public function setup_database() {
+ public function setup_database() {
         $this->load->dbforge();
 
         if (!$this->db->table_exists('students')) {
@@ -522,8 +520,8 @@ public function test_clicks() {
         echo 'Existing student records updated with default state: Rajasthan';
     }
 
-    // export for a  clicks() method
-    public function export() {
+
+public function export() {
     if (!$this->session->userdata('user_id')) {
         log_message('error', 'Export: User not authenticated');
         $this->output->set_content_type('application/json');
@@ -539,16 +537,16 @@ public function test_clicks() {
         try {
             $export_type = $this->input->get('export') ?: 'csv';
             $search = $this->input->get('search') ?: null;
-            
+
             log_message('debug', "Export: Starting export - Type: $export_type, Search: " . ($search ?: 'none'));
-            
+
             if ($export_type !== 'csv') {
                 throw new Exception('Only CSV export is currently supported');
             }
-            
+
             $cache_key = 'export_clicks_' . md5($search ?: 'no_search');
             $cached_data = $this->cache->get($cache_key);
-            
+
             if ($cached_data) {
                 log_message('debug', "Serving export from cache for key: $cache_key");
                 $this->output
@@ -556,10 +554,9 @@ public function test_clicks() {
                     ->set_output(json_encode($cached_data));
                 return;
             }
-            
-            
+
             $clicks = $this->Clicks_model->get_all_clicks_for_export($search);
-            
+
             if (empty($clicks)) {
                 log_message('error', 'Export: No data found');
                 $this->output
@@ -572,24 +569,45 @@ public function test_clicks() {
                 return;
             }
 
-            $csv_content = $this->generate_csv($clicks);
-            
-            if (empty($csv_content)) {
+            // Prepare data for export_to_file()
+            $data = array(
+                array('ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp') // Headers
+            );
+
+            // Add data rows
+            foreach ($clicks as $row) {
+                $data[] = array(
+                    $row['id'],
+                    $row['pid'],
+                    $row['link'],
+                    $row['campaignId'],
+                    $row['eidt'],
+                    $row['eid'],
+                    $row['timestamp']
+                );
+            }
+
+            // Use common_helper's export_to_file()
+            $csv_content = export_to_file('csv', $data);
+
+            if ($csv_content === false || $csv_content === '') {
                 throw new Exception('Failed to generate CSV content');
             }
-            
+
             log_message('debug', 'Export: CSV generated successfully with ' . count($clicks) . ' records');
-            
+
+            // FIXED: Return the expected structure that matches your frontend
             $response = array(
                 'success' => true,
-                'csv_data' => $csv_content,
+                'file_data' => $csv_content,  // Changed from 'csv_data' to 'file_data'
+                'file_type' => 'csv',         // Added file_type
                 'total_records' => count($clicks),
                 'message' => 'Export generated successfully',
                 'csrf_token' => $this->security->get_csrf_hash()
             );
-            
+
             $this->cache->save($cache_key, $response, 600);
-            
+
             $this->output
                 ->set_content_type('application/json')
                 ->set_output(json_encode($response));
@@ -597,7 +615,7 @@ public function test_clicks() {
         } catch (Exception $e) {
             log_message('error', 'Error in export method: ' . $e->getMessage());
             log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-            
+
             $this->output
                 ->set_content_type('application/json')
                 ->set_output(json_encode(array(
@@ -609,53 +627,18 @@ public function test_clicks() {
         }
         return;
     }
-    
+
     // For non-AJAX requests, redirect to clicks page with current parameters
     $params = array();
     if ($this->input->get('page')) $params['page'] = $this->input->get('page');
     if ($this->input->get('limit')) $params['limit'] = $this->input->get('limit');
     if ($this->input->get('search')) $params['search'] = $this->input->get('search');
-    
+
     $redirect_url = '/clicks';
     if (!empty($params)) {
         $redirect_url .= '?' . http_build_query($params);
     }
-    
+
     redirect($redirect_url);
 }
-    
-
-    // Helper method to generate CSV content
-    private function generate_csv($data) {
-        if (empty($data)) {
-            return '';
-        }
-        
-        $headers = array('ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp');
-        $csv_content = '"' . implode('","', $headers) . '"' . "\n";
-        
-        foreach ($data as $row) {
-            $csv_row = array(
-                $this->escape_csv_field($row['id']),
-                $this->escape_csv_field($row['pid']),
-                $this->escape_csv_field($row['link']),
-                $this->escape_csv_field($row['campaignId']),
-                $this->escape_csv_field($row['eidt']),
-                $this->escape_csv_field($row['eid']),
-                $this->escape_csv_field($row['timestamp'])
-            );
-            $csv_content .= '"' . implode('","', $csv_row) . '"' . "\n";
-        }
-        
-        return $csv_content;
-    }
-
-     private function escape_csv_field($field) {
-        if ($field === null || $field === '') {
-            return '';
-        }
-        $field = (string)$field;
-        $field = str_replace('"', '""', $field);
-        return $field;
-    }
 }

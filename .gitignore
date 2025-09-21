@@ -10,3 +10,6 @@ application/logs/*
 
 ang/assets
 assets/angular-1.3.0
+assets/js/angular-1.3.0
+
+application/third_party/PHPExcel-1.8

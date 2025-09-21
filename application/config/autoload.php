@@ -68,7 +68,7 @@ $autoload['libraries'] = array('database', 'form_validation', 'session'); // Add
 */
 
 //$autoload['helper'] = array('url', 'file');
-$autoload['helper'] = array('url', 'html', 'form'); // for the first 2 steps
+$autoload['helper'] = array('url', 'html', 'form', 'common'); // Added 'common'
 //$autoload['helper'] = array('url', 'form'); // Added MY_url helper
 
 

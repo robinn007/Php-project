@@ -24,7 +24,21 @@ class Welcome extends CI_Controller {
 		//$this->load->view('create');
 		//redirect('students');
 		 //$this->load->view('index'); // Loads ci/ang/index.php
+
 		   $this->load->view('ang/index');
+
+		   // Manually load the common_helper
+      //  $this->load->helper('example');
+
+        // $greeting = get_greeting();
+        // $full_name = format_name('john', 'doe');
+
+        // // Pass data to view
+        // $data['greeting'] = $greeting;
+         //$data['full_name'] = $full_name;
+
+        // // Load a view to display the output
+        // $this->load->view('welcome_view', $data)
 	}
 }
 

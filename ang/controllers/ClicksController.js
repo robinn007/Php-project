@@ -7,6 +7,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.isExporting = false;
     $scope.flashMessage = 'Loading clicks...';
     $scope.flashType = 'info';
+    $scope.exportFormat = 'csv'; // Default export format
     
     // Initialize from URL parameters or defaults
     var urlParams = $location.search();
@@ -69,7 +70,8 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                     $scope.flashType = 'error';
                     return;
                 }
-                
+
+ 
                 if (response.data.success) {
                     $scope.clicks = response.data.clicks || [];
                     
@@ -139,67 +141,107 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
             });
     }
 
-    $scope.exportClicks = function() {
-        $scope.isExporting = true;
-        
-        var exportParams = {
-            export: 'csv'
-        };
-        
-        if ($scope.searchQuery && $scope.searchQuery.trim()) {
-            exportParams.search = $scope.searchQuery.trim();
-        }
-        
-        console.log('Exporting clicks with params:', exportParams);
-        
-        AjaxHelper.ajaxRequest('GET', '/clicks/export', exportParams)
-            .then(function(response) {
-                if (response.data.success && response.data.csv_data) {
-                    var blob = new Blob([response.data.csv_data], { type: 'text/csv;charset=utf-8;' });
-                    var link = document.createElement('a');
-                    var url = URL.createObjectURL(blob);
-                    link.setAttribute('href', url);
-                    
-                    var now = new Date();
-                    var dateStr = now.getFullYear() + '-' + 
-                                 ('0' + (now.getMonth() + 1)).slice(-2) + '-' + 
-                                 ('0' + now.getDate()).slice(-2) + '_' +
-                                 ('0' + now.getHours()).slice(-2) + '-' +
-                                 ('0' + now.getMinutes()).slice(-2);
-                    
-                    var filename = 'clicks_export_' + dateStr + '.csv';
-                    if ($scope.searchQuery && $scope.searchQuery.trim()) {
-                        filename = 'clicks_filtered_export_' + dateStr + '.csv';
-                    }
-                    
-                    link.setAttribute('download', filename);
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    $scope.flashMessage = 'Export completed successfully!';
-                    $scope.flashType = 'success';
-                    
-                    console.log('Export completed:', filename);
-                } else {
-                    console.error('Export failed:', response);
-                    $scope.flashMessage = response.data.message || 'Export failed: Unknown error';
-                    $scope.flashType = 'error';
-                }
-            })
-            .catch(function(error) {
-                console.error('Export error:', error);
-                $scope.flashMessage = error.data && error.data.message ? error.data.message : 'Export failed: Unknown error';
-                $scope.flashType = 'error';
-            })
-            .finally(function() {
-                $scope.isExporting = false;
-            });
+    // Replace your exportClicks function in ClicksController.js with this:
+
+$scope.exportClicks = function(format) {
+    $scope.isExporting = true;
+    format = format || $scope.exportFormat;
+
+    var exportParams = {
+        export: format
     };
 
-    $scope.goToPage = function(page) {
+    if ($scope.searchQuery && $scope.searchQuery.trim()) {
+        exportParams.search = $scope.searchQuery.trim();
+    }
+
+    console.log('Making export request with params:', exportParams);
+
+    // FIXED: Use the correct route - your export method is in Students controller
+    AjaxHelper.ajaxRequest('GET', '/students/export', exportParams)
+        .then(function(response) {
+            console.log('Export response received:', response);
+            
+            if (response.data && response.data.success && response.data.file_data) {
+                var blob, fileName;
+                var now = new Date();
+                var dateStr = now.getFullYear() + '-' + 
+                             ('0' + (now.getMonth() + 1)).slice(-2) + '-' + 
+                             ('0' + now.getDate()).slice(-2) + '_' +
+                             ('0' + now.getHours()).slice(-2) + '-' +
+                             ('0' + now.getMinutes()).slice(-2);
+
+                if (response.data.file_type === 'csv') {
+                    blob = new Blob([response.data.file_data], { type: 'text/csv;charset=utf-8;' });
+                    fileName = 'clicks_export_' + dateStr + '.csv';
+                    if ($scope.searchQuery && $scope.searchQuery.trim()) {
+                        fileName = 'clicks_filtered_export_' + dateStr + '.csv';
+                    }
+                } else if (response.data.file_type === 'excel') {
+                    var binary = atob(response.data.file_data);
+                    var array = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) {
+                        array[i] = binary.charCodeAt(i);
+                    }
+                    blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    fileName = 'clicks_export_' + dateStr + '.xlsx';
+                    if ($scope.searchQuery && $scope.searchQuery.trim()) {
+                        fileName = 'clicks_filtered_export_' + dateStr + '.xlsx';
+                    }
+                } else {
+                    console.error('Unsupported file type:', response.data.file_type);
+                    $scope.flashMessage = 'Export failed: Unsupported file type';
+                    $scope.flashType = 'error';
+                    return;
+                }
+
+                // Create download link
+                var link = document.createElement('a');
+                var url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                $scope.flashMessage = response.data.message || (response.data.file_type.toUpperCase() + ' export completed successfully!');
+                $scope.flashType = 'success';
+
+            } else {
+                console.error('Export failed: Invalid response structure');
+                console.error('Response data:', response.data);
+                $scope.flashMessage = response.data && response.data.message ? response.data.message : 'Export failed: Invalid response structure';
+                $scope.flashType = 'error';
+            }
+        })
+        .catch(function(error) {
+            console.error('Export error:', error);
+            console.error('Error details:', {
+                status: error.status,
+                statusText: error.statusText,
+                data: error.data
+            });
+            
+            var errorMessage = 'Export failed: ';
+            if (error.data && error.data.message) {
+                errorMessage += error.data.message;
+            } else if (error.status) {
+                errorMessage += 'HTTP ' + error.status + ' - ' + (error.statusText || 'Server error');
+            } else {
+                errorMessage += 'Unable to connect to server';
+            }
+            
+            $scope.flashMessage = errorMessage;
+            $scope.flashType = 'error';
+        })
+        .finally(function() {
+            $scope.isExporting = false;
+        });
+};
+
+ $scope.goToPage = function(page) {
         if (page >= 1 && page <= $scope.totalPages && page !== $scope.currentPage) {
             console.log('Going to page:', page);
             $scope.currentPage = page;

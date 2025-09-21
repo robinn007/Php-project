@@ -7,8 +7,12 @@
         <input type="text" ng-model="searchQuery" placeholder="Search clicks..." class="search-input">
         <button ng-click="search()" class="btn btn-primary">Search</button>
         <button ng-click="clearSearch()" class="btn btn-secondary" ng-show="searchQuery">Clear</button>
+        <select ng-model="exportFormat" class="export-format-select">
+            <option value="csv">Export as CSV</option>
+            <option value="excel">Export as Excel</option>
+        </select>
         <button ng-click="exportClicks()" class="btn btn-success" ng-disabled="isExporting">
-            <span ng-show="!isExporting">Export CSV</span>
+            <span ng-show="!isExporting">Export</span>
             <span ng-show="isExporting">Exporting...</span>
         </button>
     </div>

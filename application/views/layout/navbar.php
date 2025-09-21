@@ -20,7 +20,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             </li>
 
             <li ng-show="isLoggedIn">
-                <a href="/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB</a>
+                <a href="/test-db" class="nav-link" ng-class="{ active: currentPath == '/test-db' }">Test DB...</a>
             </li>
             <li ng-show="!isLoggedIn">
                 <a href="/login" class="nav-link" ng-class="{ active: currentPath == '/login' }">Login</a>
@@ -31,7 +31,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
         </ul>
         <div class="user-info" ng-show="isLoggedIn">
             <span class="user-name">Welcome, {{ currentUser }}</span>
-            <a href="#" class="btn-logout" ng-click="logout()">Logout</a>
+            <a href="/logout" class="btn-logout" ng-click="logout()">Logout</a>
         </div>
         <div flash-message ng-class="flashType">{{ flashMessage }}</div>
     </div>

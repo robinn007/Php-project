@@ -2,9 +2,9 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * Export data to specified format (csv or excel)
+ * Export data to specified format (csv, excel, or xls)
  *
- * @param string $export_type csv or excel
+ * @param string $export_type csv, excel, or xls
  * @param array $data Data array with headers, rows, header, footer
  * @return string File content
  */
@@ -13,15 +13,12 @@ function export_to_file($export_type, $data) {
         if ($export_type === 'csv') {
             $content = array_to_csv($data['headers'], $data['rows']);
         } elseif ($export_type === 'excel') {
-            $content = array_to_excel($data);
+            $content = array_to_excel($data, 'xlsx');
+        } elseif ($export_type === 'xls') {
+            $content = array_to_excel($data, 'xls');
         } else {
             log_message('error', 'export_to_file: Invalid export type: ' . $export_type);
-            return false;
-        }
-
-        if ($content === false || $content === '') {
-            log_message('error', 'export_to_file: Failed to generate content for ' . $export_type);
-            return false;
+            return false; // safer than returning $content when undefined
         }
 
         return $content;
@@ -34,6 +31,7 @@ function export_to_file($export_type, $data) {
         return false;
     }
 }
+
 
 /**
  * Convert array to CSV format
@@ -69,20 +67,23 @@ function array_to_csv($headers, $rows) {
     return $output;
 }
 
+
+
 /**
  * Convert array to Excel format
  *
  * @param array $data Array with 'headers', 'rows', and optional 'header' and 'footer'
  * @return string The Excel file content (binary)
  */
-function array_to_excel($data) {
+
+function array_to_excel($data, $format = 'xlsx') {
     $ci =& get_instance();
     
     // Load PHPExcel library
     $ci->load->library('phpexcel');
 
     try {
-        log_message('debug', 'array_to_excel: Starting Excel generation');
+        log_message('debug', 'array_to_excel: Starting Excel generation in ' . $format . ' format');
         
         // Clear any existing output buffers to prevent interference
         while (ob_get_level() > 0) {
@@ -165,10 +166,15 @@ function array_to_excel($data) {
             $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
         }
 
-        // Generate Excel file content
-        log_message('debug', 'array_to_excel: Generating Excel file content');
+        // Generate Excel file content based on format
+        log_message('debug', 'array_to_excel: Generating Excel file content in ' . $format . ' format');
         
-        $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+        // Choose writer based on format
+        if ($format === 'xls') {
+            $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel5'); // For XLS format
+        } else {
+            $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007'); // For XLSX format
+        }
         
         // Use temporary file to avoid memory issues with large files
         $temp_file = tempnam(sys_get_temp_dir(), 'excel_export_');
@@ -191,7 +197,7 @@ function array_to_excel($data) {
                 throw new Exception('Excel file content is empty');
             }
             
-            log_message('debug', 'array_to_excel: Successfully generated Excel file (' . strlen($content) . ' bytes)');
+            log_message('debug', 'array_to_excel: Successfully generated ' . $format . ' file (' . strlen($content) . ' bytes)');
             return $content;
             
         } catch (Exception $e) {

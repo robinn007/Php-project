@@ -518,7 +518,7 @@ public function test_clicks() {
     }
 
     // export for a  clicks() method
-   public function export() {
+public function export() {
     // Authentication check
     if (!$this->session->userdata('user_id')) {
         $this->output->set_content_type('application/json')
@@ -550,8 +550,8 @@ public function test_clicks() {
         
         log_message('debug', "Export started: type=$export_type, search=" . ($search ?: 'none'));
 
-        // Validate export type
-        if (!in_array($export_type, ['csv', 'excel'])) {
+        // Validate export type - now includes 'xls'
+        if (!in_array($export_type, ['csv', 'excel', 'xls'])) {
             throw new Exception('Invalid export format');
         }
 
@@ -573,8 +573,11 @@ public function test_clicks() {
         if ($export_type === 'csv') {
             $content = $this->generate_csv($clicks);
             $file_data = $content;
-        } else {
+        } elseif ($export_type === 'excel') {
             $content = $this->generate_excel($clicks);
+            $file_data = base64_encode($content);
+        } elseif ($export_type === 'xls') {
+            $content = $this->generate_xls($clicks);
             $file_data = base64_encode($content);
         }
 
@@ -674,7 +677,7 @@ private function generate_excel($clicks) {
             $sheet->getColumnDimension($columnID)->setAutoSize(true);
         }
         
-        // Generate file
+        // Generate file using Excel2007 writer (XLSX format)
         $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
         
         // Use string buffer
@@ -692,6 +695,66 @@ private function generate_excel($clicks) {
     } catch (Exception $e) {
         log_message('error', 'Excel generation error: ' . $e->getMessage());
         throw new Exception('Excel generation failed: ' . $e->getMessage());
+    }
+}
+
+// New method for XLS generation
+private function generate_xls($clicks) {
+    // Load library
+    $this->load->library('phpexcel');
+    
+    try {
+        $excel = new PHPExcel();
+        $sheet = $excel->getActiveSheet();
+        
+        // Set title
+        $sheet->setTitle('Clicks Export');
+        
+        // Headers
+        $headers = ['ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp'];
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $col++;
+        }
+        
+        // Data
+        $row = 2;
+        foreach ($clicks as $click) {
+            $sheet->setCellValue('A' . $row, $click['id'] ?? '');
+            $sheet->setCellValue('B' . $row, $click['pid'] ?? '');
+            $sheet->setCellValue('C' . $row, $click['link'] ?? '');
+            $sheet->setCellValue('D' . $row, $click['campaignId'] ?? '');
+            $sheet->setCellValue('E' . $row, $click['eidt'] ?? '');
+            $sheet->setCellValue('F' . $row, $click['eid'] ?? '');
+            $sheet->setCellValue('G' . $row, $click['timestamp'] ?? '');
+            $row++;
+        }
+        
+        // Auto-size columns
+        foreach (range('A', 'G') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+        
+        // Generate file using Excel5 writer (XLS format - older Excel format)
+        $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel5');
+        
+        // Use string buffer
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_contents();
+        ob_end_clean();
+        
+        if (empty($content)) {
+            throw new Exception('XLS generation produced empty content');
+        }
+        
+        return $content;
+        
+    } catch (Exception $e) {
+        log_message('error', 'XLS generation error: ' . $e->getMessage());
+        throw new Exception('XLS generation failed: ' . $e->getMessage());
     }
 }
 

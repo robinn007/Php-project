@@ -9,7 +9,8 @@
         <button ng-click="clearSearch()" class="btn btn-secondary" ng-show="searchQuery">Clear</button>
         <select ng-model="exportFormat" class="export-format-select">
             <option value="csv">Export as CSV</option>
-            <option value="excel">Export as Excel</option>
+            <option value="excel">Export as Excel (XLSX)</option>
+            <option value="xls">Export as Excel (XLS)</option>
         </select>
         <button ng-click="exportClicks()" class="btn btn-success" ng-disabled="isExporting">
             <span ng-show="!isExporting">Export</span>

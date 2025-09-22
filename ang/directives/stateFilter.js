@@ -58,7 +58,7 @@ angular.module("myApp").directive("stateFilter", [
         "</div>" +
         "</div>" +
         "</div>",
-      link: function (scope, element, attrs) {
+      link: function (scope, element, attrs){
         // Define states (same as in controllers)
         scope.allStates = [
           "Andaman and Nicobar Islands",
@@ -107,6 +107,7 @@ angular.module("myApp").directive("stateFilter", [
         scope.filteredStates = angular.copy(scope.allStates);
         scope.appliedStates = []; // Track the last applied state
         scope.pendingChanges = false;
+        scope.isSearchActive = false; // NEW: Track if user is actively searching
 
         // Add CSS styles
         var style = document.createElement("style");
@@ -130,7 +131,6 @@ angular.module("myApp").directive("stateFilter", [
                     border-color: #66afe9;
                     box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
                 }
-
                 .multiselect-options {
                     position: absolute;
                     top: 100%;
@@ -233,8 +233,28 @@ angular.module("myApp").directive("stateFilter", [
           }
         };
 
-        // Handle search text changes
+        // Handle search text changes - MODIFIED to clear selections when user starts typing
         scope.onSearchChange = function () {
+          // NEW: If user starts typing and hasn't been searching before, clear all selections
+          if (scope.searchText && scope.searchText.trim() && !scope.isSearchActive) {
+            console.log("User started searching, clearing all selections");
+            scope.isSearchActive = true;
+            
+            // Unselect all states
+            scope.allStates.forEach(function (state) {
+              scope.selectedStateMap[state] = false;
+            });
+            scope.selectAll = false;
+            scope.selectedStates = [];
+            scope.pendingChanges = true;
+          }
+          
+          // If search is cleared, reset search active flag
+          if (!scope.searchText || !scope.searchText.trim()) {
+            scope.isSearchActive = false;
+          }
+
+          // Filter states based on search text
           if (scope.searchText && scope.searchText.trim()) {
             var searchTerm = scope.searchText.toLowerCase().trim();
             scope.filteredStates = scope.allStates.filter(function (state) {
@@ -274,7 +294,7 @@ angular.module("myApp").directive("stateFilter", [
           scope.selectedStates = newSelectedStates;
           updateSelectAllState();
 
-          //  Check if current selection differs from applied states
+          // Check if current selection differs from applied states
           scope.pendingChanges = !arraysEqual(scope.selectedStates, scope.appliedStates);
 
           console.log("Pending selected states:", scope.selectedStates);
@@ -282,8 +302,13 @@ angular.module("myApp").directive("stateFilter", [
           console.log("Has changes:", scope.pendingChanges);
         };
 
-        // Toggle select all functionality
+        // Toggle select all functionality - MODIFIED to handle search state
         scope.toggleSelectAll = function () {
+          // If user toggles "Select All" while searching, reset search active flag
+          if (scope.searchText && scope.searchText.trim() && scope.selectAll) {
+            scope.isSearchActive = false;
+          }
+          
           if (scope.selectAll) {
             scope.allStates.forEach(function (state) {
               scope.selectedStateMap[state] = true;
@@ -301,6 +326,7 @@ angular.module("myApp").directive("stateFilter", [
           scope.appliedStates = angular.copy(scope.selectedStates);
           scope.pendingChanges = false;
           scope.isDropdownOpen = false;
+          scope.isSearchActive = false; // Reset search active state when applied
           scope.onStateChange({ states: scope.selectedStates });
           console.log("Filter applied with states:", scope.selectedStates);
         };
@@ -353,7 +379,6 @@ angular.module("myApp").directive("stateFilter", [
             scope.allStates.forEach(function (state) {
               scope.selectedStateMap[state] = newValue.indexOf(state) !== -1;
             });
-            // Don't update appliedStates here - let user apply manually
             updateSelectAllState();
             // Check if there are changes compared to applied states
             scope.pendingChanges = !arraysEqual(newValue, scope.appliedStates);

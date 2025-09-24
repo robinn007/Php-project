@@ -38,6 +38,7 @@
 */
 
 $autoload['packages'] = array();
+$autoloader = array();
 
 
 /*

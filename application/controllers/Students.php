@@ -2,14 +2,15 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Students extends CI_Controller {
-      public function __construct() {
+   public function __construct() {
         parent::__construct();
         $this->load->model('Student_model');
         $this->load->model('Clicks_model');
         $this->load->library('form_validation');
-        $this->load->driver('cache', array('adapter' => 'file')); // Enable caching
+        $this->load->driver('cache', array('adapter' => 'file'));
         $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
     }
+
     public function index() {
         if ($this->session->userdata('user_id')) {
             if ($this->input->is_ajax_request()) {
@@ -27,94 +28,96 @@ class Students extends CI_Controller {
         }
     }
 
-   public function clicks() {
-        if (!$this->session->userdata('user_id')) {
-            $this->output->set_content_type('application/json');
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Please log in to perform this action.',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            return;
-        }
-
-        if ($this->input->is_ajax_request()) {
-            try {
-                $page = (int)$this->input->get('page') ?: 1;
-                $limit = (int)$this->input->get('limit') ?: 50;
-                $search = $this->input->get('search') ?: null;
-                $offset = ($page - 1) * $limit;
-                $limit = min($limit, 100);
-                
-                $cache_key = 'clicks_' . md5($page . '_' . $limit . '_' . ($search ?: 'no_search'));
-                $cached_data = $this->cache->get($cache_key);
-                
-                if ($cached_data) {
-                    log_message('debug', "Serving clicks from cache for key: $cache_key");
-                    $this->output
-                        ->set_content_type('application/json')
-                        ->set_output(json_encode($cached_data));
-                    return;
-                }
-                
-                log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset, Search: " . ($search ?: 'none'));
-                
-                $clicks = $this->Clicks_model->get_clicks($limit, $offset, $search);
-                $total_count = $this->Clicks_model->get_clicks_count($search);
-                $total_pages = ceil($total_count / $limit);
-                
-                log_message('debug', 'Clicks retrieved: ' . count($clicks) . ' out of ' . $total_count . ' total');
-                
-                $response = array(
-                    'success' => true,
-                    'clicks' => $clicks,
-                    'pagination' => array(
-                        'current_page' => $page,
-                        'total_pages' => $total_pages,
-                        'total_count' => $total_count,
-                        'per_page' => $limit,
-                        'has_next' => $page < $total_pages,
-                        'has_prev' => $page > 1
-                    ),
-                    'csrf_token' => $this->security->get_csrf_hash()
-                );
-                
-                // Cache for 5 minutes
-                $this->cache->save($cache_key, $response, 300);
-                
-                $this->output
-                    ->set_content_type('application/json')
-                    ->set_output(json_encode($response));
-                
-            } catch (Exception $e) {
-                log_message('error', 'Error in clicks method: ' . $e->getMessage());
-                log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-                
-                $this->output
-                    ->set_content_type('application/json')
-                    ->set_output(json_encode(array(
-                        'success' => false,
-                        'message' => 'Server error: Unable to fetch clicks data.',
-                        'debug_info' => $e->getMessage(),
-                        'csrf_token' => $this->security->get_csrf_hash()
-                    )));
-            }
-            return;
-        }
-
-        $this->load->view('ang/index');
-    }
-// Add this helper method for testing large datasets
-public function test_clicks() {
+    public function clicks() {
     if (!$this->session->userdata('user_id')) {
-        redirect('/login');
+        $this->output->set_content_type('application/json');
+        echo json_encode(array(
+            'success' => false,
+            'message' => 'Please log in to perform this action.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        ));
         return;
     }
-    
-    $result = $this->Clicks_model->test_clicks_table();
-    $this->output->set_content_type('application/json');
-    echo json_encode($result);
+
+    if ($this->input->is_ajax_request()) {
+        try {
+            $page = (int)$this->input->get('page') ?: 1;
+            $limit = (int)$this->input->get('limit') ?: 50; // Get limit from frontend
+            $search = $this->input->get('search') ?: null;
+            
+            // Validate and sanitize limit to prevent abuse
+            $limit = min(max($limit, 1), 500); // Allow 1-500 items per page
+            $offset = ($page - 1) * $limit;
+            
+            // Include limit in cache key so different page sizes don't share cache
+            $cache_key = 'clicks_' . md5($page . '_' . $limit . '_' . ($search ?: 'no_search'));
+            $cached_data = $this->cache->get($cache_key);
+            
+            if ($cached_data) {
+                log_message('debug', "Serving clicks from cache for key: $cache_key");
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode($cached_data));
+                return;
+            }
+            
+            log_message('debug', "Fetching clicks - Page: $page, Limit: $limit, Offset: $offset, Search: " . ($search ?: 'none'));
+            
+            // Fetch clicks and count in a single query
+            $result = $this->Clicks_model->get_clicks_with_count($limit, $offset, $search);
+            $clicks = $result['clicks'];
+            $total_count = $result['total_count'];
+            $total_pages = ceil($total_count / $limit);
+            
+            log_message('debug', 'Clicks retrieved: ' . count($clicks) . ' out of ' . $total_count . ' total, limit was: ' . $limit);
+
+            $response = array(
+                'success' => true,
+                'clicks' => $clicks,
+                'pagination' => array(
+                    'current_page' => $page,
+                    'total_pages' => $total_pages,
+                    'total_count' => $total_count,
+                    'per_page' => $limit,
+                    'has_next' => $page < $total_pages,
+                    'has_prev' => $page > 1
+                ),
+                'csrf_token' => $this->security->get_csrf_hash()
+            );
+            
+            // Cache for 10 minutes
+            $this->cache->save($cache_key, $response, 600);
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode($response));
+            
+        } catch (Exception $e) {
+            log_message('error', 'Error in clicks method: ' . $e->getMessage());
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Server error: Unable to fetch clicks data.',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                )));
+        }
+        return;
+    }
+
+    $this->load->view('ang/index');
 }
+
+    public function test_clicks() {
+        if (!$this->session->userdata('user_id')) {
+            redirect('/login');
+            return;
+        }
+        
+        $result = $this->Clicks_model->test_clicks_table();
+        $this->output->set_content_type('application/json');
+        echo json_encode($result);
+    }
 
     public function manage() {
         log_message('debug', 'Received manage request with input: ' . file_get_contents('php://input'));
@@ -517,47 +520,54 @@ public function test_clicks() {
         echo 'Existing student records updated with default state: Rajasthan';
     }
 
-    // export for a  clicks() method
-public function export() {
-    // Authentication check
+    public function export() {
     if (!$this->session->userdata('user_id')) {
-        $this->output->set_content_type('application/json')
-                     ->set_output(json_encode([
-                         'success' => false,
-                         'message' => 'Please log in to perform this action.'
-                     ]));
+        $this->output
+             ->set_content_type('application/json')
+             ->set_output(json_encode([
+                 'success' => false,
+                 'message' => 'Please log in to perform this action.'
+             ]));
         return;
     }
 
-    // AJAX check
     if (!$this->input->is_ajax_request()) {
         redirect('/clicks');
         return;
     }
 
-    // Clear any existing output buffers
+    register_shutdown_function(function() {
+        $error = error_get_last();
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            log_message('error', 'Fatal error during export: ' . $error['message']);
+            $this->output
+                 ->set_content_type('application/json')
+                 ->set_output(json_encode([
+                     'success' => false,
+                     'message' => 'Export failed: Fatal server error - ' . $error['message']
+                 ]));
+        }
+    });
+
     while (ob_get_level()) {
         ob_end_clean();
     }
 
     try {
-        // Configuration
-        ini_set('max_execution_time', 300); // 5 minutes max
-        ini_set('memory_limit', '256M');
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '512M'); // Increased for 10,000 records
         
         $export_type = $this->input->get('export') ?: 'csv';
         $search = $this->input->get('search') ?: null;
         
         log_message('debug', "Export started: type=$export_type, search=" . ($search ?: 'none'));
 
-        // Validate export type - now includes 'xls'
-        if (!in_array($export_type, ['csv', 'excel', 'xls'])) {
-            throw new Exception('Invalid export format');
+        if (!in_array($export_type, ['csv', 'xlsx', 'xls'])) {
+            throw new Exception('Invalid export format: Only CSV, XLS, and XLSX are supported');
         }
 
-        // Get data with reasonable limit
-        $limit = 1000; // Start small for testing
-        $clicks = $this->Clicks_model->get_clicks($limit, 0, $search);
+        $limit = 100000; // Updated to 10,000 as per requirement
+        $clicks = $this->Clicks_model->get_all_clicks_for_export($search, $limit);
         
         if (empty($clicks)) {
             $this->output->set_content_type('application/json')
@@ -570,19 +580,23 @@ public function export() {
 
         log_message('debug', "Export: Processing " . count($clicks) . " records");
 
-        if ($export_type === 'csv') {
-            $content = $this->generate_csv($clicks);
-            $file_data = $content;
-        } elseif ($export_type === 'excel') {
-            $content = $this->generate_excel($clicks);
+        $content = '';
+        $file_data = '';
+        
+        if ($export_type === 'xlsx') {
+            $this->load->library('phpexcel');
+            $content = $this->phpexcel->generate_excel($clicks);
             $file_data = base64_encode($content);
-        } elseif ($export_type === 'xls') {
+        } else if ($export_type === 'xls') {
             $content = $this->generate_xls($clicks);
             $file_data = base64_encode($content);
+        } else {
+            $content = $this->generate_csv($clicks);
+            $file_data = $content;
         }
 
         if (empty($content)) {
-            throw new Exception('Failed to generate export content');
+            throw new Exception("Failed to generate {$export_type} content");
         }
 
         $response = [
@@ -590,7 +604,8 @@ public function export() {
             'file_data' => $file_data,
             'file_type' => $export_type,
             'total_records' => count($clicks),
-            'message' => strtoupper($export_type) . ' export completed successfully'
+            'message' => strtoupper($export_type) . ' export completed successfully',
+            'csrf_token' => $this->security->get_csrf_hash()
         ];
 
         log_message('debug', "Export completed: " . strlen($content) . " bytes generated");
@@ -600,11 +615,11 @@ public function export() {
 
     } catch (Exception $e) {
         log_message('error', 'Export failed: ' . $e->getMessage());
-        
         $this->output->set_content_type('application/json')
                      ->set_output(json_encode([
                          'success' => false,
-                         'message' => 'Export failed: ' . $e->getMessage()
+                         'message' => 'Export failed: ' . $e->getMessage(),
+                         'csrf_token' => $this->security->get_csrf_hash()
                      ]));
     }
 }
@@ -612,11 +627,9 @@ public function export() {
 private function generate_csv($clicks) {
     $output = '';
     
-    // Headers
     $headers = ['ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp'];
     $output .= '"' . implode('","', $headers) . '"' . "\n";
     
-    // Data rows
     foreach ($clicks as $click) {
         $row = [
             $click['id'] ?? '',
@@ -628,9 +641,8 @@ private function generate_csv($clicks) {
             $click['timestamp'] ?? ''
         ];
         
-        // Escape CSV fields
         $escaped_row = array_map(function($field) {
-            return str_replace('"', '""', $field);
+            return str_replace('"', '""', (string)$field);
         }, $row);
         
         $output .= '"' . implode('","', $escaped_row) . '"' . "\n";
@@ -639,123 +651,50 @@ private function generate_csv($clicks) {
     return $output;
 }
 
-private function generate_excel($clicks) {
-    // Load library
-    $this->load->library('phpexcel');
-    
-    try {
-        $excel = new PHPExcel();
-        $sheet = $excel->getActiveSheet();
-        
-        // Set title
-        $sheet->setTitle('Clicks Export');
-        
-        // Headers
-        $headers = ['ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp'];
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->getFont()->setBold(true);
-            $col++;
-        }
-        
-        // Data
-        $row = 2;
-        foreach ($clicks as $click) {
-            $sheet->setCellValue('A' . $row, $click['id'] ?? '');
-            $sheet->setCellValue('B' . $row, $click['pid'] ?? '');
-            $sheet->setCellValue('C' . $row, $click['link'] ?? '');
-            $sheet->setCellValue('D' . $row, $click['campaignId'] ?? '');
-            $sheet->setCellValue('E' . $row, $click['eidt'] ?? '');
-            $sheet->setCellValue('F' . $row, $click['eid'] ?? '');
-            $sheet->setCellValue('G' . $row, $click['timestamp'] ?? '');
-            $row++;
-        }
-        
-        // Auto-size columns
-        foreach (range('A', 'G') as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
-        }
-        
-        // Generate file using Excel2007 writer (XLSX format)
-        $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
-        
-        // Use string buffer
-        ob_start();
-        $writer->save('php://output');
-        $content = ob_get_contents();
-        ob_end_clean();
-        
-        if (empty($content)) {
-            throw new Exception('Excel generation produced empty content');
-        }
-        
-        return $content;
-        
-    } catch (Exception $e) {
-        log_message('error', 'Excel generation error: ' . $e->getMessage());
-        throw new Exception('Excel generation failed: ' . $e->getMessage());
-    }
-}
-
-// New method for XLS generation
 private function generate_xls($clicks) {
-    // Load library
-    $this->load->library('phpexcel');
+    // Create a simple XLS file using binary format
+    $output = '';
     
-    try {
-        $excel = new PHPExcel();
-        $sheet = $excel->getActiveSheet();
-        
-        // Set title
-        $sheet->setTitle('Clicks Export');
-        
-        // Headers
-        $headers = ['ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp'];
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->getFont()->setBold(true);
-            $col++;
-        }
-        
-        // Data
-        $row = 2;
-        foreach ($clicks as $click) {
-            $sheet->setCellValue('A' . $row, $click['id'] ?? '');
-            $sheet->setCellValue('B' . $row, $click['pid'] ?? '');
-            $sheet->setCellValue('C' . $row, $click['link'] ?? '');
-            $sheet->setCellValue('D' . $row, $click['campaignId'] ?? '');
-            $sheet->setCellValue('E' . $row, $click['eidt'] ?? '');
-            $sheet->setCellValue('F' . $row, $click['eid'] ?? '');
-            $sheet->setCellValue('G' . $row, $click['timestamp'] ?? '');
-            $row++;
-        }
-        
-        // Auto-size columns
-        foreach (range('A', 'G') as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
-        }
-        
-        // Generate file using Excel5 writer (XLS format - older Excel format)
-        $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel5');
-        
-        // Use string buffer
-        ob_start();
-        $writer->save('php://output');
-        $content = ob_get_contents();
-        ob_end_clean();
-        
-        if (empty($content)) {
-            throw new Exception('XLS generation produced empty content');
-        }
-        
-        return $content;
-        
-    } catch (Exception $e) {
-        log_message('error', 'XLS generation error: ' . $e->getMessage());
-        throw new Exception('XLS generation failed: ' . $e->getMessage());
+    // XLS file header (simplified BIFF5 format)
+    $output .= pack("ssssss", 0x809, 0x8, 0x0, 0x10, 0x0, 0x0);
+    
+    // Headers
+    $headers = ['ID', 'PID', 'Link', 'Campaign ID', 'EIDT', 'EID', 'Timestamp'];
+    $row_num = 0;
+    
+    foreach ($headers as $col_num => $header) {
+        $output .= $this->write_string($row_num, $col_num, $header);
     }
+    $row_num++;
+    
+    // Data rows
+    foreach ($clicks as $click) {
+        $col_num = 0;
+        
+        // Write each cell
+        $output .= $this->write_string($row_num, $col_num++, $click['id'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['pid'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['link'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['campaignId'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['eidt'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['eid'] ?? '');
+        $output .= $this->write_string($row_num, $col_num++, $click['timestamp'] ?? '');
+        
+        $row_num++;
+    }
+    
+    // XLS file footer
+    $output .= pack("ss", 0x0A, 0x00);
+    
+    return $output;
 }
 
+private function write_string($row, $col, $value) {
+    $value = (string)$value;
+    $length = strlen($value);
+    
+    // BIFF5 LABEL record: 0x204
+    return pack("ssssss", 0x204, 8 + $length, $row, $col, 0x0, $length) . $value;
 }
+}
+

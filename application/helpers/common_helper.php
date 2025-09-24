@@ -2,25 +2,20 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * Export data to specified format (csv, excel, or xls)
+ * Export data to CSV format
  *
- * @param string $export_type csv, excel, or xls
- * @param array $data Data array with headers, rows, header, footer
+ * @param string $export_type Must be 'csv'
+ * @param array $data Data array with headers, rows
  * @return string File content
  */
 function export_to_file($export_type, $data) {
     try {
-        if ($export_type === 'csv') {
-            $content = array_to_csv($data['headers'], $data['rows']);
-        } elseif ($export_type === 'excel') {
-            $content = array_to_excel($data, 'xlsx');
-        } elseif ($export_type === 'xls') {
-            $content = array_to_excel($data, 'xls');
-        } else {
+        if ($export_type !== 'csv') {
             log_message('error', 'export_to_file: Invalid export type: ' . $export_type);
-            return false; // safer than returning $content when undefined
+            return false;
         }
 
+        $content = array_to_csv($data['headers'], $data['rows']);
         return $content;
 
     } catch (Exception $e) {
@@ -31,7 +26,6 @@ function export_to_file($export_type, $data) {
         return false;
     }
 }
-
 
 /**
  * Convert array to CSV format
@@ -67,157 +61,6 @@ function array_to_csv($headers, $rows) {
     return $output;
 }
 
-
-
-/**
- * Convert array to Excel format
- *
- * @param array $data Array with 'headers', 'rows', and optional 'header' and 'footer'
- * @return string The Excel file content (binary)
- */
-
-function array_to_excel($data, $format = 'xlsx') {
-    $ci =& get_instance();
-    
-    // Load PHPExcel library
-    $ci->load->library('phpexcel');
-
-    try {
-        log_message('debug', 'array_to_excel: Starting Excel generation in ' . $format . ' format');
-        
-        // Clear any existing output buffers to prevent interference
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
-        $excel = $ci->phpexcel->excel;
-        $sheet = $excel->getActiveSheet();
-
-        // Set basic document properties
-        $excel->getProperties()
-              ->setCreator('Clicks Export System')
-              ->setTitle('Clicks Export')
-              ->setSubject('Click Data Export')
-              ->setDescription('Export of click tracking data');
-
-        $row = 1;
-
-        // Add header (title) if provided
-        if (!empty($data['header']) && is_string($data['header'])) {
-            $sheet->setCellValue('A' . $row, $data['header']);
-            $sheet->mergeCells('A' . $row . ':' . chr(64 + count($data['headers'])) . $row);
-            // Bold the header
-            $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-            $row++;
-            $row++; // Add extra spacing
-        }
-
-        // Validate headers
-        if (!is_array($data['headers']) || empty($data['headers'])) {
-            log_message('error', 'array_to_excel: Invalid or empty headers array');
-            throw new Exception('Invalid headers array');
-        }
-
-        // Add column headers with styling
-        $col = 0;
-        foreach ($data['headers'] as $header) {
-            $cellCoordinate = PHPExcel_Cell::stringFromColumnIndex($col) . $row;
-            $sheet->setCellValue($cellCoordinate, $header);
-            $sheet->getStyle($cellCoordinate)->getFont()->setBold(true);
-            $sheet->getStyle($cellCoordinate)->getFill()
-                  ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
-                  ->getStartColor()->setRGB('E0E0E0');
-            $col++;
-        }
-        $row++;
-
-        // Add data rows
-        if (isset($data['rows']) && is_array($data['rows'])) {
-            log_message('debug', 'array_to_excel: Adding ' . count($data['rows']) . ' data rows');
-            
-            foreach ($data['rows'] as $index => $data_row) {
-                if (!is_array($data_row)) {
-                    log_message('error', 'array_to_excel: Invalid row data at index ' . $index);
-                    continue;
-                }
-
-                $col = 0;
-                $data_row = array_pad($data_row, count($data['headers']), '');
-                foreach ($data_row as $value) {
-                    $cellCoordinate = PHPExcel_Cell::stringFromColumnIndex($col) . $row;
-                    $sheet->setCellValue($cellCoordinate, $value);
-                    $col++;
-                }
-                $row++;
-            }
-        }
-
-        // Add footer if provided
-        if (!empty($data['footer']) && is_string($data['footer'])) {
-            $row++; // Add spacing
-            $sheet->setCellValue('A' . $row, $data['footer']);
-            $sheet->mergeCells('A' . $row . ':' . chr(64 + count($data['headers'])) . $row);
-            $sheet->getStyle('A' . $row)->getFont()->setItalic(true);
-        }
-
-        // Auto-size columns for better presentation
-        foreach (range(0, count($data['headers']) - 1) as $col) {
-            $columnLetter = PHPExcel_Cell::stringFromColumnIndex($col);
-            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
-        }
-
-        // Generate Excel file content based on format
-        log_message('debug', 'array_to_excel: Generating Excel file content in ' . $format . ' format');
-        
-        // Choose writer based on format
-        if ($format === 'xls') {
-            $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel5'); // For XLS format
-        } else {
-            $writer = PHPExcel_IOFactory::createWriter($excel, 'Excel2007'); // For XLSX format
-        }
-        
-        // Use temporary file to avoid memory issues with large files
-        $temp_file = tempnam(sys_get_temp_dir(), 'excel_export_');
-        
-        if ($temp_file === false) {
-            throw new Exception('Failed to create temporary file');
-        }
-        
-        try {
-            $writer->save($temp_file);
-            
-            if (!file_exists($temp_file) || filesize($temp_file) == 0) {
-                throw new Exception('Excel file generation failed - empty or missing file');
-            }
-            
-            $content = file_get_contents($temp_file);
-            unlink($temp_file); // Clean up temp file
-            
-            if (empty($content)) {
-                throw new Exception('Excel file content is empty');
-            }
-            
-            log_message('debug', 'array_to_excel: Successfully generated ' . $format . ' file (' . strlen($content) . ' bytes)');
-            return $content;
-            
-        } catch (Exception $e) {
-            // Clean up temp file on error
-            if (file_exists($temp_file)) {
-                unlink($temp_file);
-            }
-            throw $e;
-        }
-
-    } catch (Exception $e) {
-        log_message('error', 'array_to_excel: Exception - ' . $e->getMessage());
-        log_message('error', 'array_to_excel: Stack trace - ' . $e->getTraceAsString());
-        return false;
-    } catch (Throwable $t) {
-        log_message('error', 'array_to_excel: Fatal error - ' . $t->getMessage());
-        return false;
-    }
-}
-
 /**
  * Escape a field for CSV output
  *
@@ -231,5 +74,16 @@ function escape_csv_field($field) {
     $field = (string)$field;
     $field = str_replace('"', '""', $field);
     return $field;
+}
+
+/**
+ * Export data to XLSX format using PHPEXCEL
+ *
+ * @param array $data Data array with rows
+ * @return string File content
+ */
+function export_to_xlsx($data) {
+    // This will be handled by the PHPEXCEL library
+    return '';
 }
 

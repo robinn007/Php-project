@@ -1,4 +1,4 @@
-angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 'AuthService', '$location', function($scope, AjaxHelper, AuthService, $location) {
+angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 'AuthService', '$location', '$timeout', function($scope, AjaxHelper, AuthService, $location, $timeout) {
     'use strict';
     
     $scope.title = 'Clicks Dashboard';
@@ -7,12 +7,12 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.isExporting = false;
     $scope.flashMessage = 'Loading clicks...';
     $scope.flashType = 'info';
-    $scope.exportFormat = 'csv'; // Default export format
+    $scope.exportFormat = 'csv'; // Default format
 
     // Initialize from URL parameters or defaults
     var urlParams = $location.search();
     $scope.currentPage = parseInt(urlParams.page) || 1;
-    $scope.itemsPerPage = parseInt(urlParams.limit) || 50;
+    $scope.itemsPerPage = parseInt(urlParams.limit) || 50; // Get from URL or default to 50
     $scope.searchQuery = urlParams.search || '';
 
     $scope.totalCount = 0;
@@ -20,15 +20,24 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
     $scope.hasNext = false;
     $scope.hasPrev = false;
 
-    console.log('ClicksController initialized');
-
     if (!AuthService.isLoggedIn()) {
-        console.log('User not logged in, redirecting to /login');
         $scope.flashMessage = 'Please log in to view the clicks dashboard.';
         $scope.flashType = 'error';
         $location.path('/login');
         return;
     }
+
+    // Debounce search to prevent rapid requests
+    var searchTimeout;
+    $scope.search = function() {
+        if (searchTimeout) {
+            $timeout.cancel(searchTimeout);
+        }
+        searchTimeout = $timeout(function() {
+            $scope.currentPage = 1;
+            loadClicksData();
+        }, 1000);
+    };
 
     // Function to update URL parameters
     function updateUrlParams() {
@@ -51,21 +60,18 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         
         var params = {
             page: $scope.currentPage,
-            limit: $scope.itemsPerPage
+            limit: $scope.itemsPerPage // Make sure this is sent to backend
         };
         
         if ($scope.searchQuery && $scope.searchQuery.trim()) {
             params.search = $scope.searchQuery.trim();
         }
         
-        console.log('Making AJAX request to /clicks with params:', params);
+        console.log('Loading clicks with params:', params); // Debug log
         
         AjaxHelper.ajaxRequest('GET', '/clicks', params)
             .then(function(response) {
-                console.log('Received response:', response);
-                
                 if (!response || !response.data) {
-                    console.error('Empty or invalid response received');
                     $scope.flashMessage = 'Error: Empty response from server';
                     $scope.flashType = 'error';
                     return;
@@ -82,7 +88,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.hasNext = Boolean(response.data.pagination.has_next);
                         $scope.hasPrev = Boolean(response.data.pagination.has_prev);
                     } else {
-                        // Fallback if pagination data is missing
                         $scope.currentPage = 1;
                         $scope.totalPages = $scope.clicks.length > 0 ? 1 : 0;
                         $scope.totalCount = $scope.clicks.length;
@@ -90,18 +95,7 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.hasPrev = false;
                     }
                     
-                    // Update URL after successful load
                     updateUrlParams();
-                    
-                    console.log('Pagination data:', {
-                        currentPage: $scope.currentPage,
-                        totalPages: $scope.totalPages,
-                        totalCount: $scope.totalCount,
-                        hasNext: $scope.hasNext,
-                        hasPrev: $scope.hasPrev
-                    });
-                    
-                    console.log('Clicks loaded:', $scope.clicks.length, 'of', $scope.totalCount, 'total');
                     
                     if ($scope.clicks.length === 0) {
                         $scope.flashMessage = $scope.searchQuery ? 'No clicks found matching your search.' : 'No clicks found.';
@@ -111,28 +105,18 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                         $scope.flashType = 'success';
                     }
                 } else {
-                    console.log('Response indicates failure:', response.data);
                     $scope.flashMessage = response.data.message || 'Failed to load clicks data';
                     $scope.flashType = 'error';
                 }
             })
             .catch(function(error) {
-                console.error('AJAX error:', error);
-                
                 if (error && error.data) {
-                    if (error.data.message) {
-                        $scope.flashMessage = error.data.message;
-                    } else if (typeof error.data === 'string' && error.data.includes('<b>Fatal error</b>')) {
-                        $scope.flashMessage = 'Server error: Unexpected response format';
-                    } else {
-                        $scope.flashMessage = 'Error: Invalid response format';
-                    }
+                    $scope.flashMessage = error.data.message || 'Error: Invalid response format';
                 } else if (error && error.status) {
                     $scope.flashMessage = 'HTTP Error ' + error.status + ': ' + (error.statusText || 'Connection failed');
                 } else {
                     $scope.flashMessage = 'Error: Unable to connect to server';
                 }
-                
                 $scope.flashType = 'error';
             })
             .finally(function() {
@@ -140,12 +124,11 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
             });
     }
 
-    $scope.exportClicks = function(format) {
+    $scope.exportClicks = function() {
         $scope.isExporting = true;
-        format = format || $scope.exportFormat;
 
         var exportParams = {
-            export: format
+            export: $scope.exportFormat
         };
 
         if ($scope.searchQuery && $scope.searchQuery.trim()) {
@@ -163,48 +146,36 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                                  ('0' + now.getHours()).slice(-2) + '-' +
                                  ('0' + now.getMinutes()).slice(-2);
 
-                    // Handle CSV format
-                    if (response.data.file_type === 'csv') {
+                    if ($scope.exportFormat === 'xlsx') {
+                        var binaryString = atob(response.data.file_data);
+                        var bytes = new Uint8Array(binaryString.length);
+                        for (var i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        fileName = 'clicks_export_' + dateStr + '.xlsx';
+                        if ($scope.searchQuery && $scope.searchQuery.trim()) {
+                            fileName = 'clicks_filtered_export_' + dateStr + '.xlsx';
+                        }
+                    } else if ($scope.exportFormat === 'xls') {
+                        var binaryString = atob(response.data.file_data);
+                        var bytes = new Uint8Array(binaryString.length);
+                        for (var i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        blob = new Blob([bytes], { type: 'application/vnd.ms-excel' });
+                        fileName = 'clicks_export_' + dateStr + '.xls';
+                        if ($scope.searchQuery && $scope.searchQuery.trim()) {
+                            fileName = 'clicks_filtered_export_' + dateStr + '.xls';
+                        }
+                    } else {
                         blob = new Blob([response.data.file_data], { type: 'text/csv;charset=utf-8;' });
                         fileName = 'clicks_export_' + dateStr + '.csv';
                         if ($scope.searchQuery && $scope.searchQuery.trim()) {
                             fileName = 'clicks_filtered_export_' + dateStr + '.csv';
                         }
-                    } 
-                    // Handle Excel format (XLSX)
-                    else if (response.data.file_type === 'excel') {
-                        var binary = atob(response.data.file_data);
-                        var array = new Uint8Array(binary.length);
-                        for (var i = 0; i < binary.length; i++) {
-                            array[i] = binary.charCodeAt(i);
-                        }
-                        blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                        fileName = 'clicks_export_' + dateStr + '.xlsx';
-                        if ($scope.searchQuery && $scope.searchQuery.trim()) {
-                            fileName = 'clicks_filtered_export_' + dateStr + '.xlsx';
-                        }
-                    } 
-                    // Handle XLS format (older Excel format)
-                    else if (response.data.file_type === 'xls') {
-                        var binary = atob(response.data.file_data);
-                        var array = new Uint8Array(binary.length);
-                        for (var i = 0; i < binary.length; i++) {
-                            array[i] = binary.charCodeAt(i);
-                        }
-                        blob = new Blob([array], { type: 'application/vnd.ms-excel' });
-                        fileName = 'clicks_export_' + dateStr + '.xls';
-                        if ($scope.searchQuery && $scope.searchQuery.trim()) {
-                            fileName = 'clicks_filtered_export_' + dateStr + '.xls';
-                        }
-                    } 
-                    else {
-                        console.error('Unsupported file type:', response.data.file_type);
-                        $scope.flashMessage = 'Export failed: Unsupported file type';
-                        $scope.flashType = 'error';
-                        return;
                     }
 
-                    // Create download link and trigger download
                     var link = document.createElement('a');
                     var url = URL.createObjectURL(blob);
                     link.setAttribute('href', url);
@@ -215,19 +186,16 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
 
-                    $scope.flashMessage = response.data.message || (response.data.file_type.toUpperCase() + ' export completed successfully!');
+                    var formatText = $scope.exportFormat.toUpperCase();
+                    $scope.flashMessage = formatText + ' export completed successfully!';
                     $scope.flashType = 'success';
-
                 } else {
-                    console.error('Export failed: Invalid response', JSON.stringify(response, null, 2));
                     $scope.flashMessage = response.data && response.data.message ? response.data.message : 'Export failed: Invalid response';
                     $scope.flashType = 'error';
                 }
             })
             .catch(function(error) {
-                console.error('Export error:', JSON.stringify(error, null, 2));
-                console.error('Raw response:', error.data || error.xhrStatus || 'No response data');
-                $scope.flashMessage = error.data && error.data.message ? error.data.message : 'Export failed: Server error - check console for details';
+                $scope.flashMessage = error.data && error.data.message ? error.data.message : 'Export failed: Server error';
                 $scope.flashType = 'error';
             })
             .finally(function() {
@@ -237,7 +205,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.goToPage = function(page) {
         if (page >= 1 && page <= $scope.totalPages && page !== $scope.currentPage) {
-            console.log('Going to page:', page);
             $scope.currentPage = page;
             loadClicksData();
         }
@@ -245,7 +212,6 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.nextPage = function() {
         if ($scope.hasNext) {
-            console.log('Going to next page:', $scope.currentPage + 1);
             $scope.currentPage++;
             loadClicksData();
         }
@@ -253,28 +219,20 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
 
     $scope.prevPage = function() {
         if ($scope.hasPrev) {
-            console.log('Going to previous page:', $scope.currentPage - 1);
             $scope.currentPage--;
             loadClicksData();
         }
     };
 
-    $scope.search = function() {
-        console.log('Search triggered with query:', $scope.searchQuery);
-        $scope.currentPage = 1;
-        loadClicksData();
-    };
-
     $scope.clearSearch = function() {
-        console.log('Clearing search');
         $scope.searchQuery = '';
         $scope.currentPage = 1;
         loadClicksData();
     };
 
     $scope.changeItemsPerPage = function() {
-        console.log('Items per page changed to:', $scope.itemsPerPage);
-        $scope.currentPage = 1;
+        console.log('Items per page changed to:', $scope.itemsPerPage); // Debug log
+        $scope.currentPage = 1; // Reset to first page
         loadClicksData();
     };
 
@@ -289,22 +247,19 @@ angular.module('myApp').controller('ClicksController', ['$scope', 'AjaxHelper', 
         return pages;
     };
 
-    // Watch for URL parameter changes (browser back/forward navigation)
+    // Watch for URL parameter changes
     $scope.$on('$locationChangeSuccess', function() {
         var urlParams = $location.search();
         var newPage = parseInt(urlParams.page) || 1;
         var newLimit = parseInt(urlParams.limit) || 50;
         var newSearch = urlParams.search || '';
         
-        // Only reload if parameters actually changed
         if (newPage !== $scope.currentPage || 
             newLimit !== $scope.itemsPerPage || 
             newSearch !== $scope.searchQuery) {
-            
             $scope.currentPage = newPage;
             $scope.itemsPerPage = newLimit;
             $scope.searchQuery = newSearch;
-            
             loadClicksData();
         }
     });

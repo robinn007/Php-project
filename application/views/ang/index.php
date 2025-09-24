@@ -1,5 +1,15 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
+// At the top of index.php
+if (function_exists('spl_autoload_register')) {
+    spl_autoload_register(function($class) {
+        log_message('debug', 'Autoload attempted for class: ' . $class);
+        if ($class === 'PHPExcel') {
+            log_message('error', 'PHPExcel autoload prevented');
+            return false;
+        }
+    }, true, true);
+}
 ?>
 <!DOCTYPE html>
 <html ng-app="myApp">

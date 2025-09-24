@@ -4,28 +4,28 @@
 <!-- Search and Controls -->
 <div class="controls-section" ng-show="!isLoading">
     <div class="search-controls">
-        <input type="text" ng-model="searchQuery" placeholder="Search clicks..." class="search-input">
+        <input type="text" ng-model="searchQuery" ng-change="search()" placeholder="Search clicks..." class="search-input">
         <button ng-click="search()" class="btn btn-primary">Search</button>
         <button ng-click="clearSearch()" class="btn btn-secondary" ng-show="searchQuery">Clear</button>
-        <select ng-model="exportFormat" class="export-format-select">
-            <option value="csv">Export as CSV</option>
-            <option value="excel">Export as Excel (XLSX)</option>
-            <option value="xls">Export as Excel (XLS)</option>
-        </select>
-        <button ng-click="exportClicks()" class="btn btn-success" ng-disabled="isExporting">
-            <span ng-show="!isExporting">Export</span>
-            <span ng-show="isExporting">Exporting...</span>
-        </button>
+        
+        <!-- Export Controls -->
+        <div class="export-controls">
+            <select id="exportFormat" ng-model="exportFormat" class="export-format-select">
+                <option value="csv">CSV</option>
+                <option value="xls">XLS</option>
+                <option value="xlsx">XLSX</option>
+            </select>
+            <button ng-click="exportClicks()" class="btn btn-success" ng-disabled="isExporting">
+                <span ng-show="!isExporting">Export</span>
+                <span ng-show="isExporting">Exporting...</span>
+            </button>
+        </div>
     </div>
     
     <div class="page-controls">
         <label>
             Show:
-            <select ng-model="itemsPerPage" ng-change="changeItemsPerPage()">
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="500">500</option>
+            <select ng-model="itemsPerPage" ng-change="changeItemsPerPage()" ng-options="option as option for option in [25, 50, 100, 500]">
             </select>
             per page
         </label>
@@ -44,7 +44,7 @@
 </div>
 
 <!-- Clicks Table -->
-<div class="table-container" ng-show="clicks.length && !isLoading">
+<div class="table-container" ng-if="clicks.length && !isLoading">
     <table class="clicks-table">
         <thead>
             <tr>

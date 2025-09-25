@@ -9,7 +9,7 @@ angular.module("myApp").controller("NavController", [
   "AuthService",
   "AjaxHelper",
   "$cookies",
-  "SocketService", // Add this
+  "SocketService",
   function ($scope, $location, $rootScope, AuthService, AjaxHelper, $cookies, SocketService) {
     // Initialize authentication state
     function updateAuthState() {
@@ -27,7 +27,7 @@ angular.module("myApp").controller("NavController", [
       });
     }
 
-     // Navigation items
+    // Navigation items
     $scope.navItems = [
       { path: "/students", label: "Students" },
       { path: "/students/add", label: "Add Student" },
@@ -95,6 +95,7 @@ angular.module("myApp").controller("NavController", [
 
       // Clear local auth data
       AuthService.logout();
+      SocketService.emit('user_logout', { email: $cookies.email || '' });
 
       // Make logout request to server
       var data = {

@@ -1,3 +1,5 @@
+
+
 /**
  * @file app.js
  * @description Main AngularJS application module for the Student Management System.
@@ -13,8 +15,9 @@ var app = angular.module('myApp', ['ngRoute', 'ngCookies', 'ngSanitize']);
  * @param {Object} $location - Angular location service
  * @param {Object} AjaxHelper - AJAX helper service
  * @param {Object} AuthService - Authentication service
+ * @param {Object} SocketService - Socket.IO service
  */
-app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', function($rootScope, $cookies, $location, AjaxHelper, AuthService) {
+app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', 'SocketService', function($rootScope, $cookies, $location, AjaxHelper, AuthService, SocketService) {
     console.log('App run block initialized');
 
     // Fetch CSRF token on app start
@@ -49,6 +52,8 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
                 $rootScope.isLoggedIn = true;
                 $rootScope.currentUser = user.username;
                 $rootScope.$broadcast('userLoggedIn');
+                // Emit user_login event to socket
+                SocketService.emit('user_login', { email: user.email });
                 
                 if (['/login', '/signup'].includes(window.location.pathname)) {
                     $location.path('/students').search({});
@@ -60,6 +65,7 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
                 AuthService.logout();
                 $rootScope.isLoggedIn = false;
                 $rootScope.currentUser = '';
+                SocketService.emit('user_logout', { email: AuthService.getCurrentUserEmail() });
                 
                 if (['/students', '/dashboard', '/test-db'].includes(window.location.pathname)) {
                     $location.path('/login').search({ logout: 'true' });
@@ -70,6 +76,7 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
         AuthService.logout();
         $rootScope.isLoggedIn = false;
         $rootScope.currentUser = '';
+        SocketService.emit('user_logout', { email: AuthService.getCurrentUserEmail() });
     }
 
     // Global authentication state tracking
@@ -81,12 +88,14 @@ app.run(['$rootScope', '$cookies', '$location', 'AjaxHelper', 'AuthService', fun
         $rootScope.isLoggedIn = true;
         $rootScope.currentUser = AuthService.getCurrentUser();
         console.log('Global auth state updated: logged in as', $rootScope.currentUser);
+        SocketService.emit('user_login', { email: AuthService.getCurrentUserEmail() });
     });
 
     $rootScope.$on('userLoggedOut', function() {
         $rootScope.isLoggedIn = false;
         $rootScope.currentUser = '';
         console.log('Global auth state updated: logged out');
+        SocketService.emit('user_logout', { email: AuthService.getCurrentUserEmail() });
         fetchCsrfToken(); // Refresh CSRF token after logout
     });
 

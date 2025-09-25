@@ -17,7 +17,14 @@
     <tbody>
         <tr ng-repeat="student in students" id="student-{{ student.id }}">
             <td>{{ student.id }}</td>
-            <td>{{ student.name }}</td>
+            <td>
+                <span>
+                    <a ng-href="#" ng-click="selectStudentForChat(student.email)" ng-if="student.name" class="name-link">
+                        {{ student.name }}
+                    </a>
+                    <span ng-if="!student.name">N/A</span>
+                </span>
+            </td>
             <td>
                 <span>
                     <a ng-href="{{ student.email | emailLinkFilter:{name:student.name} }}" ng-if="student.email" class="email-link">

@@ -48,3 +48,7 @@ $route['partials/(:any)'] = 'view/partial/$1';
 $route['layout/(:any)'] = 'view/layout/$1';
 $route['students/export'] = 'students/export';
 $route['auth/test_logout'] = 'auth/test_logout';
+
+// chat route
+$route['chat'] = 'ang/index';
+$route['auth/get_messages'] = 'auth/get_messages';

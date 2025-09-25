@@ -49,19 +49,21 @@ if (function_exists('spl_autoload_register')) {
     <script src="/ang/routes.js"></script>
     <script src="/ang/filters/filters.js"></script>
 
+    
     <!-- Controllers -->
-    <script src="/ang/controllers/NavController.js"></script>
-    <script src="/ang/controllers/HomeController.js"></script>
-    <script src="/ang/controllers/StudentController.js"></script>
-    <script src="/ang/controllers/StudentFormController.js"></script>
-    <script src="/ang/controllers/DeletedStudentsController.js"></script>
-    <script src="/ang/controllers/TestDbController.js"></script>
-    <script src="/ang/controllers/AuthController.js"></script>
-    <script src="/ang/controllers/DashboardController.js"></script>
-    <script src="/ang/controllers/ClicksController.js"></script>
+<script src="/ang/controllers/NavController.js"></script>
+<script src="/ang/controllers/HomeController.js"></script>
+<script src="/ang/controllers/StudentController.js"></script>
+<script src="/ang/controllers/StudentFormController.js"></script>
+<script src="/ang/controllers/DeletedStudentsController.js"></script>
+<script src="/ang/controllers/TestDbController.js"></script>
+<script src="/ang/controllers/AuthController.js"></script>
+<script src="/ang/controllers/DashboardController.js"></script>
+<script src="/ang/controllers/ClicksController.js"></script>
+<script src="/ang/controllers/ChatController.js"></script>
 
     <!-- Add Socket.IO Client -->
-    <!-- <script src="http://localhost:3000/socket.io/socket.io.js"></script>
-<script src="/ang/services/SocketService.js"></script> -->
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script src="/ang/services/SocketService.js"></script>
 </body>
 </html>

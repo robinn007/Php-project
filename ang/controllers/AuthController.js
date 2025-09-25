@@ -2,7 +2,7 @@
  * @file AuthController.js
  * @description Controller for managing user authentication.
  */
-angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', 'AuthService', '$q', function($scope, $location, $cookies, AjaxHelper, $rootScope, AuthService, $q) {
+angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', 'AuthService', '$q', 'SocketService', function($scope, $location, $cookies, AjaxHelper, $rootScope, AuthService, $q, SocketService) {
     $scope.user = { email: '', password: '', username: '', confirm_password: '' };
     $scope.flashMessage = '';
     $scope.flashType = '';
@@ -26,10 +26,12 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
                             username: $cookies.username,
                             email: $cookies.email
                         });
+                        SocketService.emit('user_login', { email: response.data.user.email });
                         $location.path('/students').search({});
                         $scope.$applyAsync();
                     } else {
                         AuthService.logout();
+                        SocketService.emit('user_logout', { email: $cookies.email || '' });
                         $location.path('/login').search({ logout: 'true' });
                         $scope.$applyAsync();
                     }
@@ -40,12 +42,14 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
                     $scope.flashType = error.flashType || 'error';
                     $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
                     AuthService.logout();
+                    SocketService.emit('user_logout', { email: $cookies.email || '' });
                     $location.path('/login').search({ logout: 'true' });
                     $scope.$applyAsync();
                 });
         } else {
             console.log('Skipping auth check due to recent logout');
             AuthService.logout();
+            SocketService.emit('user_logout', { email: $cookies.email || '' });
         }
     }
 
@@ -139,7 +143,7 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
             return;
         }
 
-        performSignup();
+        performFluidType: performSignup();
     }
 
     function performLogin() {
@@ -172,6 +176,9 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
                         username: $cookies.username, 
                         email: $cookies.email 
                     });
+                    
+                    // Emit user_login event to socket
+                    SocketService.emit('user_login', { email: $scope.user.email });
                     
                     $rootScope.$broadcast('userLoggedIn');
                     

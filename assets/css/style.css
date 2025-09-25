@@ -460,6 +460,7 @@ body {
 }
 
 /* Default link style in 3rd and 4th columns */
+table tbody tr td:nth-child(2) a,
 table tbody tr td:nth-child(3) a,
 table tbody tr td:nth-child(4) a {
   color: #2c3e50;
@@ -467,6 +468,7 @@ table tbody tr td:nth-child(4) a {
 }
 
 /* Hover effect */
+table tbody tr td:nth-child(2) a:hover,
 table tbody tr td:nth-child(3) a:hover,
 table tbody tr td:nth-child(4) a:hover {
   color: #007bff;

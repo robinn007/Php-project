@@ -231,4 +231,38 @@ class Auth extends CI_Controller {
             'timestamp' => date('Y-m-d H:i:s')
         )));
     }
+
+   public function get_messages() {
+    if (!$this->session->userdata('user_id')) {
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Please log in to perform this action.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        )));
+        return;
+    }
+
+    $email = $this->session->userdata('email');
+    $receiver_email = $this->input->get('receiver_email');
+
+    if (!$receiver_email) {
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'success' => false,
+            'message' => 'Receiver email is required.',
+            'csrf_token' => $this->security->get_csrf_hash()
+        )));
+        return;
+    }
+
+    $this->db->where("(sender_email = '$email' AND receiver_email = '$receiver_email') OR (sender_email = '$receiver_email' AND receiver_email = '$email')");
+    $query = $this->db->get('messages');
+    $messages = $query->result_array();
+
+    $this->output->set_content_type('application/json')->set_output(json_encode(array(
+        'success' => true,
+        'messages' => $messages,
+        'csrf_token' => $this->security->get_csrf_hash()
+    )));
+}
+
 }

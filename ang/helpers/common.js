@@ -5,23 +5,34 @@
 angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', function($http, $cookies, $q) {
     console.log('AjaxHelper initialized');
 
-    // Store cancellers by URL to avoid cancelling unrelated requests
+    // Custom function to serialize object to application/x-www-form-urlencoded
+    function serializeData(data) {
+        if (!data) return '';
+        var pairs = [];
+        for (var key in data) {
+            if (data.hasOwnProperty(key)) {
+                var value = data[key];
+                if (value !== null && value !== undefined) {
+                    pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+                }
+            }
+        }
+        return pairs.join('&');
+    }
+
     var requestCancellers = {};
 
     var ajaxRequest = function(method, url, data, config) {
         var deferred = $q.defer();
         
-        // Create a unique key for this request type
         var requestKey = method + ':' + url;
         
-        // Only cancel previous requests to the same endpoint for GET requests
         if (method === 'GET' && requestCancellers[requestKey]) {
             console.log('AjaxHelper: Cancelling previous GET request to', url);
             requestCancellers[requestKey].resolve();
             delete requestCancellers[requestKey];
         }
 
-        // Create a new canceller for GET requests only
         var currentCanceller = null;
         if (method === 'GET') {
             currentCanceller = $q.defer();
@@ -30,54 +41,43 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
 
         console.log('AjaxHelper: Initiating', method, 'request to', url, 'with data:', data);
 
-        // Get CSRF token name from meta tag
         var csrfTokenName = document.querySelector('meta[name="csrf-token-name"]')?.getAttribute('content') || 'ci_csrf_token';
         var csrfToken = $cookies.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         console.log('AjaxHelper: CSRF token name:', csrfTokenName, 'CSRF token:', csrfToken?.substring(0, 10) + '...');
 
-        // Prepare request configuration
         var requestConfig = angular.extend({
             method: method,
             url: url,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-Token': csrfToken,
-                'Content-Type': 'application/json'
+                'Content-Type': method === 'POST' || method === 'PUT' ? 'application/x-www-form-urlencoded; charset=UTF-8' : 'application/json'
             }
         }, config || {});
 
-        // Add timeout promise for cancellation only for GET requests
         if (currentCanceller) {
             requestConfig.timeout = currentCanceller.promise;
         }
 
-        // Handle GET requests with query parameters
         if (method === 'GET' && data) {
             requestConfig.params = data;
             console.log('AjaxHelper: GET params:', data);
-        }
-        // Add CSRF token to POST data for POST/PUT requests
-        else if (data && (method === 'POST' || method === 'PUT')) {
-            data = data || {};
-            data[csrfTokenName] = csrfToken;
-            console.log('AjaxHelper: POST data with CSRF:', data);
-            requestConfig.data = data;
+        } else if (data && (method === 'POST' || method === 'PUT')) {
+            // Serialize data to URL-encoded format using custom serializeData function
+            requestConfig.data = serializeData(data);
+            console.log('AjaxHelper: POST data (URL-encoded):', requestConfig.data);
         }
 
-        // Log request headers for debugging
         console.log('AjaxHelper: Request headers:', requestConfig.headers);
 
-        // Perform the AJAX request
         $http(requestConfig).then(
             function(response) {
                 console.log('AjaxHelper: Response from', url, ':', response.data);
 
-                // Clear the canceller since the request completed
                 if (currentCanceller && requestCancellers[requestKey] === currentCanceller) {
                     delete requestCancellers[requestKey];
                 }
 
-                // Check if response is HTML (indicating an error)
                 if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
                     console.error('AjaxHelper: HTML Response (Status:', response.status, '):', response.data);
                     deferred.reject({
@@ -90,7 +90,6 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                     return;
                 }
 
-                // Check if response contains data
                 if (!response.data) {
                     console.error('AjaxHelper: Empty response from', url, ', status:', response.status);
                     deferred.reject({
@@ -102,31 +101,28 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                     return;
                 }
 
-                // Process successful response
+                if (response.data.csrf_token) {
+                    $cookies.csrf_token = response.data.csrf_token;
+                    console.log('AjaxHelper: CSRF token updated:', response.data.csrf_token.substring(0, 10) + '...');
+                }
+
                 if (response.data.success) {
-                    // Update CSRF token if provided in response
-                    if (response.data.csrf_token) {
-                        $cookies.csrf_token = response.data.csrf_token;
-                        console.log('AjaxHelper: CSRF token updated:', response.data.csrf_token.substring(0, 10) + '...');
-                    }
-                    
                     deferred.resolve({
                         data: response.data,
-                        flashMessage: response.data.message || 'Operation successful',
-                        flashType: 'success'
+                        flashMessage: response.data.flashMessage || response.data.message || 'Operation successful',
+                        flashType: response.data.flashType || 'success'
                     });
                 } else {
                     console.error('AjaxHelper: Server reported failure:', response.data);
                     deferred.reject({
                         message: response.data.message || 'Operation failed',
                         status: response.status,
-                        flashMessage: response.data.message || 'Operation failed: Unknown error',
-                        flashType: 'error'
+                        flashMessage: response.data.flashMessage || response.data.message || 'Operation failed: Unknown error',
+                        flashType: response.data.flashType || 'error'
                     });
                 }
             },
             function(error) {
-                // Clear the canceller if the request was cancelled or failed
                 if (currentCanceller && requestCancellers[requestKey] === currentCanceller) {
                     delete requestCancellers[requestKey];
                 }
@@ -138,7 +134,6 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                     headers: error.headers ? error.headers() : 'No headers'
                 });
 
-                // Handle cancellation errors more gracefully
                 if (error.status === -1 && (error.xhrStatus === 'abort' || !error.statusText)) {
                     console.log('AjaxHelper: Request to', url, 'was cancelled');
                     deferred.reject({
@@ -154,11 +149,14 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                 if (error.data && error.data.message) {
                     errorMessage = error.data.message;
                 }
+                var flashMessage = error.data && error.data.flashMessage ? error.data.flashMessage : 'Error: ' + errorMessage;
+                var flashType = error.data && error.data.flashType ? error.data.flashType : 'error';
+
                 deferred.reject({
                     message: errorMessage,
                     status: error.status || 0,
-                    flashMessage: 'Error: ' + errorMessage,
-                    flashType: 'error',
+                    flashMessage: flashMessage,
+                    flashType: flashType,
                     responseData: error.data || 'No data'
                 });
             }

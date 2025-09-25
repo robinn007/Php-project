@@ -36,6 +36,7 @@ if (function_exists('spl_autoload_register')) {
     <script src="/assets/js/angular-1.3.0/angular-route.min.js"></script>
     <script src="/assets/js/angular-1.3.0/angular-cookies.js"></script>
     <script src="/assets/js/angular-1.3.0/angular-sanitize.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
     <!-- <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0/angular-cookies.js"></script> -->
 
     <!-- Application Scripts -->

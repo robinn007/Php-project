@@ -2,7 +2,7 @@
  * @file AuthController.js
  * @description Controller for managing user authentication.
  */
-angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', 'AuthService', function($scope, $location, $cookies, AjaxHelper, $rootScope, AuthService) {
+angular.module('myApp').controller('AuthController', ['$scope', '$location', '$cookies', 'AjaxHelper', '$rootScope', 'AuthService', '$q', function($scope, $location, $cookies, AjaxHelper, $rootScope, AuthService, $q) {
     $scope.user = { email: '', password: '', username: '', confirm_password: '' };
     $scope.flashMessage = '';
     $scope.flashType = '';
@@ -10,130 +10,218 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
 
     console.log('AuthController initialized');
 
-    // Check if user is already logged in
     function checkAuth() {
-        console.log('Checking auth status');
-        AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
-            .then(function(response) {
-                console.log('checkAuth response:', response);
-                if (response.data.is_logged_in) {
-                    console.log('User is already logged in, redirecting to /students');
-                    
-                    // Set cookies with user data if available
-                    if (response.data.user) {
-                        $cookies.user_id = response.data.user.id.toString();
-                        $cookies.username = response.data.user.username;
-                        $cookies.email = response.data.user.email;
-                        console.log('User cookies set from check_auth response');
+        if ($location.search().logout !== 'true') {
+            console.log('Checking auth status');
+            AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
+                .then(function(response) {
+                    console.log('checkAuth response:', response);
+                    if (response.data.is_logged_in) {
+                        console.log('User is already logged in, redirecting to /students');
+                        $cookies.user_id = response.data.user?.id.toString() || null;
+                        $cookies.username = response.data.user?.username || null;
+                        $cookies.email = response.data.user?.email || null;
+                        console.log('User cookies set from check_auth response:', {
+                            user_id: $cookies.user_id,
+                            username: $cookies.username,
+                            email: $cookies.email
+                        });
+                        $location.path('/students').search({});
+                        $scope.$applyAsync();
+                    } else {
+                        AuthService.logout();
+                        $location.path('/login').search({ logout: 'true' });
+                        $scope.$applyAsync();
                     }
-                    
-                    $location.path('/students');
-                    $scope.$applyAsync(); // Ensure digest cycle runs for redirection
+                })
+                .catch(function(error) {
+                    console.error('Error checking auth:', error);
+                    $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
+                    $scope.flashType = error.flashType || 'error';
+                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+                    AuthService.logout();
+                    $location.path('/login').search({ logout: 'true' });
+                    $scope.$applyAsync();
+                });
+        } else {
+            console.log('Skipping auth check due to recent logout');
+            AuthService.logout();
+        }
+    }
+
+    $scope.submitForm = function() {
+        console.log('submitForm called, isSignup:', $scope.isSignup);
+        
+        if ($scope.isSignup) {
+            handleSignup();
+        } else {
+            handleLogin();
+        }
+    };
+
+    function handleLogin() {
+        if (!$scope.user.email || !$scope.user.password) {
+            $scope.flashMessage = 'Please fill in all required fields.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test($scope.user.email)) {
+            $scope.flashMessage = 'Please enter a valid email address.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+
+        // Clear user-related cookies
+        AuthService.clearUserCookies();
+        
+        // Simplified - get dummy CSRF token and proceed
+        fetchCsrfToken().then(function(csrfToken) {
+            if (csrfToken) {
+                $cookies.csrf_token = csrfToken;
+                console.log('CSRF token obtained:', csrfToken.substring(0, 10) + '...');
+                performLogin();
+            } else {
+                console.log('No CSRF token received, proceeding anyway');
+                performLogin(); // Proceed without CSRF since it's disabled
+            }
+        }).catch(function(error) {
+            console.log('CSRF token failed, proceeding without it:', error);
+            performLogin(); // Proceed without CSRF since it's disabled
+        });
+    }
+
+    function fetchCsrfToken(attempt = 1, maxAttempts = 2) {
+        var deferred = $q.defer();
+        AjaxHelper.ajaxRequest('GET', '/auth/get_csrf')
+            .then(function(response) {
+                if (response.data.csrf_token) {
+                    deferred.resolve(response.data.csrf_token);
+                } else {
+                    deferred.resolve('dummy_token'); // Fallback dummy token
                 }
             })
             .catch(function(error) {
-                console.error('Error checking auth:', error);
-                $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
+                console.log('CSRF fetch failed, using dummy token');
+                deferred.resolve('dummy_token'); // Always resolve with dummy token
+            });
+        return deferred.promise;
+    }
+
+    function handleSignup() {
+        if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
+            $scope.flashMessage = 'Please fill in all required fields.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+        if ($scope.user.password !== $scope.user.confirm_password) {
+            $scope.flashMessage = 'Passwords do not match.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+        if ($scope.user.password.length < 6) {
+            $scope.flashMessage = 'Password must be at least 6 characters long.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test($scope.user.email)) {
+            $scope.flashMessage = 'Please enter a valid email address.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+            return;
+        }
+
+        performSignup();
+    }
+
+    function performLogin() {
+        console.log('Performing login with user:', $scope.user.email);
+        
+        var postData = {
+            email: $scope.user.email,
+            password: $scope.user.password
+        };
+
+        // Add CSRF token if available
+        if ($cookies.csrf_token && $cookies.csrf_token !== 'dummy_token') {
+            var csrfTokenName = 'ci_csrf_token';
+            postData[csrfTokenName] = $cookies.csrf_token;
+        }
+
+        AjaxHelper.ajaxRequest('POST', '/auth/login', postData)
+            .then(function(response) {
+                console.log('Login response:', response);
+                $scope.flashMessage = response.flashMessage;
+                $scope.flashType = response.flashType;
+                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+                
+                if (response.data.success) {
+                    $cookies.user_id = response.data.user.id.toString();
+                    $cookies.username = response.data.user.username;
+                    $cookies.email = response.data.user.email;
+                    console.log('Login successful, cookies set:', { 
+                        user_id: $cookies.user_id, 
+                        username: $cookies.username, 
+                        email: $cookies.email 
+                    });
+                    
+                    $rootScope.$broadcast('userLoggedIn');
+                    
+                    $location.path('/students').search({});
+                    $scope.$applyAsync();
+                }
+            })
+            .catch(function(error) {
+                console.error('Login error details:', error);
+                $scope.flashMessage = error.flashMessage || 'Login failed: ' + (error.status === 500 ? 'Server error' : 'Network error');
                 $scope.flashType = error.flashType || 'error';
                 $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
             });
     }
 
-    $scope.submitForm = function() {
-        if (!$scope.isSignup) {
-            // If already logged in, prevent login attempt
-            if (AuthService.isLoggedIn()) {
-                $scope.flashMessage = 'You are already logged in.';
-                $scope.flashType = 'info';
-                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                $location.path('/students');
-                return;
-            }
+    function performSignup() {
+        console.log('Performing signup');
+        
+        var postData = {
+            username: $scope.user.username,
+            email: $scope.user.email,
+            password: $scope.user.password,
+            confirm_password: $scope.user.confirm_password
+        };
+
+        // Add CSRF token if available
+        if ($cookies.csrf_token && $cookies.csrf_token !== 'dummy_token') {
+            var csrfTokenName = 'ci_csrf_token';
+            postData[csrfTokenName] = $cookies.csrf_token;
         }
-        if ($scope.isSignup) {
-            if (!$scope.user.username || !$scope.user.email || !$scope.user.password || !$scope.user.confirm_password) {
-                $scope.flashMessage = 'Please fill in all required fields.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
-            if ($scope.user.password !== $scope.user.confirm_password) {
-                $scope.flashMessage = 'Passwords do not match.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
-            if ($scope.user.password.length < 6) {
-                $scope.flashMessage = 'Password must be at least 6 characters long.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
 
-            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test($scope.user.email)) {
-                $scope.flashMessage = 'Please enter a valid email address.';
-                $scope.flashType = 'error';
+        AjaxHelper.ajaxRequest('POST', '/auth/signup', postData)
+            .then(function(response) {
+                console.log('Signup response:', response);
+                $scope.flashMessage = response.flashMessage;
+                $scope.flashType = response.flashType;
                 $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
-
-            AjaxHelper.ajaxRequest('POST', '/auth/signup', $scope.user)
-                .then(function(response) {
-                    $scope.flashMessage = response.flashMessage;
-                    $scope.flashType = response.flashType;
-                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                    if (response.data.success) {
-                        $location.path('/login');
-                        $scope.$applyAsync();
-                    }
-                })
-                .catch(function(error) {
-                    $scope.flashMessage = error.flashMessage;
-                    $scope.flashType = error.flashType;
-                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                });
-        } else {
-            if (!$scope.user.email || !$scope.user.password) {
-                $scope.flashMessage = 'Please fill in all required fields.';
-                $scope.flashType = 'error';
+                
+                if (response.data.success) {
+                    $location.path('/login').search({ logout: 'true' });
+                    $scope.$applyAsync();
+                }
+            })
+            .catch(function(error) {
+                console.error('Signup error details:', error);
+                $scope.flashMessage = error.flashMessage || 'Error during signup';
+                $scope.flashType = error.flashType || 'error';
                 $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
-            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test($scope.user.email)) {
-                $scope.flashMessage = 'Please enter a valid email address.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                return;
-            }
+            });
+    }
 
-            AjaxHelper.ajaxRequest('POST', '/auth/login', $scope.user)
-                .then(function(response) {
-                    $scope.flashMessage = response.flashMessage;
-                    $scope.flashType = response.flashType;
-                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                    if (response.data.success) {
-                        $cookies.user_id = response.data.user.id.toString();
-                        $cookies.username = response.data.user.username;
-                        $cookies.email = response.data.user.email;
-                        console.log('Cookies set:', { 
-                            user_id: $cookies.user_id, 
-                            username: $cookies.username, 
-                            email: $cookies.email 
-                        });
-                        $location.path('/students');
-                        $scope.$applyAsync();
-                    }
-                })
-                .catch(function(error) {
-                    $scope.flashMessage = error.flashMessage;
-                    $scope.flashType = error.flashType;
-                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
-                });
-        }
-    };
-
-    // Initial auth check
     checkAuth();
 }]);

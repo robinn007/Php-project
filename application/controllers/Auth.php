@@ -3,447 +3,237 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
     public function __construct() {
-        // parent::__construct();
-        // error_reporting(E_ALL);
-        // ini_set('display_errors', 0);
-        // $this->load->model('User_model');
-        // $this->load->library('session');
-        // $this->load->library('security');
-        // $this->output->set_content_type('application/json');
-        // log_message('debug', 'Auth controller constructor called');
-        // log_message('debug', 'Request headers: ' . json_encode(getallheaders()));
-        // log_message('debug', 'CSRF token expected: ' . $this->security->get_csrf_token_name() . ' = ' . $this->security->get_csrf_hash());
-
         parent::__construct();
         error_reporting(E_ALL);
-        ini_set('display_errors', 1); // Enable for debugging
+        ini_set('display_errors', 1);
+
+        $this->load->model('User_model');
+        $this->load->library('session');
         
-        try {
-            $this->load->model('User_model');
-            $this->load->library('session');
-            
-            // Only load security if CSRF is enabled
-            if ($this->config->item('csrf_protection')) {
-                $this->load->library('security');
-            }
-            
-            log_message('debug', 'Auth controller constructor completed successfully');
-        } catch (Exception $e) {
-            log_message('error', 'Auth constructor error: ' . $e->getMessage());
-            // Don't set JSON here in constructor
-        }
+        log_message('debug', 'Auth controller constructor loaded');
     }
 
     public function get_csrf() {
-        try {
-            log_message('debug', 'get_csrf method called');
-            $response = array(
-                'success' => true,
-                'csrf_token_name' => $this->security->get_csrf_token_name(),
-                'csrf_token' => $this->security->get_csrf_hash()
-            );
-            log_message('debug', 'CSRF response: ' . json_encode($response));
-            echo json_encode($response);
-        } catch (Exception $e) {
-            log_message('error', 'get_csrf error: ' . $e->getMessage());
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'CSRF error: ' . $e->getMessage(),
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-        }
+        // Return a dummy CSRF token since CSRF is disabled
+        $response = array(
+            'success' => true,
+            'csrf_token_name' => 'ci_csrf_token',
+            'csrf_token' => 'dummy_token_' . time(),
+            'message' => 'CSRF disabled - dummy token generated'
+        );
+        $this->output->set_content_type('application/json')->set_output(json_encode($response));
     }
 
     public function login() {
-        log_message('debug', 'Auth::login method called');
-        log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
+        log_message('debug', '=== LOGIN METHOD STARTED ===');
 
-        $post_data = $this->input->post();
-        if ($post_data === false || empty($post_data)) {
-            $raw_input = file_get_contents('php://input');
-            $post_data = json_decode($raw_input, true);
-            log_message('debug', 'Parsed JSON POST data: ' . json_encode($post_data));
-        } else {
-            log_message('debug', 'POST data: ' . json_encode($post_data));
-        }
-
-        log_message('debug', 'Is AJAX request: ' . ($this->input->is_ajax_request() ? 'Yes' : 'No'));
-
-        $csrf_token = isset($post_data[$this->security->get_csrf_token_name()]) ? $post_data[$this->security->get_csrf_token_name()] : null;
-        log_message('debug', 'Received CSRF token: ' . ($csrf_token ?: 'null') . ', Expected: ' . $this->security->get_csrf_hash());
-
-        if ($this->session->userdata('user_id')) {
-            log_message('debug', 'User already logged in');
-            echo json_encode(array(
+        // Check request method
+        if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
+            $this->output->set_status_header(405)->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
-                'message' => 'User already logged in',
-                'flashMessage' => 'User already logged in',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            exit();
+                'message' => 'Method not allowed'
+            )));
+            return;
         }
 
-        if (!$this->input->is_ajax_request()) {
-            log_message('error', 'Non-AJAX request to login');
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Invalid request method',
-                'flashMessage' => 'Invalid request method',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            exit();
-        }
-
-        $email = isset($post_data['email']) ? $post_data['email'] : null;
-        $password = isset($post_data['password']) ? $post_data['password'] : null;
-        log_message('debug', 'Login attempt with email: ' . ($email ?: 'null'));
+        // Get credentials
+        $email = $this->input->post('email');
+        $password = $this->input->post('password');
+        
+        log_message('debug', 'Login attempt with email: ' . $email);
 
         if (!$email || !$password) {
-            log_message('error', 'Missing email or password');
-            echo json_encode(array(
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
                 'message' => 'Email and password are required',
-                'flashMessage' => 'Email and password are required',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            exit();
+                'flashMessage' => 'Please enter both email and password',
+                'flashType' => 'error'
+            )));
+            return;
         }
 
         try {
-            if (!method_exists($this->User_model, 'login')) {
-                log_message('error', 'User_model::login method does not exist');
-                echo json_encode(array(
+            // Get user from database
+            $this->db->where('email', $email);
+            $query = $this->db->get('users');
+            $user = $query->row_array();
+            
+            if (!$user) {
+                log_message('debug', 'User not found: ' . $email);
+                $this->output->set_content_type('application/json')->set_output(json_encode(array(
                     'success' => false,
-                    'message' => 'Server error: Login functionality unavailable',
-                    'flashMessage' => 'Server error: Login functionality unavailable',
-                    'flashType' => 'error',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
-                exit();
+                    'message' => 'Invalid credentials',
+                    'flashMessage' => 'Invalid email or password',
+                    'flashType' => 'error'
+                )));
+                return;
+            }
+            
+            log_message('debug', 'User found: ' . $user['username']);
+            
+            // Check password
+            $password_correct = false;
+            
+            if (strlen($user['password']) > 50) {
+                // Hashed password
+                $password_correct = password_verify($password, $user['password']);
+                log_message('debug', 'Hashed password check: ' . ($password_correct ? 'PASS' : 'FAIL'));
+            } else {
+                // Plain text password
+                $password_correct = ($password === $user['password']);
+                log_message('debug', 'Plain text password check: ' . ($password_correct ? 'PASS' : 'FAIL'));
+                
+                if ($password_correct) {
+                    // Upgrade to hashed password
+                    $new_hash = password_hash($password, PASSWORD_DEFAULT);
+                    $this->db->where('id', $user['id']);
+                    $this->db->update('users', array('password' => $new_hash));
+                    log_message('debug', 'Password upgraded to hash');
+                }
+            }
+            
+            if (!$password_correct) {
+                $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                    'success' => false,
+                    'message' => 'Invalid credentials',
+                    'flashMessage' => 'Invalid email or password',
+                    'flashType' => 'error'
+                )));
+                return;
             }
 
-            $user = $this->User_model->login($email, $password);
-            if ($user) {
-                $this->session->set_userdata('user_id', $user['id']);
-                $this->session->set_userdata('username', $user['username']);
-                log_message('debug', 'Login successful for user: ' . $user['username']);
-                echo json_encode(array(
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'flashMessage' => 'Login successful',
-                    'flashType' => 'success',
-                    'user' => array(
-                        'id' => $user['id'],
-                        'username' => $user['username'],
-                        'email' => $user['email']
-                    ),
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
-            } else {
-                log_message('error', 'Invalid email or password for email: ' . $email);
-                echo json_encode(array(
-                    'success' => false,
-                    'message' => 'Invalid email or password',
-                    'flashMessage' => 'Invalid email or password',
-                    'flashType' => 'error',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
-            }
+            // Set session data (file-based sessions)
+            $session_data = array(
+                'user_id' => $user['id'],
+                'username' => $user['username'],
+                'email' => $user['email'],
+                'logged_in' => TRUE
+            );
+            
+            $this->session->set_userdata($session_data);
+            
+            log_message('debug', 'Login successful for user: ' . $user['username']);
+
+            $response = array(
+                'success' => true,
+                'message' => 'Login successful',
+                'flashMessage' => 'Welcome back, ' . $user['username'] . '!',
+                'flashType' => 'success',
+                'user' => array(
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email']
+                )
+            );
+
+            $this->output->set_content_type('application/json')->set_output(json_encode($response));
+            
         } catch (Exception $e) {
-            log_message('error', 'Login error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            echo json_encode(array(
+            log_message('error', 'Login error: ' . $e->getMessage());
+            $this->output->set_status_header(500)->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
-                'flashMessage' => 'Server error: ' . $e->getMessage(),
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
+                'message' => 'Login error: ' . $e->getMessage(),
+                'flashMessage' => 'An error occurred during login',
+                'flashType' => 'error'
+            )));
         }
-        exit();
+    }
+
+    public function logout() {
+        log_message('debug', 'Logout called');
+        
+        $this->session->sess_destroy();
+        
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'success' => true,
+            'message' => 'Logout successful',
+            'flashMessage' => 'You have been logged out',
+            'flashType' => 'success'
+        )));
+    }
+
+    public function check_auth() {
+        $user_id = $this->session->userdata('user_id');
+        $is_logged_in = !empty($user_id);
+        
+        $response = array(
+            'success' => true,
+            'is_logged_in' => $is_logged_in
+        );
+        
+        if ($is_logged_in) {
+            $response['user'] = array(
+                'id' => $this->session->userdata('user_id'),
+                'username' => $this->session->userdata('username'),
+                'email' => $this->session->userdata('email')
+            );
+        }
+        
+        $this->output->set_content_type('application/json')->set_output(json_encode($response));
     }
 
     public function signup() {
-        log_message('debug', 'Auth::signup method called');
-        log_message('debug', 'Raw input: ' . file_get_contents('php://input'));
-
-        $post_data = $this->input->post();
-        if ($post_data === false || empty($post_data)) {
-            $raw_input = file_get_contents('php://input');
-            $post_data = json_decode($raw_input, true);
-            log_message('debug', 'Parsed JSON POST data: ' . json_encode($post_data));
-        } else {
-            log_message('debug', 'POST data: ' . json_encode($post_data));
+        if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
+            $this->output->set_status_header(405)->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Method not allowed'
+            )));
+            return;
         }
 
-        if ($this->session->userdata('user_id')) {
-            echo json_encode(array(
+        $username = $this->input->post('username');
+        $email = $this->input->post('email');
+        $password = $this->input->post('password');
+        
+        if (!$username || !$email || !$password) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
-                'message' => 'User already logged in',
-                'flashMessage' => 'User already logged in',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            exit();
-        }
-
-        if (!$this->input->is_ajax_request()) {
-            log_message('error', 'Non-AJAX request to signup');
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Invalid request method',
-                'flashMessage' => 'Invalid request method',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-            exit();
+                'message' => 'All fields are required',
+                'flashMessage' => 'Please fill in all fields',
+                'flashType' => 'error'
+            )));
+            return;
         }
 
         try {
             $data = array(
-                'username' => isset($post_data['username']) ? $post_data['username'] : null,
-                'email' => isset($post_data['email']) ? $post_data['email'] : null,
-                'password' => isset($post_data['password']) ? password_hash($post_data['password'], PASSWORD_DEFAULT) : null
+                'username' => $username,
+                'email' => $email,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'created_at' => date('Y-m-d H:i:s')
             );
+            
             if ($this->User_model->signup($data)) {
-                echo json_encode(array(
+                $this->output->set_content_type('application/json')->set_output(json_encode(array(
                     'success' => true,
                     'message' => 'Registration successful',
-                    'flashMessage' => 'Registration successful',
-                    'flashType' => 'success',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
+                    'flashMessage' => 'Account created successfully! Please login.',
+                    'flashType' => 'success'
+                )));
             } else {
-                echo json_encode(array(
+                $this->output->set_content_type('application/json')->set_output(json_encode(array(
                     'success' => false,
-                    'message' => 'Registration failed: Email or username already exists',
-                    'flashMessage' => 'Registration failed: Email or username already exists',
-                    'flashType' => 'error',
-                    'csrf_token' => $this->security->get_csrf_hash()
-                ));
+                    'message' => 'Registration failed',
+                    'flashMessage' => 'Email or username already exists',
+                    'flashType' => 'error'
+                )));
             }
         } catch (Exception $e) {
-            log_message('error', 'Signup error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            echo json_encode(array(
+            $this->output->set_status_header(500)->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
-                'flashMessage' => 'Server error: ' . $e->getMessage(),
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
+                'message' => 'Registration error: ' . $e->getMessage(),
+                'flashMessage' => 'An error occurred during registration',
+                'flashType' => 'error'
+            )));
         }
-        exit();
     }
 
-    public function logout() {
-        // Set JSON content type first
-        $this->output->set_content_type('application/json');
-        
-        log_message('debug', '=== LOGOUT METHOD STARTED ===');
-        log_message('debug', 'Request method: ' . $this->input->method());
-        log_message('debug', 'Request URI: ' . $this->input->server('REQUEST_URI'));
-        log_message('debug', 'User Agent: ' . $this->input->user_agent());
-        
-        // Log raw input
-        $raw_input = file_get_contents('php://input');
-        log_message('debug', 'Raw POST data: ' . $raw_input);
-        log_message('debug', 'POST array: ' . json_encode($_POST));
-        log_message('debug', 'GET array: ' . json_encode($_GET));
-        
-        try {
-            // Check if user is logged in before logout
-            $current_user_id = $this->session->userdata('user_id');
-            $current_username = $this->session->userdata('username');
-            
-            log_message('debug', 'Current session user_id: ' . ($current_user_id ?: 'null'));
-            log_message('debug', 'Current session username: ' . ($current_username ?: 'null'));
-            log_message('debug', 'Session ID: ' . session_id());
-            
-            // Validate request method
-            if (strtolower($this->input->method()) !== 'post') {
-                log_message('error', 'Invalid request method: ' . $this->input->method());
-                $response = array(
-                    'success' => false,
-                    'message' => 'Invalid request method, POST required',
-                    'flashMessage' => 'Invalid request method',
-                    'flashType' => 'error',
-                    'debug_info' => array(
-                        'method' => $this->input->method(),
-                        'expected' => 'POST'
-                    )
-                );
-                echo json_encode($response);
-                return;
-            }
-            
-            // Clear session data step by step
-            log_message('debug', 'Starting session cleanup...');
-            
-            // Method 1: Unset specific userdata
-            $session_keys_to_clear = array('user_id', 'username', 'last_activity');
-            foreach ($session_keys_to_clear as $key) {
-                if ($this->session->userdata($key)) {
-                    log_message('debug', 'Clearing session key: ' . $key);
-                    $this->session->unset_userdata($key);
-                }
-            }
-            
-            // Method 2: Destroy session
-            log_message('debug', 'Destroying session...');
-            $this->session->sess_destroy();
-            
-            log_message('debug', 'Session cleanup completed');
-            
-            // Prepare success response
-            $response = array(
-                'success' => true,
-                'message' => 'Logout successful',
-                'flashMessage' => 'You have been logged out successfully',
-                'flashType' => 'success',
-                'debug_info' => array(
-                    'previous_user' => $current_username,
-                    'session_destroyed' => true
-                )
-            );
-            
-            // Add CSRF token if protection is enabled
-            if ($this->config->item('csrf_protection') && method_exists($this->security, 'get_csrf_hash')) {
-                $response['csrf_token'] = $this->security->get_csrf_hash();
-                log_message('debug', 'CSRF token added to response');
-            }
-            
-            log_message('debug', 'Logout successful for user: ' . $current_username);
-            echo json_encode($response);
-            
-        } catch (Exception $e) {
-            log_message('error', 'Logout exception: ' . $e->getMessage());
-            log_message('error', 'Exception trace: ' . $e->getTraceAsString());
-            
-            // Even if there's an error, try to clear the session
-            try {
-                $this->session->sess_destroy();
-            } catch (Exception $nested_e) {
-                log_message('error', 'Failed to destroy session: ' . $nested_e->getMessage());
-            }
-            
-            $error_response = array(
-                'success' => false,
-                'message' => 'Logout error: ' . $e->getMessage(),
-                'flashMessage' => 'Logout completed with errors',
-                'flashType' => 'warning',
-                'debug_info' => array(
-                    'error' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                )
-            );
-            
-            echo json_encode($error_response);
-        }
-        
-        log_message('debug', '=== LOGOUT METHOD ENDED ===');
-        exit();
-    }
-
-    // Add this method for testing
-    public function test_logout() {
-        $this->output->set_content_type('application/json');
-        
-        echo json_encode(array(
+    public function test_endpoint() {
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
             'success' => true,
-            'message' => 'Test endpoint working',
-            'session_id' => session_id(),
-            'user_id' => $this->session->userdata('user_id'),
-            'username' => $this->session->userdata('username'),
-            'request_method' => $this->input->method(),
+            'message' => 'Auth controller is working',
+            'method' => $_SERVER['REQUEST_METHOD'],
             'timestamp' => date('Y-m-d H:i:s')
-        ));
-        exit();
-    }
-
-
-    public function check_auth() {
-        log_message('debug', 'Auth::check_auth method called');
-        $is_logged_in = $this->session->userdata('user_id') ? true : false;
-        
-        $response = array(
-            'success' => true,
-            'is_logged_in' => $is_logged_in,
-            'csrf_token' => $this->security->get_csrf_hash()
-        );
-        
-        // Add user data if logged in
-        if ($is_logged_in) {
-            $user_id = $this->session->userdata('user_id');
-            $this->load->model('User_model');
-            $user = $this->User_model->get_user_by_id($user_id);
-            
-            if ($user) {
-                $response['user'] = array(
-                    'id' => $user['id'],
-                    'username' => $user['username'],
-                    'email' => $user['email']
-                );
-            }
-        }
-        
-        echo json_encode($response);
-        exit();
-    }
-
-    public function check_session() {
-        log_message('debug', 'Auth::check_session method called');
-        try {
-            $is_logged_in = $this->session->userdata('user_id') ? true : false;
-            $response = array(
-                'success' => true,
-                'logged_in' => $is_logged_in,
-                'csrf_token' => $this->security->get_csrf_hash()
-            );
-
-            if ($is_logged_in) {
-                $user_id = $this->session->userdata('user_id');
-                $user = $this->User_model->get_user_by_id($user_id);
-                
-                if ($user) {
-                    $response['user'] = array(
-                        'id' => $user['id'],
-                        'username' => $user['username'],
-                        'email' => $user['email']
-                    );
-                } else {
-                    // If user_id exists but user not found, clear session
-                    $this->session->unset_userdata('user_id');
-                    $this->session->unset_userdata('username');
-                    $this->session->sess_destroy();
-                    $response['logged_in'] = false;
-                    log_message('error', 'User not found for ID: ' . $user_id . ', session cleared');
-                }
-            }
-
-            echo json_encode($response);
-        } catch (Exception $e) {
-            log_message('error', 'check_session error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
-                'flashMessage' => 'Server error during session check',
-                'flashType' => 'error',
-                'csrf_token' => $this->security->get_csrf_hash()
-            ));
-        }
-        exit();
-    }
-
-    public function check_session_expiry() {
-        $last_activity = $this->session->userdata('last_activity');
-        if ($last_activity && (time() - $last_activity > 3600)) { // 1 hour
-            $this->session->sess_destroy();
-            return false;
-        }
-        $this->session->set_userdata('last_activity', time());
-        return true;
+        )));
     }
 }

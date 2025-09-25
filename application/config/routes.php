@@ -5,13 +5,17 @@ $route['default_controller'] = 'welcome';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
+// Auth routes
+$route['auth/test'] = 'auth/test_endpoint'; // ADD THIS FOR TESTING
 $route['login'] = 'auth/login';
 $route['signup'] = 'auth/signup';
 $route['logout'] = 'auth/logout';
 $route['auth/get_csrf'] = 'auth/get_csrf';
 $route['auth/check_auth'] = 'auth/check_auth';
-$route['auth/check_session'] = 'auth/check_session'; // Added new route
+$route['auth/login'] = 'auth/login'; // EXPLICIT ROUTE
+$route['auth/check_session'] = 'auth/check_session';
 
+// Student routes
 $route['students'] = 'students/index';
 $route['students/dashboard'] = 'students/dashboard';
 $route['students/add'] = 'students/index';
@@ -30,22 +34,17 @@ $route['students/setup_database'] = 'students/setup_database';
 $route['clicks'] = 'students/clicks';
 $route['clicks/export'] = 'students/export'; 
 
+// Other routes
 $route['test'] = 'test/index';
 $route['test/(:any)'] = 'test/$1';
-
 $route['setup'] = 'setup/index';
 $route['setup/database'] = 'setup/database';
-
 $route['migrate'] = 'migrate/index';
 $route['migrate/rollback/(:num)'] = 'migrate/rollback/$1';
 
-$route['view/(:any)'] = 'view/index/$1';
-$route['partials/(:any)'] = 'view/partial/$1';
-$route['layout/(:any)'] = 'view/layout/$1';
-
-
-$route['auth/test_logout'] = 'auth/test_logout';
+// View routes
 $route['view/(:any)'] = 'view/index/$1';
 $route['partials/(:any)'] = 'view/partial/$1';
 $route['layout/(:any)'] = 'view/layout/$1';
 $route['students/export'] = 'students/export';
+$route['auth/test_logout'] = 'auth/test_logout';

@@ -1,7 +1,3 @@
-/**
- * @file StudentController.js
- * @description Controller for managing student list view including fetching and deleting students.
- */
 angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper', '$sce', '$filter', '$location', function($scope, AjaxHelper, $sce, $filter, $location) {
     $scope.title = "Students Dashboard......";
     $scope.students = [];
@@ -9,9 +5,8 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
     $scope.flashType = 'info';
     $scope.searchText = '';
     $scope.selectedStates = [];
-    var lastRequestPromise = null; // Track the last AJAX request promise
+    var lastRequestPromise = null;
 
-    // Define and sort states alphabetically
     $scope.states = [
         'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh',
         'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana',
@@ -23,12 +18,9 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
 
     console.log('StudentController initialized');
 
-    // Initialize filters from URL parameters
     function initFilters() {
         var searchParams = $location.search();
         $scope.searchText = searchParams.search || '';
-        
-        // Handle selectedStates from URL
         if (searchParams.states) {
             try {
                 $scope.selectedStates = JSON.parse(searchParams.states);
@@ -37,44 +29,30 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
                 }
             } catch (e) {
                 console.error('Error parsing states from URL:', e);
-                $scope.selectedStates = angular.copy($scope.states); // Default to all states
+                $scope.selectedStates = angular.copy($scope.states);
             }
         } else {
-            $scope.selectedStates = angular.copy($scope.states); // Default to all states
+            $scope.selectedStates = angular.copy($scope.states);
         }
-        
-        console.log('Initialized filters from URL:', { 
-            search: $scope.searchText, 
-            states: $scope.selectedStates.length + ' states selected'
-        });
+        console.log('Initialized filters:', { search: $scope.searchText, states: $scope.selectedStates.length + ' states' });
     }
 
     $scope.loadStudents = function(searchText, selectedStates) {
-        // Cancel any previous request
         if (lastRequestPromise) {
-            console.log('StudentController: Cancelling previous loadStudents request');
-            // The cancellation is handled in AjaxHelper
+            console.log('Cancelling previous loadStudents request');
         }
 
         $scope.flashMessage = 'Loading students...';
         $scope.flashType = 'info';
         var params = {};
-        
         if (searchText) {
             params.search = searchText;
         }
-        
-        // Handle multiple states
-        if (selectedStates && selectedStates.length > 0) {
-            // If all states are selected, don't send state filter (equivalent to no filter)
-            if (selectedStates.length < $scope.states.length) {
-                params.states = JSON.stringify(selectedStates);
-            }
+        if (selectedStates && selectedStates.length > 0 && selectedStates.length < $scope.states.length) {
+            params.states = JSON.stringify(selectedStates);
         }
-        
         console.log('Loading students with params:', params);
 
-        // Store the new request promise
         lastRequestPromise = AjaxHelper.ajaxRequest('GET', '/students/manage', params)
             .then(function(response) {
                 console.log('getStudents response:', response);
@@ -82,23 +60,29 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
                 $scope.flashType = response.flashType;
                 if (response.data.success) {
                     $scope.students = response.data.students || [];
+                    $scope.students.forEach(function(student) {
+                        student.statusDisplay = student.status === 'online' ? 'Online' : 'Offline';
+                        console.log('Student status for ' + student.email + ': ' + student.statusDisplay);
+                    });
+                    $scope.$apply(); // Ensure AngularJS updates the view
+                } else {
+                    console.error('Failed to load students:', response.data.message);
                 }
-                lastRequestPromise = null; // Clear the promise after completion
+                lastRequestPromise = null;
             })
             .catch(function(error) {
-                // Ignore cancellation errors
                 if (error.message === 'cancelled') {
-                    console.log('StudentController: Request was cancelled, ignoring error');
+                    console.log('Request cancelled');
                     return;
                 }
                 console.error('Error loading students:', error);
-                $scope.flashMessage = error.flashMessage;
-                $scope.flashType = error.flashType;
-                lastRequestPromise = null; // Clear the promise after error
+                $scope.flashMessage = error.flashMessage || 'Failed to load students';
+                $scope.flashType = error.flashType || 'error';
+                $scope.$apply();
+                lastRequestPromise = null;
             });
     };
 
-    // Update URL parameters
     function updateUrlParams() {
         var params = {};
         if ($scope.searchText) {
@@ -111,7 +95,6 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
         $location.search(params);
     }
 
-    // Search handler
     $scope.handleSearch = function(searchText) {
         $scope.searchText = searchText || '';
         console.log('Search triggered with:', $scope.searchText);
@@ -119,21 +102,18 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
         $scope.loadStudents($scope.searchText, $scope.selectedStates);
     };
 
-    // State filter handler
     $scope.handleStateChange = function(states) {
         $scope.selectedStates = states || [];
-        console.log('State filter changed to:', $scope.selectedStates.length + ' states selected');
+        console.log('State filter changed to:', $scope.selectedStates.length + ' states');
         updateUrlParams();
         $scope.loadStudents($scope.searchText, $scope.selectedStates);
     };
 
-    // Watch for URL parameter changes
     $scope.$on('$locationChangeSuccess', function() {
         initFilters();
         $scope.loadStudents($scope.searchText, $scope.selectedStates);
     });
 
-    // Initial load
     initFilters();
     $scope.loadStudents($scope.searchText, $scope.selectedStates);
 
@@ -151,10 +131,12 @@ angular.module('myApp').controller('StudentController', ['$scope', 'AjaxHelper',
                         $scope.flashMessage = response.flashMessage;
                         $scope.flashType = response.flashType;
                     }
+                    $scope.$apply();
                 })
                 .catch(function(error) {
-                    $scope.flashMessage = error.flashMessage;
-                    $scope.flashType = error.flashType;
+                    $scope.flashMessage = error.flashMessage || 'Failed to delete student';
+                    $scope.flashType = error.flashType || 'error';
+                    $scope.$apply();
                 });
         }
     };

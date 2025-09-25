@@ -2,15 +2,12 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
-    public function __construct() {
+      public function __construct() {
         parent::__construct();
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-
         $this->load->model('User_model');
+        $this->load->model('Student_model');
         $this->load->library('session');
-        
-        log_message('debug', 'Auth controller constructor loaded');
+        log_message('debug', 'Auth controller initialized');
     }
 
     public function get_csrf() {
@@ -24,10 +21,8 @@ class Auth extends CI_Controller {
         $this->output->set_content_type('application/json')->set_output(json_encode($response));
     }
 
-    public function login() {
+     public function login() {
         log_message('debug', '=== LOGIN METHOD STARTED ===');
-
-        // Check request method
         if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
             $this->output->set_status_header(405)->set_content_type('application/json')->set_output(json_encode(array(
                 'success' => false,
@@ -36,10 +31,8 @@ class Auth extends CI_Controller {
             return;
         }
 
-        // Get credentials
         $email = $this->input->post('email');
         $password = $this->input->post('password');
-        
         log_message('debug', 'Login attempt with email: ' . $email);
 
         if (!$email || !$password) {
@@ -53,7 +46,6 @@ class Auth extends CI_Controller {
         }
 
         try {
-            // Get user from database
             $this->db->where('email', $email);
             $query = $this->db->get('users');
             $user = $query->row_array();
@@ -71,28 +63,9 @@ class Auth extends CI_Controller {
             
             log_message('debug', 'User found: ' . $user['username']);
             
-            // Check password
-            $password_correct = false;
-            
-            if (strlen($user['password']) > 50) {
-                // Hashed password
-                $password_correct = password_verify($password, $user['password']);
-                log_message('debug', 'Hashed password check: ' . ($password_correct ? 'PASS' : 'FAIL'));
-            } else {
-                // Plain text password
-                $password_correct = ($password === $user['password']);
-                log_message('debug', 'Plain text password check: ' . ($password_correct ? 'PASS' : 'FAIL'));
-                
-                if ($password_correct) {
-                    // Upgrade to hashed password
-                    $new_hash = password_hash($password, PASSWORD_DEFAULT);
-                    $this->db->where('id', $user['id']);
-                    $this->db->update('users', array('password' => $new_hash));
-                    log_message('debug', 'Password upgraded to hash');
-                }
-            }
-            
+            $password_correct = password_verify($password, $user['password']);
             if (!$password_correct) {
+                log_message('debug', 'Password verification failed for: ' . $email);
                 $this->output->set_content_type('application/json')->set_output(json_encode(array(
                     'success' => false,
                     'message' => 'Invalid credentials',
@@ -102,7 +75,18 @@ class Auth extends CI_Controller {
                 return;
             }
 
-            // Set session data (file-based sessions)
+            // Update student status to online
+            $this->db->where('email', $email);
+            $this->db->where('is_deleted', 0);
+            $student_query = $this->db->get('students');
+            if ($student_query->num_rows() > 0) {
+                $this->db->where('email', $email);
+                $this->db->update('students', array('status' => 'online'));
+                log_message('debug', 'Updated student status to online for email: ' . $email . ', Rows affected: ' . $this->db->affected_rows());
+            } else {
+                log_message('debug', 'No student found for email: ' . $email);
+            }
+
             $session_data = array(
                 'user_id' => $user['id'],
                 'username' => $user['username'],
@@ -111,8 +95,7 @@ class Auth extends CI_Controller {
             );
             
             $this->session->set_userdata($session_data);
-            
-            log_message('debug', 'Login successful for user: ' . $user['username']);
+            log_message('debug', 'Session data set: ' . json_encode($session_data));
 
             $response = array(
                 'success' => true,
@@ -139,16 +122,28 @@ class Auth extends CI_Controller {
         }
     }
 
+
     public function logout() {
         log_message('debug', 'Logout called');
         
+        $email = $this->session->userdata('email');
+        if ($email) {
+            $this->db->where('email', $email);
+            $this->db->update('students', array('status' => 'offline'));
+            log_message('debug', 'Updated student status to offline for email: ' . $email . ', Rows affected: ' . $this->db->affected_rows());
+        } else {
+            log_message('debug', 'No email found in session during logout');
+        }
+        
         $this->session->sess_destroy();
+        log_message('debug', 'Session destroyed');
         
         $this->output->set_content_type('application/json')->set_output(json_encode(array(
             'success' => true,
             'message' => 'Logout successful',
             'flashMessage' => 'You have been logged out',
             'flashType' => 'success'
+
         )));
     }
 

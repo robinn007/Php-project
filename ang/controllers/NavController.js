@@ -9,7 +9,8 @@ angular.module("myApp").controller("NavController", [
   "AuthService",
   "AjaxHelper",
   "$cookies",
-  function ($scope, $location, $rootScope, AuthService, AjaxHelper, $cookies) {
+  "SocketService", // Add this
+  function ($scope, $location, $rootScope, AuthService, AjaxHelper, $cookies, SocketService) {
     // Initialize authentication state
     function updateAuthState() {
       $scope.isLoggedIn = AuthService.isLoggedIn();
@@ -25,6 +26,13 @@ angular.module("myApp").controller("NavController", [
         },
       });
     }
+
+     // Navigation items
+    $scope.navItems = [
+      { path: "/students", label: "Students" },
+      { path: "/students/add", label: "Add Student" },
+      { path: "/students/deleted", label: "Deleted Students" }
+    ];
 
     // Initial state
     updateAuthState();

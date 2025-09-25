@@ -1266,6 +1266,16 @@ textarea:focus-visible,
   }
 }
 
+.online-status {
+    color: green;
+    font-weight: bold;
+}
+
+.offline-status {
+    color: red;
+    font-weight: bold;
+}
+
 /* ==========================================================================
    RESPONSIVE DESIGN
    ========================================================================== */

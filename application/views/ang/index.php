@@ -59,5 +59,9 @@ if (function_exists('spl_autoload_register')) {
     <script src="/ang/controllers/AuthController.js"></script>
     <script src="/ang/controllers/DashboardController.js"></script>
     <script src="/ang/controllers/ClicksController.js"></script>
+
+    <!-- Add Socket.IO Client -->
+    <!-- <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script src="/ang/services/SocketService.js"></script> -->
 </body>
 </html>

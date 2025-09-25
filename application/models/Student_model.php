@@ -2,34 +2,36 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 class Student_model extends CI_Model {
     
-    public function get_students($search = '', $states = array()) {
-        $this->db->where('is_deleted', 0);
+       public function get_students($search = '', $states = array()) {
+        $this->db->select('students.*');
+        $this->db->from('students');
+        $this->db->where('students.is_deleted', 0);
         
         if ($search) {
             $search = $this->db->escape_like_str($search);
-            // Manually construct WHERE clause with parentheses for OR conditions across name, email, phone, and address
-            $this->db->where("(name LIKE '%$search%' OR email LIKE '%$search%' OR phone LIKE '%$search%' OR address LIKE '%$search%')", NULL, FALSE);
+            $this->db->where("(students.name LIKE '%$search%' OR students.email LIKE '%$search%' OR students.phone LIKE '%$search%' OR students.address LIKE '%$search%')", NULL, FALSE);
         }
         
-        // Handle multiple states filtering
         if (!empty($states) && is_array($states) && count($states) > 0) {
-            // If specific states are provided, filter by them
-            $this->db->where_in('state', $states);
+            $this->db->where_in('students.state', $states);
             log_message('debug', 'Filtering by states: ' . json_encode($states));
         }
-        // If no states provided or empty array, return all states (no additional filter)
         
-        $query = $this->db->get('students');
+        $query = $this->db->get();
         $result = $query->result_array();
+        
         log_message('debug', 'Found ' . count($result) . ' students matching criteria');
         return $result;
     }
 
-    public function get_student($id) {
+
+     public function get_student($id) {
         log_message('debug', 'Querying student with ID: ' . $id);
-        $this->db->where('id', $id);
-        $this->db->where('is_deleted', 0);
-        $query = $this->db->get('students');
+        $this->db->select('students.*');
+        $this->db->from('students');
+        $this->db->where('students.id', $id);
+        $this->db->where('students.is_deleted', 0);
+        $query = $this->db->get();
         
         if ($query === FALSE) {
             log_message('error', 'Database error in get_student for ID: ' . $id . ': ' . $this->db->error()['message']);
@@ -44,6 +46,30 @@ class Student_model extends CI_Model {
         }
 
         return $student;
+    }
+
+    // Helper method to check if a user is online based on session
+    private function is_user_online($email) {
+        // Load session library if not already loaded
+        if (!isset($this->session)) {
+            $this->load->library('session');
+        }
+
+        // Check if user exists in users table
+        $this->db->where('email', $email);
+        $query = $this->db->get('users');
+        if ($query->num_rows() === 0) {
+            return false; // User not in users table
+        }
+
+        $user = $query->row_array();
+        $user_id = $user['id'];
+        
+        // Check if user has an active session
+        $session_user_id = $this->session->userdata('user_id');
+        $logged_in = $this->session->userdata('logged_in');
+        
+        return ($session_user_id && $logged_in && $session_user_id == $user_id);
     }
 
     public function get_deleted_students() {

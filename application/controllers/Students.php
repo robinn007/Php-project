@@ -120,21 +120,24 @@ class Students extends CI_Controller {
     }
 
     public function manage() {
-        log_message('debug', 'Received manage request with input: ' . file_get_contents('php://input'));
+        log_message('debug', 'Received manage request with POST data: ' . json_encode($this->input->post()));
+
+        // Check if user is logged in
         if (!$this->session->userdata('user_id')) {
             $this->output->set_content_type('application/json');
             echo json_encode(array(
                 'success' => false,
                 'message' => 'Please log in to perform this action.',
-                'csrf_token' => $this->security->get_csrf_hash()
+                'flashMessage' => 'Please log in to perform this action.',
+                'flashType' => 'error'
             ));
             exit();
         }
 
+        // Parse input data
         $json_data = json_decode(file_get_contents('php://input'), true);
-        $action = isset($json_data['action']) ? $json_data['action'] : $this->input->post('action');
-        $search = $this->input->get('search') ? $this->input->get('search') : (isset($json_data['search']) ? $json_data['search'] : '');
-        
+        $action = $this->input->post('action') ?: (isset($json_data['action']) ? $json_data['action'] : null);
+        $search = $this->input->get('search') ?: (isset($json_data['search']) ? $json_data['search'] : '');
         $states = array();
         if ($this->input->get('states')) {
             $states_param = $this->input->get('states');
@@ -145,37 +148,44 @@ class Students extends CI_Controller {
         } elseif (isset($json_data['states'])) {
             $states = is_array($json_data['states']) ? $json_data['states'] : array();
         }
-        
+
         log_message('debug', 'Action received in manage: ' . $action . ', Search: ' . $search . ', States: ' . json_encode($states));
 
+        // Handle no action (return filtered students)
         if (!$action) {
             log_message('debug', 'No action provided, returning filtered students');
             $this->output->set_content_type('application/json');
             echo json_encode(array(
                 'success' => true,
-                'students' => $this->Student_model->get_students($search, $states),
-                'csrf_token' => $this->security->get_csrf_hash()
+                'students' => $this->Student_model->get_students($search, $states)
             ));
             exit();
         }
 
         $response = array();
         switch ($action) {
+            // Case for adding a new student
             case 'add':
-                if (isset($json_data['student'])) {
-                    $_POST['student'] = $json_data['student'];
-                    $_POST['student[name]'] = isset($json_data['student']['name']) ? $json_data['student']['name'] : '';
-                    $_POST['student[email]'] = isset($json_data['student']['email']) ? $json_data['student']['email'] : '';
-                    $_POST['student[phone]'] = isset($json_data['student']['phone']) ? $json_data['student']['phone'] : '';
-                    $_POST['student[address]'] = isset($json_data['student']['address']) ? $json_data['student']['address'] : '';
-                    $_POST['student[state]'] = isset($json_data['student']['state']) ? $json_data['student']['state'] : '';
+                // Validate required fields
+                if (!$this->input->post('name') || !$this->input->post('email') || !$this->input->post('state')) {
+                    $response = array(
+                        'success' => false,
+                        'message' => 'Missing required student data (name, email, or state).',
+                        'flashMessage' => 'Missing required student data (name, email, or state).',
+                        'flashType' => 'error'
+                    );
+                    log_message('error', 'Missing required student data for add: ' . json_encode($this->input->post()));
+                    $this->output->set_content_type('application/json');
+                    echo json_encode($response);
+                    exit();
                 }
 
-                $this->form_validation->set_rules('student[name]', 'Name', 'required|trim');
-                $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
-                $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
-                $this->form_validation->set_rules('student[address]', 'Address', 'trim');
-                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
+                // Set form validation rules for add
+                $this->form_validation->set_rules('name', 'Name', 'required|trim');
+                $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
+                $this->form_validation->set_rules('phone', 'Phone', 'required|trim');
+                $this->form_validation->set_rules('address', 'Address', 'trim');
+                $this->form_validation->set_rules('state', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
 
                 log_message('debug', 'POST data for add: ' . json_encode($this->input->post()));
 
@@ -184,107 +194,168 @@ class Students extends CI_Controller {
                     $response = array(
                         'success' => false,
                         'message' => $validation_errors ? strip_tags($validation_errors) : 'Validation failed: No specific errors provided.',
-                        'csrf_token' => $this->security->get_csrf_hash()
+                        'flashMessage' => $validation_errors ? strip_tags($validation_errors) : 'Validation failed: No specific errors provided.',
+                        'flashType' => 'error'
                     );
-                    log_message('error', 'Validation errors: ' . $validation_errors);
+                    log_message('error', 'Validation errors for add: ' . $validation_errors);
                 } else {
-                    $data = $this->input->post('student');
-                    if (!$data && isset($json_data['student'])) {
-                        $data = $json_data['student'];
-                    }
-                    log_message('debug', 'Student data to add: ' . json_encode($data));
+                    // Prepare student data for add
+                    $student_data = array(
+                        'name' => $this->input->post('name'),
+                        'email' => $this->input->post('email'),
+                        'phone' => $this->input->post('phone'),
+                        'address' => $this->input->post('address'),
+                        'state' => $this->input->post('state') ?: 'Rajasthan',
+                        'created_at' => date('Y-m-d H:i:s') // Ensure created_at is set
+                    );
 
-                    if ($this->Student_model->manage_student('add', null, $data)) {
+                    log_message('debug', 'Student data to add: ' . json_encode($student_data));
+
+                    $result = $this->Student_model->manage_student('add', null, $student_data);
+                    if ($result) {
                         $response = array(
                             'success' => true,
                             'message' => 'Student added successfully.',
-                            'csrf_token' => $this->security->get_csrf_hash()
+                            'flashMessage' => 'Student added successfully.',
+                            'flashType' => 'success'
                         );
                     } else {
+                        $db_error = $this->db->error();
+                        $error_message = 'Failed to add student: ' . ($db_error['message'] ?: 'Unknown database error');
                         $response = array(
                             'success' => false,
-                            'message' => 'Failed to add student to database.',
-                            'csrf_token' => $this->security->get_csrf_hash()
+                            'message' => $error_message,
+                            'flashMessage' => $error_message,
+                            'flashType' => 'error'
                         );
-                        log_message('error', 'Failed to add student to database.');
+                        log_message('error', 'Failed to add student: ' . $error_message);
                     }
                 }
                 break;
 
+            // Case for editing an existing student
             case 'edit':
-                $id = isset($json_data['id']) ? $json_data['id'] : $this->input->post('id');
-                if (isset($json_data['student'])) {
-                    $_POST['student'] = $json_data['student'];
-                    $_POST['student[name]'] = isset($json_data['student']['name']) ? $json_data['student']['name'] : '';
-                    $_POST['student[email]'] = isset($json_data['student']['email']) ? $json_data['student']['email'] : '';
-                    $_POST['student[phone]'] = isset($json_data['student']['phone']) ? $json_data['student']['phone'] : '';
-                    $_POST['student[address]'] = isset($json_data['student']['address']) ? $json_data['student']['address'] : '';
-                    $_POST['student[state]'] = isset($json_data['student']['state']) ? $json_data['student']['state'] : '';
+                // Validate required fields and ID
+                $id = $this->input->post('id') ?: (isset($json_data['id']) ? $json_data['id'] : null);
+                if (!$id || !is_numeric($id)) {
+                    $response = array(
+                        'success' => false,
+                        'message' => 'Invalid or missing student ID for edit.',
+                        'flashMessage' => 'Invalid or missing student ID for edit.',
+                        'flashType' => 'error'
+                    );
+                    log_message('error', 'Invalid or missing student ID for edit: ' . $id);
+                    $this->output->set_content_type('application/json');
+                    echo json_encode($response);
+                    exit();
                 }
 
-                $this->form_validation->set_rules('student[name]', 'Name', 'required|trim');
-                $this->form_validation->set_rules('student[email]', 'Email', 'required|valid_email|trim');
-                $this->form_validation->set_rules('student[phone]', 'Phone', 'required|trim');
-                $this->form_validation->set_rules('student[address]', 'Address', 'trim');
-                $this->form_validation->set_rules('student[state]', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
+                if (!$this->input->post('name') || !$this->input->post('email') || !$this->input->post('state')) {
+                    $response = array(
+                        'success' => false,
+                        'message' => 'Missing required student data (name, email, or state).',
+                        'flashMessage' => 'Missing required student data (name, email, or state).',
+                        'flashType' => 'error'
+                    );
+                    log_message('error', 'Missing required student data for edit: ' . json_encode($this->input->post()));
+                    $this->output->set_content_type('application/json');
+                    echo json_encode($response);
+                    exit();
+                }
 
-                log_message('debug', 'POST data for edit: ' . json_encode($this->input->post()));
+                // Set form validation rules for edit
+                $this->form_validation->set_rules('name', 'Name', 'required|trim');
+                $this->form_validation->set_rules('email', 'Email', 'required|valid_email|trim');
+                $this->form_validation->set_rules('phone', 'Phone', 'required|trim');
+                $this->form_validation->set_rules('address', 'Address', 'trim');
+                $this->form_validation->set_rules('state', 'State', 'required|trim|in_list[Rajasthan,Delhi,Uttar Pradesh,Punjab,Chandigarh,Himachal Pradesh,Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Andaman and Nicobar Islands,Dadra and Nagar Haveli and Daman and Diu,Jammu and Kashmir,Ladakh,Lakshadweep,Puducherry,Sikkim,Tamil Nadu,Telangana,Tripura,Uttarakhand,West Bengal]');
+
+                log_message('debug', 'POST data for edit (ID: ' . $id . '): ' . json_encode($this->input->post()));
 
                 if ($this->form_validation->run() === FALSE) {
                     $validation_errors = validation_errors();
                     $response = array(
                         'success' => false,
                         'message' => $validation_errors ? strip_tags($validation_errors) : 'Validation failed: No specific errors provided.',
-                        'csrf_token' => $this->security->get_csrf_hash()
+                        'flashMessage' => $validation_errors ? strip_tags($validation_errors) : 'Validation failed: No specific errors provided.',
+                        'flashType' => 'error'
                     );
-                    log_message('error', 'Validation errors: ' . $validation_errors);
+                    log_message('error', 'Validation errors for edit: ' . $validation_errors);
                 } else {
-                    $data = $this->input->post('student');
-                    if (!$data && isset($json_data['student'])) {
-                        $data = $json_data['student'];
-                    }
-                    log_message('debug', 'Student data to edit: ' . json_encode($data));
+                    // Prepare student data for edit
+                    $student_data = array(
+                        'name' => $this->input->post('name'),
+                        'email' => $this->input->post('email'),
+                        'phone' => $this->input->post('phone'),
+                        'address' => $this->input->post('address'),
+                        'state' => $this->input->post('state') ?: 'Rajasthan'
+                    );
 
-                    if ($this->Student_model->manage_student('edit', $id, $data)) {
+                    log_message('debug', 'Student data to edit (ID: ' . $id . '): ' . json_encode($student_data));
+
+                    $result = $this->Student_model->manage_student('edit', $id, $student_data);
+                    if ($result) {
                         $response = array(
                             'success' => true,
                             'message' => 'Student updated successfully.',
-                            'csrf_token' => $this->security->get_csrf_hash()
+                            'flashMessage' => 'Student updated successfully.',
+                            'flashType' => 'success'
                         );
                     } else {
+                        $db_error = $this->db->error();
+                        $error_message = 'Failed to update student: ' . ($db_error['message'] ?: 'Unknown database error');
                         $response = array(
                             'success' => false,
-                            'message' => 'Failed to update student.',
-                            'csrf_token' => $this->security->get_csrf_hash()
+                            'message' => $error_message,
+                            'flashMessage' => $error_message,
+                            'flashType' => 'error'
                         );
-                        log_message('error', 'Failed to update student in database.');
+                        log_message('error', 'Failed to update student ID: ' . $id . ': ' . $error_message);
                     }
                 }
                 break;
 
+            // Case for deleting a student
             case 'delete':
-                $id = isset($json_data['id']) ? $json_data['id'] : $this->input->post('id');
-                if ($this->Student_model->manage_student('delete', $id)) {
-                    $response = array(
-                        'success' => true,
-                        'message' => 'Student deleted successfully.',
-                        'csrf_token' => $this->security->get_csrf_hash()
-                    );
-                } else {
+                $id = $this->input->post('id') ?: (isset($json_data['id']) ? $json_data['id'] : null);
+                if (!$id || !is_numeric($id)) {
                     $response = array(
                         'success' => false,
-                        'message' => 'Failed to delete student.',
-                        'csrf_token' => $this->security->get_csrf_hash()
+                        'message' => 'Invalid or missing student ID for delete.',
+                        'flashMessage' => 'Invalid or missing student ID for delete.',
+                        'flashType' => 'error'
                     );
-                    log_message('error', 'Failed to delete student ID: ' . $id);
+                    log_message('error', 'Invalid or missing student ID for delete: ' . $id);
+                } else {
+                    $result = $this->Student_model->manage_student('delete', $id);
+                    if ($result) {
+                        $response = array(
+                            'success' => true,
+                            'message' => 'Student deleted successfully.',
+                            'flashMessage' => 'Student deleted successfully.',
+                            'flashType' => 'success'
+                        );
+                    } else {
+                        $db_error = $this->db->error();
+                        $error_message = 'Failed to delete student: ' . ($db_error['message'] ?: 'Unknown database error');
+                        $response = array(
+                            'success' => false,
+                            'message' => $error_message,
+                            'flashMessage' => $error_message,
+                            'flashType' => 'error'
+                        );
+                        log_message('error', 'Failed to delete student ID: ' . $id . ': ' . $error_message);
+                    }
                 }
                 break;
 
+            // Default case for invalid actions
             default:
                 $response = array(
                     'success' => false,
                     'message' => 'Invalid action.',
-                    'csrf_token' => $this->security->get_csrf_hash()
+                    'flashMessage' => 'Invalid action.',
+                    'flashType' => 'error'
                 );
                 log_message('error', 'Invalid action received: ' . $action);
                 break;

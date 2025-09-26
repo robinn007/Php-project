@@ -16,7 +16,7 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
   $scope.flashType = '';
   $scope.emailSuggestion = '';
 
-        // Define and sort states alphabetically
+  // Define and sort states alphabetically
   $scope.states = [
     'Andaman and Nicobar Islands','Andhra Pradesh','Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa','Gujarat', 'Haryana','Himachal Pradesh','Jammu and Kashmir','Jharkhand','Karnataka','Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh','Maharashtra','Manipur', 'Meghalaya','Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'
   ].sort(); // Sort alphabetically
@@ -90,23 +90,33 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
     if (!$scope.student.name || !$scope.student.email || !$scope.student.state) {
       $scope.flashMessage = 'Please fill in all required fields.';
       $scope.flashType = 'error';
+      console.error('Missing required fields:', {
+        name: $scope.student.name,
+        email: $scope.student.email,
+        state: $scope.student.state
+      });
       return;
     }
 
-    // Clean the email, phone, address, and ensure state is included
-    var studentData = angular.copy($scope.student);
-    studentData.email = $filter('emailFilter')(studentData.email, 'clean');
-    studentData.phone = $filter('phoneFilter')(studentData.phone, 'clean');
-    studentData.address = $scope.cleanAddressContent(studentData.address);
-    studentData.state = studentData.state || 'Rajasthan'; // Ensure state is included, default to Rajasthan
+    // Prepare the data in a flat structure for CodeIgniter
+    var studentData = {
+      name: $scope.student.name,
+      email: $filter('emailFilter')($scope.student.email, 'clean'),
+      phone: $filter('phoneFilter')($scope.student.phone, 'clean'),
+      address: $scope.cleanAddressContent($scope.student.address),
+      state: $scope.student.state || 'Rajasthan'
+    };
 
     var url = '/students/manage';
     var data = $scope.action === 'edit' ?
-      { action: 'edit', id: $routeParams.id, student: studentData } :
-      { action: 'add', student: studentData };
+      { action: 'edit', id: $routeParams.id, ...studentData } :
+      { action: 'add', ...studentData };
+
+    console.log('Sending data to server:', JSON.stringify(data, null, 2));
 
     AjaxHelper.ajaxRequest('POST', url, data)
       .then(function(response) {
+        console.log('Form submission response:', JSON.stringify(response, null, 2));
         $scope.flashMessage = response.flashMessage;
         $scope.flashType = response.flashType;
         if (response.data.success) {
@@ -115,8 +125,9 @@ angular.module('myApp').controller('StudentFormController', ['$scope', '$routePa
         }
       })
       .catch(function(error) {
-        $scope.flashMessage = error.flashMessage;
-        $scope.flashType = error.flashType;
+        console.error('Error submitting form:', JSON.stringify(error, null, 2));
+        $scope.flashMessage = error.flashMessage || 'Failed to submit form: ' + error.message;
+        $scope.flashType = error.flashType || 'error';
       });
   };
 

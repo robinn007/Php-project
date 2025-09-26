@@ -5,7 +5,7 @@ $config['base_url'] = 'http://localhost/';
 // Session configuration - DISABLE DATABASE SESSIONS
 $config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'ci_session';
-$config['sess_expiration'] = 600;
+$config['sess_expiration'] = 7200;
 $config['sess_encrypt_cookie'] = FALSE;
 $config['sess_use_database'] = FALSE;  // **CHANGED: Disable database sessions**
 $config['sess_table_name'] = 'ci_sessions';
@@ -44,7 +44,7 @@ $config['global_xss_filtering'] = FALSE;
 $config['csrf_protection'] = FALSE;  // **CHANGED: Disable CSRF for debugging**
 $config['csrf_token_name'] = 'ci_csrf_token';
 $config['csrf_cookie_name'] = 'csrf_token';
-$config['csrf_expire'] = 600;
+$config['csrf_expire'] = 7200;
 $config['csrf_regenerate'] = FALSE;
 $config['csrf_exclude_uris'] = array();
 

@@ -2,7 +2,7 @@
  * @file common.js
  * @description Utility module for handling AJAX calls across the Student Management System.
  */
-angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', function($http, $cookies, $q) {
+angular.module('myApp').factory('AjaxHelper', ['$http', '$q', function($http, $q) {
     console.log('AjaxHelper initialized');
 
     // Custom function to serialize object to application/x-www-form-urlencoded
@@ -41,16 +41,11 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
 
         console.log('AjaxHelper: Initiating', method, 'request to', url, 'with data:', data);
 
-        var csrfTokenName = document.querySelector('meta[name="csrf-token-name"]')?.getAttribute('content') || 'ci_csrf_token';
-        var csrfToken = $cookies.csrf_token || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        console.log('AjaxHelper: CSRF token name:', csrfTokenName, 'CSRF token:', csrfToken?.substring(0, 10) + '...');
-
         var requestConfig = angular.extend({
             method: method,
             url: url,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-Token': csrfToken,
                 'Content-Type': method === 'POST' || method === 'PUT' ? 'application/x-www-form-urlencoded; charset=UTF-8' : 'application/json'
             }
         }, config || {});
@@ -99,11 +94,6 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$cookies', '$q', functi
                         flashType: 'error'
                     });
                     return;
-                }
-
-                if (response.data.csrf_token) {
-                    $cookies.csrf_token = response.data.csrf_token;
-                    console.log('AjaxHelper: CSRF token updated:', response.data.csrf_token.substring(0, 10) + '...');
                 }
 
                 if (response.data.success) {

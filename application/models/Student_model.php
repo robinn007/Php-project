@@ -79,84 +79,96 @@ class Student_model extends CI_Model {
     }
 
     public function manage_student($action, $id = null, $data = array()) {
-        switch ($action) {
-            case 'add':
-                // Check for duplicate email
-                $this->db->where('email', $data['email']);
-                $this->db->where('is_deleted', 0);
-                $query = $this->db->get('students');
-                if ($query->num_rows() > 0) {
-                    log_message('error', 'Duplicate email detected: ' . $data['email']);
-                    return false;
-                }
-                // Validate address length (plain text)
-                if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
-                    log_message('error', 'Address exceeds maximum length of 5000 characters');
-                    return false;
-                }
-                // Validate state
-                if (isset($data['state']) && !in_array($data['state'], ['Rajasthan', 'Delhi', 'Uttar Pradesh', 'Punjab', 'Chandigarh', 'Himachal Pradesh', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana','Jharkhand','Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu','Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttarakhand', 'West Bengal'])) {
-                    log_message('error', 'Invalid state value: ' . $data['state']);
-                    return false;
-                }
-
-                 // Add created_at timestamp if not present
-                if (!isset($data['created_at'])) {
-                    $data['created_at'] = date('Y-m-d H:i:s');
-                }
-                
-                log_message('debug', 'Attempting to insert student: ' . json_encode($data));
-                $result = $this->db->insert('students', $data);
-                if ($result) {
-                    log_message('debug', 'Student inserted successfully, ID: ' . $this->db->insert_id());
-                } else {
-                    log_message('error', 'Failed to insert student: ' . $this->db->error()['message']);
-                }
-                return $result;
-            case 'edit':
-                // Check for duplicate email (excluding current student)
-                $this->db->where('email', $data['email']);
-                $this->db->where('id !=', $id);
-                $this->db->where('is_deleted', 0);
-                $query = $this->db->get('students');
-                if ($query->num_rows() > 0) {
-                    log_message('error', 'Duplicate email detected: ' . $data['email']);
-                    return false;
-                }
-                // Validate address length (plain text)
-                if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
-                    log_message('error', 'Address exceeds maximum length of 5000 characters');
-                    return false;
-                }
-                // Validate state
-                if (isset($data['state']) && !in_array($data['state'], ['Rajasthan', 'Delhi', 'Uttar Pradesh', 'Punjab', 'Chandigarh', 'Himachal Pradesh', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana','Jharkhand','Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu','Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttarakhand', 'West Bengal'])) {
-                    log_message('error', 'Invalid state value: ' . $data['state']);
-                    return false;
-                }
-                log_message('debug', 'Attempting to update student ID: ' . $id . ' with data: ' . json_encode($data));
-                $this->db->where('id', $id);
-                $result = $this->db->update('students', $data);
-                if ($result) {
-                    log_message('debug', 'Student updated successfully, ID: ' . $id);
-                } else {
-                    log_message('error', 'Failed to update student ID: ' . $id . ': ' . $this->db->error()['message']);
-                }
-                return $result;
-            case 'delete':
-                log_message('debug', 'Attempting to soft delete student ID: ' . $id);
-                $this->db->where('id', $id);
-                $result = $this->db->update('students', array('is_deleted' => 1));
-                if ($result) {
-                    log_message('debug', 'Student soft deleted successfully, ID: ' . $id);
-                } else {
-                    log_message('error', 'Failed to soft delete student ID: ' . $id . ': ' . $this->db->error()['message']);
-                }
-                return $result;
-            default:
-                log_message('error', 'Invalid action in manage_student: ' . $action);
+    switch ($action) {
+        case 'add':
+            // Check for duplicate email
+            $this->db->where('email', $data['email']);
+            $this->db->where('is_deleted', 0);
+            $query = $this->db->get('students');
+            if ($query->num_rows() > 0) {
+                log_message('error', 'Duplicate email detected: ' . $data['email']);
                 return false;
-        }
+            }
+            // Validate address length (plain text)
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
+                log_message('error', 'Address exceeds maximum length of 5000 characters');
+                return false;
+            }
+            // Validate state
+            $valid_states = ['Rajasthan', 'Delhi', 'Uttar Pradesh', 'Punjab', 'Chandigarh', 'Himachal Pradesh', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttarakhand', 'West Bengal'];
+            if (isset($data['state']) && !in_array($data['state'], $valid_states)) {
+                log_message('error', 'Invalid state value: ' . $data['state']);
+                return false;
+            }
+
+            // Add created_at timestamp if not present
+            if (!isset($data['created_at'])) {
+                $data['created_at'] = date('Y-m-d H:i:s');
+            }
+            
+            log_message('debug', 'Attempting to insert student: ' . json_encode($data));
+            $result = $this->db->insert('students', $data);
+            if ($result) {
+                log_message('debug', 'Student inserted successfully, ID: ' . $this->db->insert_id());
+            } else {
+                $db_error = $this->db->error();
+                log_message('error', 'Failed to insert student: ' . $db_error['message'] . ' (Code: ' . $db_error['code'] . ')');
+            }
+            return $result;
+
+        case 'edit':
+            if (!$id || !is_numeric($id)) {
+                log_message('error', 'Invalid or missing student ID for edit: ' . $id);
+                return false;
+            }
+            // Check for duplicate email (excluding current student)
+            $this->db->where('email', $data['email']);
+            $this->db->where('id !=', $id);
+            $this->db->where('is_deleted', 0);
+            $query = $this->db->get('students');
+            if ($query->num_rows() > 0) {
+                log_message('error', 'Duplicate email detected: ' . $data['email']);
+                return false;
+            }
+            // Validate address length (plain text)
+            if (isset($data['address']) && strlen(strip_tags($data['address'])) > 5000) {
+                log_message('error', 'Address exceeds maximum length of 5000 characters');
+                return false;
+            }
+            // Validate state
+            $valid_states = ['Rajasthan', 'Delhi', 'Uttar Pradesh', 'Punjab', 'Chandigarh', 'Himachal Pradesh', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttarakhand', 'West Bengal'];
+            if (isset($data['state']) && !in_array($data['state'], $valid_states)) {
+                log_message('error', 'Invalid state value: ' . $data['state']);
+                return false;
+            }
+            log_message('debug', 'Attempting to update student ID: ' . $id . ' with data: ' . json_encode($data));
+            $this->db->where('id', $id);
+            $result = $this->db->update('students', $data);
+            if ($result) {
+                log_message('debug', 'Student updated successfully, ID: ' . $id);
+            } else {
+                $db_error = $this->db->error();
+                log_message('error', 'Failed to update student ID: ' . $id . ': ' . $db_error['message'] . ' (Code: ' . $db_error['code'] . ')');
+            }
+            return $result;
+
+        case 'delete':
+            log_message('debug', 'Attempting to soft delete student ID: ' . $id);
+            $this->db->where('id', $id);
+            $result = $this->db->update('students', array('is_deleted' => 1));
+            if ($result) {
+                log_message('debug', 'Student soft deleted successfully, ID: ' . $id);
+            } else {
+                $db_error = $this->db->error();
+                log_message('error', 'Failed to soft delete student ID: ' . $id . ': ' . $db_error['message'] . ' (Code: ' . $db_error['code'] . ')');
+            }
+            return $result;
+
+        default:
+            log_message('error', 'Invalid action in manage_student: ' . $action);
+            return false;
     }
+}
 
     public function restore_student($id) {
         $this->db->where('id', $id);

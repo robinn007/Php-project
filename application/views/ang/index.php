@@ -49,7 +49,7 @@ if (function_exists('spl_autoload_register')) {
     <script src="/ang/routes.js"></script>
     <script src="/ang/filters/filters.js"></script>
 
-    
+
     <!-- Controllers -->
 <script src="/ang/controllers/NavController.js"></script>
 <script src="/ang/controllers/HomeController.js"></script>
@@ -63,7 +63,8 @@ if (function_exists('spl_autoload_register')) {
 <script src="/ang/controllers/ChatController.js"></script>
 
     <!-- Add Socket.IO Client -->
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+     <script src="http://localhost:3000/socket.io/socket.io.js"></script> 
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js" integrity="sha512-8BHxHDLsOHx+flIrQ0DrZcea7MkHqRU5GbTHmbdzMRnAaoCIkZ97PqZcXJkKZckMMhqfoeaJE+DNUVuyoQsO3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/ang/services/SocketService.js"></script>
 </body>
 </html>

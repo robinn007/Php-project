@@ -24,6 +24,30 @@ class Student_model extends CI_Model {
         return $result;
     }
 
+    public function add_status_field() {
+    $this->load->dbforge();
+    
+    $query = $this->db->query("SHOW COLUMNS FROM students LIKE 'status'");
+    
+    if ($query->num_rows() == 0) {
+        $fields = array(
+            'status' => array(
+                'type' => 'VARCHAR',
+                'constraint' => '20',
+                'default' => 'offline'
+            )
+        );
+        
+        $this->dbforge->add_column('students', $fields);
+        
+        $this->db->query("UPDATE students SET status = 'offline' WHERE status IS NULL");
+        
+        log_message('info', 'Status field added successfully to students table');
+    } else {
+        log_message('info', 'Status field already exists in students table');
+    }
+}
+
 
      public function get_student($id) {
         log_message('debug', 'Querying student with ID: ' . $id);

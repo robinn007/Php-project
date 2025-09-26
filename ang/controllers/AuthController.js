@@ -8,49 +8,60 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
     $scope.flashType = '';
     $scope.isSignup = $location.path() === '/signup';
 
-    console.log('AuthController initialized');
+    console.log('AuthController initialized for path:', $location.path());
 
     function checkAuth() {
-        if ($location.search().logout !== 'true') {
-            console.log('Checking auth status');
-            AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
-                .then(function(response) {
-                    console.log('checkAuth response:', response);
-                    if (response.data.is_logged_in) {
-                        console.log('User is already logged in, redirecting to /students');
-                        $cookies.user_id = response.data.user?.id.toString() || null;
-                        $cookies.username = response.data.user?.username || null;
-                        $cookies.email = response.data.user?.email || null;
-                        console.log('User cookies set from check_auth response:', {
-                            user_id: $cookies.user_id,
-                            username: $cookies.username,
-                            email: $cookies.email
-                        });
-                        SocketService.emit('user_login', { email: response.data.user.email });
-                        $location.path('/students').search({});
-                        $scope.$applyAsync();
-                    } else {
+        // Don't check auth if user is trying to signup or if coming from logout
+        if ($scope.isSignup || $location.search().logout === 'true') {
+            console.log('Skipping auth check - signup page or logout flag detected');
+            if ($location.search().logout === 'true') {
+                AuthService.logout();
+                SocketService.emit('user_logout', { email: $cookies.email || '' });
+            }
+            return;
+        }
+
+        console.log('Checking auth status');
+        AjaxHelper.ajaxRequest('GET', '/auth/check_auth')
+            .then(function(response) {
+                console.log('checkAuth response:', response);
+                if (response.data.is_logged_in) {
+                    console.log('User is already logged in, redirecting to /students');
+                    $cookies.user_id = response.data.user?.id.toString() || null;
+                    $cookies.username = response.data.user?.username || null;
+                    $cookies.email = response.data.user?.email || null;
+                    console.log('User cookies set from check_auth response:', {
+                        user_id: $cookies.user_id,
+                        username: $cookies.username,
+                        email: $cookies.email
+                    });
+                    // Emit user_login only if needed (handled in app.js)
+                    $location.path('/students').search({});
+                    $scope.$applyAsync();
+                } else {
+                    // Only redirect to login if we're not already on login page
+                    if ($location.path() !== '/login') {
+                        console.log('User not logged in, redirecting to login');
                         AuthService.logout();
                         SocketService.emit('user_logout', { email: $cookies.email || '' });
                         $location.path('/login').search({ logout: 'true' });
                         $scope.$applyAsync();
                     }
-                })
-                .catch(function(error) {
-                    console.error('Error checking auth:', error);
-                    $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
-                    $scope.flashType = error.flashType || 'error';
-                    $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+                }
+            })
+            .catch(function(error) {
+                console.error('Error checking auth:', error);
+                $scope.flashMessage = error.flashMessage || 'Error checking authentication status';
+                $scope.flashType = error.flashType || 'error';
+                $rootScope.$emit('flashMessage', { message: $scope.flashMessage, type: $scope.flashType });
+                
+                if ($location.path() !== '/login' && $location.path() !== '/signup') {
                     AuthService.logout();
                     SocketService.emit('user_logout', { email: $cookies.email || '' });
                     $location.path('/login').search({ logout: 'true' });
                     $scope.$applyAsync();
-                });
-        } else {
-            console.log('Skipping auth check due to recent logout');
-            AuthService.logout();
-            SocketService.emit('user_logout', { email: $cookies.email || '' });
-        }
+                }
+            });
     }
 
     $scope.submitForm = function() {
@@ -143,7 +154,7 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
             return;
         }
 
-        performFluidType: performSignup();
+        performSignup();
     }
 
     function performLogin() {
@@ -154,7 +165,6 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
             password: $scope.user.password
         };
 
-        // Add CSRF token if available
         if ($cookies.csrf_token && $cookies.csrf_token !== 'dummy_token') {
             var csrfTokenName = 'ci_csrf_token';
             postData[csrfTokenName] = $cookies.csrf_token;
@@ -177,9 +187,7 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
                         email: $cookies.email 
                     });
                     
-                    // Emit user_login event to socket
-                    SocketService.emit('user_login', { email: $scope.user.email });
-                    
+                    // Emit user_login is handled in app.js
                     $rootScope.$broadcast('userLoggedIn');
                     
                     $location.path('/students').search({});
@@ -204,7 +212,6 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
             confirm_password: $scope.user.confirm_password
         };
 
-        // Add CSRF token if available
         if ($cookies.csrf_token && $cookies.csrf_token !== 'dummy_token') {
             var csrfTokenName = 'ci_csrf_token';
             postData[csrfTokenName] = $cookies.csrf_token;
@@ -230,5 +237,9 @@ angular.module('myApp').controller('AuthController', ['$scope', '$location', '$c
             });
     }
 
-    checkAuth();
+    // Only run checkAuth for login page, not signup
+    if (!$scope.isSignup) {
+        checkAuth();
+    }
 }]);
+

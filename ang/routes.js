@@ -19,10 +19,12 @@ app.config([
       .when("/login", {
         templateUrl: "/view/login",
         controller: "AuthController",
+        //  requireLogin: false,
       })
       .when("/signup", {
         templateUrl: "/view/signup",
         controller: "AuthController",
+            requireLogin: false,
       })
       .when("/students/dashboard", {
         templateUrl: "/view/dashboard",

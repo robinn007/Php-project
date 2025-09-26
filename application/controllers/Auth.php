@@ -2,7 +2,7 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
-      public function __construct() {
+    public function __construct() {
         parent::__construct();
         $this->load->model('User_model');
         $this->load->model('Student_model');
@@ -21,7 +21,7 @@ class Auth extends CI_Controller {
         $this->output->set_content_type('application/json')->set_output(json_encode($response));
     }
 
-     public function login() {
+    public function login() {
         log_message('debug', '=== LOGIN METHOD STARTED ===');
         if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
             $this->output->set_status_header(405)->set_content_type('application/json')->set_output(json_encode(array(
@@ -78,14 +78,8 @@ class Auth extends CI_Controller {
             // Update student status to online
             $this->db->where('email', $email);
             $this->db->where('is_deleted', 0);
-            $student_query = $this->db->get('students');
-            if ($student_query->num_rows() > 0) {
-                $this->db->where('email', $email);
-                $this->db->update('students', array('status' => 'online'));
-                log_message('debug', 'Updated student status to online for email: ' . $email . ', Rows affected: ' . $this->db->affected_rows());
-            } else {
-                log_message('debug', 'No student found for email: ' . $email);
-            }
+            $this->db->update('students', array('status' => 'online'));
+            log_message('debug', 'Updated student status to online for email: ' . $email . ', Rows affected: ' . $this->db->affected_rows());
 
             $session_data = array(
                 'user_id' => $user['id'],
@@ -122,13 +116,13 @@ class Auth extends CI_Controller {
         }
     }
 
-
     public function logout() {
         log_message('debug', 'Logout called');
         
         $email = $this->session->userdata('email');
         if ($email) {
             $this->db->where('email', $email);
+            $this->db->where('is_deleted', 0);
             $this->db->update('students', array('status' => 'offline'));
             log_message('debug', 'Updated student status to offline for email: ' . $email . ', Rows affected: ' . $this->db->affected_rows());
         } else {
@@ -143,7 +137,6 @@ class Auth extends CI_Controller {
             'message' => 'Logout successful',
             'flashMessage' => 'You have been logged out',
             'flashType' => 'success'
-
         )));
     }
 
@@ -232,37 +225,36 @@ class Auth extends CI_Controller {
         )));
     }
 
-   public function get_messages() {
-    if (!$this->session->userdata('user_id')) {
+    public function get_messages() {
+        if (!$this->session->userdata('user_id')) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Please log in to perform this action.',
+                'csrf_token' => $this->security->get_csrf_hash()
+            )));
+            return;
+        }
+
+        $email = $this->session->userdata('email');
+        $receiver_email = $this->input->get('receiver_email');
+
+        if (!$receiver_email) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Receiver email is required.',
+                'csrf_token' => $this->security->get_csrf_hash()
+            )));
+            return;
+        }
+
+        $this->db->where("(sender_email = '$email' AND receiver_email = '$receiver_email') OR (sender_email = '$receiver_email' AND receiver_email = '$email')");
+        $query = $this->db->get('messages');
+        $messages = $query->result_array();
+
         $this->output->set_content_type('application/json')->set_output(json_encode(array(
-            'success' => false,
-            'message' => 'Please log in to perform this action.',
+            'success' => true,
+            'messages' => $messages,
             'csrf_token' => $this->security->get_csrf_hash()
         )));
-        return;
     }
-
-    $email = $this->session->userdata('email');
-    $receiver_email = $this->input->get('receiver_email');
-
-    if (!$receiver_email) {
-        $this->output->set_content_type('application/json')->set_output(json_encode(array(
-            'success' => false,
-            'message' => 'Receiver email is required.',
-            'csrf_token' => $this->security->get_csrf_hash()
-        )));
-        return;
-    }
-
-    $this->db->where("(sender_email = '$email' AND receiver_email = '$receiver_email') OR (sender_email = '$receiver_email' AND receiver_email = '$email')");
-    $query = $this->db->get('messages');
-    $messages = $query->result_array();
-
-    $this->output->set_content_type('application/json')->set_output(json_encode(array(
-        'success' => true,
-        'messages' => $messages,
-        'csrf_token' => $this->security->get_csrf_hash()
-    )));
-}
-
 }

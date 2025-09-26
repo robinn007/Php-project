@@ -94,8 +94,9 @@ angular.module("myApp").controller("NavController", [
       console.log("Available cookies:", document.cookie);
 
       // Clear local auth data
-      AuthService.logout();
       SocketService.emit('user_logout', { email: $cookies.email || '' });
+      AuthService.logout();
+      
 
       // Make logout request to server
       var data = {

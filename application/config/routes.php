@@ -13,6 +13,7 @@ $route['logout'] = 'auth/logout';
 $route['auth/get_csrf'] = 'auth/get_csrf';
 $route['auth/check_auth'] = 'auth/check_auth';
 $route['auth/login'] = 'auth/login'; // EXPLICIT ROUTE
+$route['auth/signup'] = 'auth/signup'; // EXPLICIT ROUTE FOR SIGNUP
 $route['auth/check_session'] = 'auth/check_session';
 
 // Student routes

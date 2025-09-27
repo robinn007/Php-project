@@ -9,25 +9,75 @@ class Students extends CI_Controller {
         $this->load->library('form_validation');
         $this->load->driver('cache', array('adapter' => 'file'));
         $this->config->set_item('csrf_protection', FALSE); // Temporary for debugging
+
+          // Add proper headers for AJAX requests
+        if ($this->input->is_ajax_request()) {
+            $this->output->set_header('Access-Control-Allow-Origin: *');
+            $this->output->set_header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+            $this->output->set_header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
+        }
     }
 
     public function index() {
-        if ($this->session->userdata('user_id')) {
+        // Check authentication first
+        if (!$this->session->userdata('user_id')) {
             if ($this->input->is_ajax_request()) {
                 $this->output->set_content_type('application/json');
                 echo json_encode(array(
+                    'success' => false,
+                    'message' => 'Please log in to perform this action.',
+                    'redirect' => '/login',
+                    'csrf_token' => $this->security->get_csrf_hash()
+                ));
+                exit();
+            } else {
+                redirect('/login');
+                return;
+            }
+        }
+
+        // Handle AJAX request for students data
+        if ($this->input->is_ajax_request()) {
+            try {
+                $search = $this->input->get('search') ?: '';
+                $states_param = $this->input->get('states');
+                $states = array();
+                
+                if ($states_param && is_string($states_param)) {
+                    $decoded_states = json_decode($states_param, true);
+                    $states = is_array($decoded_states) ? $decoded_states : array();
+                }
+
+                log_message('debug', 'Students index AJAX request - Search: ' . $search . ', States: ' . json_encode($states));
+
+                $students = $this->Student_model->get_students($search, $states);
+                
+                $this->output->set_content_type('application/json');
+                echo json_encode(array(
                     'success' => true,
-                    'students' => $this->Student_model->get_students(),
+                    'students' => $students,
+                    'total' => count($students),
+                    'csrf_token' => $this->security->get_csrf_hash()
+                ));
+                exit();
+                
+            } catch (Exception $e) {
+                log_message('error', 'Error in students index AJAX: ' . $e->getMessage());
+                $this->output->set_content_type('application/json');
+                echo json_encode(array(
+                    'success' => false,
+                    'message' => 'Error loading students: ' . $e->getMessage(),
+                    'flashMessage' => 'Failed to load students',
+                    'flashType' => 'error',
                     'csrf_token' => $this->security->get_csrf_hash()
                 ));
                 exit();
             }
-            $this->load->view('ang/index');
-        } else {
-            redirect('/login');
         }
-    }
 
+        // For non-AJAX requests, serve the Angular SPA
+        $this->load->view('ang/index');
+    }
     public function clicks() {
     if (!$this->session->userdata('user_id')) {
         $this->output->set_content_type('application/json');

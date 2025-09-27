@@ -26,6 +26,11 @@ app.config([
         controller: "AuthController",
             requireLogin: false,
       })
+      .when("/chat", {
+        templateUrl: "/view/chat",
+        controller: "ChatController",
+        requireLogin: true,
+      })
       .when("/students/dashboard", {
         templateUrl: "/view/dashboard",
         controller: "DashboardController",

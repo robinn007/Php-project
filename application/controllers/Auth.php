@@ -237,6 +237,7 @@ class Auth extends CI_Controller {
 
         $email = $this->session->userdata('email');
         $receiver_email = $this->input->get('receiver_email');
+        $limit = $this->input->get('limit'); // Optional limit parameter
 
         if (!$receiver_email) {
             $this->output->set_content_type('application/json')->set_output(json_encode(array(
@@ -247,14 +248,104 @@ class Auth extends CI_Controller {
             return;
         }
 
-        $this->db->where("(sender_email = '$email' AND receiver_email = '$receiver_email') OR (sender_email = '$receiver_email' AND receiver_email = '$email')");
-        $query = $this->db->get('messages');
-        $messages = $query->result_array();
+        try {
+            // Build the query
+            $this->db->select('*');
+            $this->db->from('messages');
+            $this->db->where("(sender_email = '$email' AND receiver_email = '$receiver_email') OR (sender_email = '$receiver_email' AND receiver_email = '$email')");
+            $this->db->order_by('created_at', 'ASC');
+            
+            // Apply limit if specified (useful for getting just the last message)
+            if ($limit && is_numeric($limit) && $limit > 0) {
+                $this->db->order_by('created_at', 'DESC'); // Get most recent first when limiting
+                $this->db->limit((int)$limit);
+            }
+            
+            $query = $this->db->get();
+            $messages = $query->result_array();
+            
+            // If we applied a limit and got results, we need to reverse order for proper chronological display
+            if ($limit && is_numeric($limit) && $limit > 0 && !empty($messages)) {
+                $messages = array_reverse($messages);
+            }
 
-        $this->output->set_content_type('application/json')->set_output(json_encode(array(
-            'success' => true,
-            'messages' => $messages,
-            'csrf_token' => $this->security->get_csrf_hash()
-        )));
+            log_message('debug', 'Messages query for ' . $email . ' <-> ' . $receiver_email . ': ' . $this->db->last_query());
+            log_message('debug', 'Found ' . count($messages) . ' messages');
+
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => true,
+                'messages' => $messages,
+                'total' => count($messages),
+                'csrf_token' => $this->security->get_csrf_hash()
+            )));
+
+        } catch (Exception $e) {
+            log_message('error', 'Error in get_messages: ' . $e->getMessage());
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Error retrieving messages: ' . $e->getMessage(),
+                'csrf_token' => $this->security->get_csrf_hash()
+            )));
+        }
+    }
+
+    // New method to get last messages for all conversations
+    public function get_last_messages_summary() {
+        if (!$this->session->userdata('user_id')) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Please log in to perform this action.'
+            )));
+            return;
+        }
+
+        $email = $this->session->userdata('email');
+
+        try {
+            // Get the last message for each conversation
+            $sql = "
+                SELECT 
+                    CASE 
+                        WHEN sender_email = ? THEN receiver_email 
+                        ELSE sender_email 
+                    END as other_person_email,
+                    message,
+                    created_at,
+                    sender_email,
+                    receiver_email
+                FROM messages 
+                WHERE sender_email = ? OR receiver_email = ?
+                AND id IN (
+                    SELECT MAX(id) 
+                    FROM messages 
+                    WHERE sender_email = ? OR receiver_email = ?
+                    GROUP BY 
+                        CASE 
+                            WHEN sender_email = ? THEN receiver_email 
+                            ELSE sender_email 
+                        END
+                )
+                ORDER BY created_at DESC
+            ";
+
+            $query = $this->db->query($sql, array($email, $email, $email, $email, $email, $email));
+            $results = $query->result_array();
+
+            log_message('debug', 'Last messages summary query: ' . $this->db->last_query());
+            log_message('debug', 'Found ' . count($results) . ' conversation summaries');
+
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => true,
+                'conversations' => $results,
+                'total' => count($results)
+            )));
+
+        } catch (Exception $e) {
+            log_message('error', 'Error in get_last_messages_summary: ' . $e->getMessage());
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'success' => false,
+                'message' => 'Error retrieving conversation summary: ' . $e->getMessage()
+            )));
+        }
     }
 }

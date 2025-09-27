@@ -31,7 +31,10 @@ angular.module("myApp").controller("NavController", [
     $scope.navItems = [
       { path: "/students", label: "Students" },
       { path: "/students/add", label: "Add Student" },
-      { path: "/students/deleted", label: "Deleted Students" }
+      { path: "/students/deleted", label: "Deleted Students" },
+      { path: "/chat", label: "Chat" },
+      { path: "/clicks", label: "Clicks" },
+      { path: "/test-db", label: "Test DB" }
     ];
 
     // Initial state
@@ -97,7 +100,6 @@ angular.module("myApp").controller("NavController", [
       SocketService.emit('user_logout', { email: $cookies.email || '' });
       AuthService.logout();
       
-
       // Make logout request to server
       var data = {
         timestamp: new Date().toISOString(),

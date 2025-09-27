@@ -2,6 +2,11 @@
 
 $config['base_url'] = 'http://localhost/';
 
+/* Add CORS headers */
+// header('Access-Control-Allow-Origin: *'); // Adjust to specific origin in production, e.g., 'http://localhost:3000'
+// header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+// header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+
 // Session configuration - DISABLE DATABASE SESSIONS
 $config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'ci_session';

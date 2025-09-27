@@ -18,12 +18,8 @@
         <tr ng-repeat="student in students" id="student-{{ student.id }}">
             <td>{{ student.id }}</td>
             <td>
-                <span>
-                    <a ng-href="#" ng-click="selectStudentForChat(student.email)" ng-if="student.name" class="name-link">
-                        {{ student.name }}
-                    </a>
+                  <span ng-if="student.name">{{ student.name }}</span>
                     <span ng-if="!student.name">N/A</span>
-                </span>
             </td>
             <td>
                 <span>

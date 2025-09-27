@@ -41,6 +41,10 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
 
     // Get last message preview for a student
     $scope.getLastMessagePreview = function(student) {
+        if (!student || !student.email) {
+            return 'No messages yet';
+        }
+        
         var data = $scope.conversationData[student.email];
         if (data && data.lastMessage) {
             var preview = data.lastMessage.length > 45 ? 
@@ -53,6 +57,10 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
 
     // Get last message time for a student
     $scope.getLastMessageTime = function(student) {
+        if (!student || !student.email) {
+            return '';
+        }
+        
         var data = $scope.conversationData[student.email];
         if (data && data.lastMessageTime) {
             var now = new Date();
@@ -91,9 +99,14 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
     // Filter students based on search query
     function filterStudents() {
         if (!$scope.searchQuery) {
-            $scope.filteredStudents = angular.copy($scope.students);
+            $scope.filteredStudents = $scope.students.filter(function(student) {
+                return student && student.email && student.name;
+            });
         } else {
             $scope.filteredStudents = $scope.students.filter(function(student) {
+                if (!student || !student.email || !student.name) {
+                    return false;
+                }
                 return student.name.toLowerCase().includes($scope.searchQuery.toLowerCase()) ||
                        student.email.toLowerCase().includes($scope.searchQuery.toLowerCase());
             });
@@ -139,6 +152,11 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
 
     // Select a student from the sidebar
     $scope.selectStudent = function(student) {
+        if (!student || !student.email || !student.name) {
+            console.error('Invalid student object passed to selectStudent:', student);
+            return;
+        }
+        
         $scope.selectedStudent = student;
         $scope.selectedStudentEmail = student.email;
         $scope.messages = [];
@@ -148,16 +166,25 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
 
     // Check if student is selected
     $scope.isStudentSelected = function(student) {
-        return $scope.selectedStudent && $scope.selectedStudent.email === student.email;
+        if (!student || !student.email || !$scope.selectedStudent) {
+            return false;
+        }
+        return $scope.selectedStudent.email === student.email;
     };
 
     // Get student status display
     $scope.getStatusDisplay = function(student) {
+        if (!student || !student.hasOwnProperty('status')) {
+            return 'Offline';
+        }
         return student.status === 'online' ? 'Online' : 'Offline';
     };
 
     // Get student status class for styling
     $scope.getStatusClass = function(student) {
+        if (!student || !student.hasOwnProperty('status')) {
+            return 'status-offline';
+        }
         return student.status === 'online' ? 'status-online' : 'status-offline';
     };
 

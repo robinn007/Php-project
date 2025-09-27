@@ -60,17 +60,18 @@
             </div>
 
             <!-- Students List -->
-            <div ng-repeat="student in filteredStudents" 
+            <div ng-repeat="student in filteredStudents track by student.id" 
+                 ng-if="student && student.email"
                  class="chat-item" 
                  ng-class="{ 'active': isStudentSelected(student) }"
                  ng-click="selectStudent(student)">
                 <div class="chat-avatar">
-                    <span>{{ student.name.charAt(0).toUpperCase() }}</span>
+                    <span>{{ student.name ? student.name.charAt(0).toUpperCase() : '?' }}</span>
                     <div class="status-indicator" ng-class="getStatusClass(student)"></div>
                 </div>
                 <div class="chat-content">
                     <div class="chat-header">
-                        <h4 class="chat-name">{{ student.name }}</h4>
+                        <h4 class="chat-name">{{ student.name || 'Unknown' }}</h4>
                         <span class="chat-time" ng-show="getLastMessageTime(student)">
                             {{ getLastMessageTime(student) }}
                         </span>
@@ -102,14 +103,14 @@
         <!-- Chat Interface -->
         <div ng-show="selectedStudent" class="chat-interface">
             <!-- Chat Header -->
-            <div class="chat-header-bar">
+            <div class="chat-header-bar" ng-show="selectedStudent">
                 <div class="chat-partner-info">
                     <div class="partner-avatar">
-                        <span>{{ selectedStudent.name.charAt(0).toUpperCase() }}</span>
+                        <span>{{ selectedStudent.name ? selectedStudent.name.charAt(0).toUpperCase() : '?' }}</span>
                         <div class="status-indicator" ng-class="getStatusClass(selectedStudent)"></div>
                     </div>
                     <div class="partner-details">
-                        <h3>{{ selectedStudent.name }}</h3>
+                        <h3>{{ selectedStudent.name || 'Unknown User' }}</h3>
                         <p class="partner-status" ng-class="getStatusClass(selectedStudent)">
                             {{ getStatusDisplay(selectedStudent) }}
                         </p>

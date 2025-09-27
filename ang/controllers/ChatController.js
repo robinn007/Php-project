@@ -1,12 +1,13 @@
 /**
  * @file ChatController.js
- * @description Optimized controller for managing the chat interface with efficient message-based sorting.
+ * @description Controller for managing the three-panel chat interface.
  */
 angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'AjaxHelper', 'SocketService', 'AuthService', '$location', '$timeout', function($scope, $rootScope, AjaxHelper, SocketService, AuthService, $location, $timeout) {
     console.log('ChatController initialized');
     
     // Initialize scope variables
-    $scope.students = [];
+    $scope.allStudents = []; // All students for right sidebar
+    $scope.conversationStudents = []; // Students with conversations for left sidebar
     $scope.selectedStudent = null;
     $scope.selectedStudentEmail = '';
     $scope.messages = [];
@@ -15,8 +16,10 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.isLoading = true;
     $scope.studentsLoaded = false;
-    $scope.searchQuery = '';
-    $scope.filteredStudents = [];
+    $scope.searchQuery = ''; // For conversation search
+    $scope.studentSearchQuery = ''; // For all students search
+    $scope.filteredConversations = [];
+    $scope.filteredAllStudents = [];
     $scope.conversationData = {}; // Store last message data for each student
     
     // Check if user is logged in
@@ -79,9 +82,9 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         return '';
     };
 
-    // Sort students by last message time (most recent first)
-    function sortStudentsByLastMessage() {
-        $scope.students.sort(function(a, b) {
+    // Sort conversation students by last message time (most recent first)
+    function sortConversationsByLastMessage() {
+        $scope.conversationStudents.sort(function(a, b) {
             var aData = $scope.conversationData[a.email];
             var bData = $scope.conversationData[b.email];
             
@@ -92,18 +95,18 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
             return bTime - aTime;
         });
         
-        console.log('Students sorted by last message time');
-        filterStudents();
+        console.log('Conversations sorted by last message time');
+        filterConversations();
     }
 
-    // Filter students based on search query
-    function filterStudents() {
+    // Filter conversations based on search query
+    function filterConversations() {
         if (!$scope.searchQuery) {
-            $scope.filteredStudents = $scope.students.filter(function(student) {
+            $scope.filteredConversations = $scope.conversationStudents.filter(function(student) {
                 return student && student.email && student.name;
             });
         } else {
-            $scope.filteredStudents = $scope.students.filter(function(student) {
+            $scope.filteredConversations = $scope.conversationStudents.filter(function(student) {
                 if (!student || !student.email || !student.name) {
                     return false;
                 }
@@ -113,12 +116,34 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         }
     }
 
-    // Expose filter function to scope
-    $scope.filterStudents = function() {
-        filterStudents();
+    // Filter all students for right sidebar
+    function filterAllStudents() {
+        if (!$scope.studentSearchQuery) {
+            $scope.filteredAllStudents = $scope.allStudents.filter(function(student) {
+                return student && student.email && student.name;
+            });
+        } else {
+            $scope.filteredAllStudents = $scope.allStudents.filter(function(student) {
+                if (!student || !student.email || !student.name) {
+                    return false;
+                }
+                return student.name.toLowerCase().includes($scope.studentSearchQuery.toLowerCase()) ||
+                       student.email.toLowerCase().includes($scope.studentSearchQuery.toLowerCase()) ||
+                       (student.location && student.location.toLowerCase().includes($scope.studentSearchQuery.toLowerCase()));
+            });
+        }
+    }
+
+    // Expose filter functions to scope
+    $scope.filterConversations = function() {
+        filterConversations();
     };
 
-    // Load conversation summary to determine order
+    $scope.filterAllStudents = function() {
+        filterAllStudents();
+    };
+
+    // Load conversation summary and create conversation list
     function loadConversationSummary() {
         console.log('Loading conversation summary for message-based ordering');
         
@@ -127,30 +152,40 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
                 console.log('Conversation summary loaded:', response.data.conversations);
                 
                 var conversations = response.data.conversations || [];
+                var conversationEmails = [];
                 
-                // Update conversation data for each conversation
+                // Update conversation data and collect emails of users with conversations
                 conversations.forEach(function(conv) {
                     updateConversationData(
                         conv.other_person_email,
                         conv.message,
                         conv.created_at
                     );
+                    conversationEmails.push(conv.other_person_email);
                 });
                 
-                // Sort students by conversation activity
-                sortStudentsByLastMessage();
+                // Filter students to only include those with conversations (actual messages)
+                $scope.conversationStudents = $scope.allStudents.filter(function(student) {
+                    return conversationEmails.includes(student.email);
+                });
+                
+                console.log('Found', $scope.conversationStudents.length, 'students with conversations');
+                
+                // Sort conversations by message activity
+                sortConversationsByLastMessage();
                 $scope.$applyAsync();
                 
             })
             .catch(function(error) {
                 console.error('Error loading conversation summary:', error);
-                // If we can't load the summary, just filter the students without sorting
-                filterStudents();
+                // If we can't load the summary, show empty conversation list
+                $scope.conversationStudents = [];
+                filterConversations();
                 $scope.$applyAsync();
             });
     }
 
-    // Select a student from the sidebar
+    // Select a student from the sidebar (works for both left and right sidebar)
     $scope.selectStudent = function(student) {
         if (!student || !student.email || !student.name) {
             console.error('Invalid student object passed to selectStudent:', student);
@@ -198,13 +233,13 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         if (message.sender_email === $scope.senderEmail) {
             return 'You';
         }
-        var student = $scope.students.find(function(s) {
+        var student = $scope.allStudents.find(function(s) {
             return s.email === message.sender_email;
         });
         return student ? student.name : message.sender_email;
     };
 
-    // Fetch all students for the sidebar with retry mechanism
+    // Fetch all students
     function loadStudents(retryCount = 0) {
         console.log('Fetching students for chat, attempt:', retryCount + 1);
         $scope.isLoading = true;
@@ -212,20 +247,24 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         AjaxHelper.ajaxRequest('GET', '/students')
             .then(function(response) {
                 console.log('Students fetched:', response.data.students);
-                $scope.students = response.data.students.filter(function(student) {
+                $scope.allStudents = response.data.students.filter(function(student) {
                     return student.email !== $scope.senderEmail; // Exclude current user
                 });
                 $scope.studentsLoaded = true;
                 $scope.isLoading = false;
                 
-                // Load conversation summary for sorting after students are loaded
-                if ($scope.students.length > 0) {
+                // Filter all students for right sidebar
+                filterAllStudents();
+                
+                // Load conversation summary for left sidebar after students are loaded
+                if ($scope.allStudents.length > 0) {
                     loadConversationSummary();
                 } else {
-                    $scope.filteredStudents = [];
-                    $scope.$applyAsync();
+                    $scope.filteredConversations = [];
+                    $scope.conversationStudents = [];
                 }
                 
+                $scope.$applyAsync();
             })
             .catch(function(error) {
                 console.error('Error fetching students (attempt ' + (retryCount + 1) + '):', error);
@@ -312,7 +351,18 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         
         // Update conversation data immediately for better UX
         updateConversationData($scope.selectedStudentEmail, $scope.newMessage, new Date());
-        sortStudentsByLastMessage();
+        
+        // Add student to conversation list if not already there
+        var studentInConversations = $scope.conversationStudents.find(function(s) {
+            return s.email === $scope.selectedStudentEmail;
+        });
+        
+        if (!studentInConversations && $scope.selectedStudent) {
+            $scope.conversationStudents.unshift($scope.selectedStudent);
+            console.log('Added new student to conversations:', $scope.selectedStudent.name);
+        }
+        
+        sortConversationsByLastMessage();
         
         SocketService.emit('chat_message', {
             sender_email: $scope.senderEmail,
@@ -349,6 +399,23 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         
         updateConversationData(otherPersonEmail, data.message, data.created_at);
         
+        // Add sender to conversation list if not already there and they sent us a message
+        if (data.receiver_email === $scope.senderEmail) {
+            var studentInConversations = $scope.conversationStudents.find(function(s) {
+                return s.email === otherPersonEmail;
+            });
+            
+            if (!studentInConversations) {
+                var studentFromAll = $scope.allStudents.find(function(s) {
+                    return s.email === otherPersonEmail;
+                });
+                if (studentFromAll) {
+                    $scope.conversationStudents.unshift(studentFromAll);
+                    console.log('Added new student to conversations from incoming message:', studentFromAll.name);
+                }
+            }
+        }
+        
         // If this message is part of the current conversation, add it to messages
         if (data.sender_email === $scope.selectedStudentEmail || 
             data.receiver_email === $scope.selectedStudentEmail) {
@@ -363,8 +430,8 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
             }, 50);
         }
         
-        // Re-sort students to move the conversation to top
-        sortStudentsByLastMessage();
+        // Re-sort conversations to move the conversation to top
+        sortConversationsByLastMessage();
         $scope.$applyAsync();
     });
 
@@ -372,12 +439,22 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
     SocketService.on('status_update', function(data) {
         console.log('Received status update:', data);
         $timeout(function() {
-            $scope.students.forEach(function(student) {
+            // Update status in all students list
+            $scope.allStudents.forEach(function(student) {
                 if (student.email === data.email) {
                     student.status = data.status;
                 }
             });
-            filterStudents(); // Update filtered list
+            
+            // Update status in conversation students list
+            $scope.conversationStudents.forEach(function(student) {
+                if (student.email === data.email) {
+                    student.status = data.status;
+                }
+            });
+            
+            filterConversations(); // Update filtered conversations
+            filterAllStudents(); // Update filtered all students
         });
     });
 

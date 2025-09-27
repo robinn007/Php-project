@@ -74,7 +74,7 @@
   --transition-slow: 0.5s ease;
   
   /* Layout */
-  --container-max-width: 1200px;
+  --container-max-width: 1350px;
   --container-padding: 1.25rem;
   --form-max-width: 38rem;
 }
@@ -170,7 +170,7 @@ body {
 /* Main Content */
 .main-content {
   max-width: var(--container-max-width);
-  margin: var(--spacing-xl) auto;
+  margin: var(--spacing-lg) auto;
   padding: 0 var(--container-padding);
 }
 
@@ -1285,7 +1285,7 @@ textarea:focus-visible,
 /* Large screens */
 @media (min-width: 1200px) {
   :root {
-    --container-max-width: 1210px;
+    --container-max-width: 1350px;
   }
 }
 

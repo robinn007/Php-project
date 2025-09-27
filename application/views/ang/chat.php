@@ -1,9 +1,9 @@
 <!-- <ng-include src="'/partials/header'" ng-init="showBreadcrumb=true"></ng-include> -->
 <ng-include src="'/partials/flash-message'"></ng-include>
 
-<div class="chat-app" ng-controller="ChatController">
-    <!-- Left Sidebar -->
-    <div class="chat-sidebar">
+<div class="chat-app-three-panel" ng-controller="ChatController">
+    <!-- Left Sidebar - Conversations Only -->
+    <div class="chat-conversations-sidebar">
         <!-- Sidebar Header -->
         <div class="sidebar-header">
             <div class="user-profile">
@@ -12,15 +12,10 @@
                 </div>
                 <div class="user-info">
                     <h3>{{ currentUser }}</h3>
-                    <p class="user-status">Active</p>
+                    <p class="user-status">Conversations</p>
                 </div>
             </div>
             <div class="sidebar-actions">
-                <button class="action-btn" title="Settings">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11.03L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11.03L19.5,12L19.43,12.97L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.61L12.75,4H11.25Z"/>
-                    </svg>
-                </button>
                 <button class="action-btn" title="New Chat">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
@@ -37,15 +32,15 @@
                 </svg>
                 <input 
                     type="text" 
-                    placeholder="Search Messages" 
+                    placeholder="Search Conversations" 
                     ng-model="searchQuery" 
-                    ng-change="filterStudents()"
+                    ng-change="filterConversations()"
                     class="search-input"
                 >
             </div>
         </div>
 
-        <!-- Chat List -->
+        <!-- Conversations List -->
         <div class="chat-list">
             <!-- Loading State -->
             <div ng-show="isLoading" class="loading-state">
@@ -53,14 +48,15 @@
                 <p>Loading conversations...</p>
             </div>
 
-            <!-- No Students -->
-            <div ng-show="!isLoading && filteredStudents.length === 0" class="empty-state">
-                <p ng-show="!searchQuery">No students available to chat with</p>
+            <!-- No Conversations -->
+            <div ng-show="!isLoading && filteredConversations.length === 0" class="empty-state">
+                <p ng-show="!searchQuery">No conversations yet</p>
                 <p ng-show="searchQuery">No results found for "{{ searchQuery }}"</p>
+                <small>Start a chat from the contacts panel on the right</small>
             </div>
 
-            <!-- Students List -->
-            <div ng-repeat="student in filteredStudents track by student.id" 
+            <!-- Conversations List -->
+            <div ng-repeat="student in filteredConversations track by student.id" 
                  ng-if="student && student.email"
                  class="chat-item" 
                  ng-class="{ 'active': isStudentSelected(student) }"
@@ -96,7 +92,7 @@
                     <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9V7H18V9H6M14,11V13H6V11H14M16,15V17H6V15H16Z"/>
                 </svg>
                 <h2>Welcome to Chat</h2>
-                <p>Select a conversation from the sidebar to start messaging</p>
+                <p>Select a conversation from the left or start a new chat from the contacts on the right</p>
             </div>
         </div>
 
@@ -184,10 +180,84 @@
             </div>
         </div>
     </div>
+
+    <!-- Right Sidebar - All Students -->
+    <div class="students-sidebar">
+        <!-- Header -->
+        <div class="sidebar-header">
+            <div class="user-info">
+                <h3>All Students</h3>
+                <p class="user-status">{{ filteredAllStudents.length }} contacts</p>
+            </div>
+            <div class="sidebar-actions">
+                <button class="action-btn" title="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Bar for Students -->
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                </svg>
+                <input 
+                    type="text" 
+                    placeholder="Search Students" 
+                    ng-model="studentSearchQuery" 
+                    ng-change="filterAllStudents()"
+                    class="search-input"
+                >
+            </div>
+        </div>
+
+        <!-- Students List -->
+        <div class="students-list">
+            <!-- Loading State -->
+            <div ng-show="isLoading" class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading students...</p>
+            </div>
+
+            <!-- No Students -->
+            <div ng-show="!isLoading && filteredAllStudents.length === 0" class="empty-state">
+                <p ng-show="!studentSearchQuery">No students available</p>
+                <p ng-show="studentSearchQuery">No results found for "{{ studentSearchQuery }}"</p>
+            </div>
+
+            <!-- Students List -->
+            <div ng-repeat="student in filteredAllStudents track by student.id" 
+                 ng-if="student && student.email"
+                 class="student-item" 
+                 ng-click="selectStudent(student)">
+                <div class="student-avatar">
+                    <span>{{ student.name ? student.name.charAt(0).toUpperCase() : '?' }}</span>
+                    <div class="status-indicator" ng-class="getStatusClass(student)"></div>
+                </div>
+                <div class="student-info">
+                    <div class="student-name">{{ student.name || 'Unknown' }}</div>
+                    <div class="student-location" ng-show="student.location">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                        </svg>
+                        {{ student.location }}
+                    </div>
+                    <div class="student-status" ng-class="getStatusClass(student)">
+                        <div class="status-dot" ng-class="getStatusClass(student)"></div>
+                        {{ getStatusDisplay(student) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-.chat-app {
+
+.chat-app-three-panel {
     display: flex;
     height: calc(100vh - 120px);
     min-height: 600px;
@@ -197,15 +267,25 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-/* Sidebar Styles */
-.chat-sidebar {
-    width: 320px;
+/* Left Sidebar - Conversations */
+.chat-conversations-sidebar {
+    width: 300px;
     background: #ffffff;
     border-right: 1px solid #e4e6ea;
     display: flex;
     flex-direction: column;
 }
 
+/* Right Sidebar - All Students */
+.students-sidebar {
+    width: 280px;
+    background: #ffffff;
+    border-left: 1px solid #e4e6ea;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Common Sidebar Styles */
 .sidebar-header {
     padding: 16px;
     border-bottom: 1px solid #e4e6ea;
@@ -304,7 +384,8 @@
     border-color: #1877f2;
 }
 
-.chat-list {
+.chat-list,
+.students-list {
     flex: 1;
     overflow-y: auto;
 }
@@ -339,6 +420,14 @@
     color: #65676b;
 }
 
+.empty-state small {
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #8a8d91;
+}
+
+/* Chat Item Styles */
 .chat-item {
     display: flex;
     padding: 12px 16px;
@@ -369,6 +458,7 @@
     font-weight: 600;
     font-size: 18px;
     margin-right: 12px;
+    flex-shrink: 0;
 }
 
 .status-indicator {
@@ -381,13 +471,13 @@
     border: 2px solid #ffffff;
 }
 
-/* .status-online {
+.status-indicator.status-online {
     background: #42b883;
 }
 
-.status-offline {
+.status-indicator.status-offline {
     background: #95a5a6;
-} */
+}
 
 .chat-content {
     flex: 1;
@@ -397,7 +487,7 @@
 .chat-header {
     display: flex;
     align-items: center;
-    justify-content: between;
+    justify-content: space-between;
     margin-bottom: 4px;
 }
 
@@ -426,23 +516,15 @@
     gap: 8px;
 }
 
-.chat-status {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 2px 6px;
-    border-radius: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.chat-status.status-online {
-    color: #42b883;
-    background: rgba(66, 184, 131, 0.1);
-}
-
-.chat-status.status-offline {
-    color: #95a5a6;
-    background: rgba(149, 165, 166, 0.1);
+.chat-preview {
+    margin: 0;
+    font-size: 12px;
+    color: #65676b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    line-height: 1.3;
 }
 
 .chat-status-small {
@@ -466,15 +548,76 @@
     background: #95a5a6;
 }
 
-.chat-preview {
-    margin: 0;
-    font-size: 12px;
-    color: #65676b;
+/* Student Item Styles */
+.student-item {
+    display: flex;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.student-item:hover {
+    background: #f0f2f5;
+}
+
+.student-avatar {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.student-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.student-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1c1e21;
+    margin-bottom: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex: 1;
-    line-height: 1.3;
+}
+
+.student-location {
+    font-size: 11px;
+    color: #65676b;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.student-status {
+    font-size: 11px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.student-status.status-online {
+    color: #42b883;
+}
+
+.student-status.status-offline {
+    color: #95a5a6;
 }
 
 /* Main Chat Area */
@@ -595,6 +738,7 @@
 
 .message-wrapper {
     margin-bottom: 16px;
+    animation: fadeInUp 0.3s ease-out;
 }
 
 .message {
@@ -731,14 +875,53 @@
     transform: none;
 }
 
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive Design */
-@media (max-width: 768px) {
-    .chat-app {
+@media (max-width: 1200px) {
+    .students-sidebar {
+        width: 260px;
+    }
+    
+    .chat-conversations-sidebar {
+        width: 280px;
+    }
+}
+
+@media (max-width: 992px) {
+    .chat-app-three-panel {
         height: calc(100vh - 60px);
     }
     
-    .chat-sidebar {
-        width: 280px;
+    .students-sidebar {
+        width: 240px;
+    }
+    
+    .chat-conversations-sidebar {
+        width: 260px;
+    }
+    
+    .message {
+        max-width: 80%;
+    }
+}
+
+@media (max-width: 768px) {
+    .students-sidebar {
+        display: none;
+    }
+    
+    .chat-conversations-sidebar {
+        width: 300px;
     }
     
     .message {
@@ -758,12 +941,18 @@
     }
 }
 
-@media (max-width: 480px) {
-    .chat-sidebar {
+@media (max-width: 640px) {
+    .chat-conversations-sidebar {
         width: 100%;
         position: absolute;
         z-index: 10;
         height: 100%;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .chat-conversations-sidebar.show {
+        transform: translateX(0);
     }
     
     .chat-main {
@@ -781,39 +970,59 @@
 
 /* Scrollbar Styling */
 .chat-list::-webkit-scrollbar,
+.students-list::-webkit-scrollbar,
 .messages-container::-webkit-scrollbar {
     width: 6px;
 }
 
 .chat-list::-webkit-scrollbar-track,
+.students-list::-webkit-scrollbar-track,
 .messages-container::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .chat-list::-webkit-scrollbar-thumb,
+.students-list::-webkit-scrollbar-thumb,
 .messages-container::-webkit-scrollbar-thumb {
     background: rgba(0,0,0,0.2);
     border-radius: 3px;
 }
 
 .chat-list::-webkit-scrollbar-thumb:hover,
+.students-list::-webkit-scrollbar-thumb:hover,
 .messages-container::-webkit-scrollbar-thumb:hover {
     background: rgba(0,0,0,0.3);
 }
 
-/* Animation for new messages */
-.message-wrapper {
-    animation: fadeInUp 0.3s ease-out;
+/* Focus states for accessibility */
+.search-input:focus,
+.message-input:focus {
+    outline: 2px solid #1877f2;
+    outline-offset: 1px;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
+.action-btn:focus,
+.send-btn:focus,
+.attachment-btn:focus {
+    outline: 2px solid #1877f2;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .chat-item:hover,
+    .student-item:hover {
+        background: #000000;
+        color: #ffffff;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    
+    .status-dot.status-online {
+        background: #00ff00;
+    }
+    
+    .status-dot.status-offline {
+        background: #ff0000;
     }
 }
+
 </style>

@@ -289,61 +289,104 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Create Group Modal -->
-        <div class="modal-overlay" ng-show="showCreateGroupModal" ng-click="closeCreateGroupModal()">
-    <div class="modal-content create-group-modal" ng-click="$event.stopPropagation()">
-                <!-- Flash Message Display -->
-                <div class="flash-message" ng-show="flashMessage">
-                    <span class="{{ flashType }}">{{ flashMessage }}</span>
+    <!-- Create Group Modal - FIXED VERSION -->
+    <div class="modal-overlay" ng-show="showCreateGroupModal" id="createGroupModal">
+        <div class="modal-content create-group-modal" ng-click="$event.stopPropagation()">
+            <!-- Flash Message Display -->
+            <div class="flash-message" ng-show="flashMessage">
+                <span class="{{ flashType }}">{{ flashMessage }}</span>
+            </div>
+            
+            <div class="modal-header">
+                <h3>Create New Group</h3>
+                <button class="close-btn" ng-click="closeCreateGroupModal()" type="button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="groupName">Group Name</label>
+                    <input type="text" 
+                           id="groupName" 
+                           ng-model="newGroupName" 
+                           placeholder="Enter group name" 
+                           class="form-input"
+                           maxlength="100">
                 </div>
-                <div class="modal-header">
-                    <h3>Create New Group</h3>
-                    <button class="close-btn" ng-click="closeCreateGroupModal()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                        </svg>
-                    </button>
+                
+                <div class="form-group">
+                    <label for="groupDescription">Description (Optional)</label>
+                    <textarea id="groupDescription" 
+                              ng-model="newGroupDescription" 
+                              placeholder="Enter group description" 
+                              class="form-input"
+                              rows="3"
+                              maxlength="500"></textarea>
                 </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="groupName">Group Name</label>
-                        <input type="text" id="groupName" ng-model="newGroupName" placeholder="Enter group name" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="groupDescription">Description (Optional)</label>
-                        <textarea id="groupDescription" ng-model="newGroupDescription" placeholder="Enter group description" class="form-control"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Members</label>
-                        <div class="member-selection">
-                            <input type="text" ng-model="studentSearchQuery" placeholder="Search students" class="form-control">
-                            <div class="member-list">
-                                <div ng-repeat="student in filteredAllStudents | filter:studentSearchQuery" class="member-item">
-                                    <label>
-                                        <input type="checkbox" 
-                                               ng-model="student.selected" 
-                                               ng-change="toggleMember(student.email)" 
-                                               ng-checked="student.selected">
-                                        {{ student.name }} ({{ student.email }})
-                                    </label>
+                
+                <div class="form-group">
+                    <label>Select Members</label>
+                    <div class="member-selection">
+                        <input type="text" 
+                               ng-model="memberSearchQuery" 
+                               placeholder="Search students" 
+                               class="form-input member-search">
+                        
+                        <div class="member-list">
+                            <div ng-repeat="student in allStudents | filter:memberSearchQuery" 
+                                 class="member-item" 
+                                 ng-class="{'selected': student.selected}"
+                                 ng-click="toggleMemberSelection(student)">
+                                <div class="member-checkbox">
+                                    <svg ng-show="student.selected" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                                    </svg>
+                                </div>
+                                <div class="student-avatar member-avatar">
+                                    <span>{{ student.name ? student.name.charAt(0).toUpperCase() : '?' }}</span>
+                                </div>
+                                <div class="member-info">
+                                    <div class="member-name">{{ student.name || 'Unknown' }}</div>
+                                    <div class="member-email">{{ student.email }}</div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Display selected members -->
-                        <div class="selected-members" ng-show="selectedMembers.length > 0">
-                            <p><strong>Selected Members ({{ selectedMembers.length }}):</strong></p>
-                            <ul>
-                                <li ng-repeat="email in selectedMembers">{{ email }}</li>
-                            </ul>
+                    </div>
+                    
+                    <!-- Display selected members -->
+                    <div class="selected-members" ng-show="selectedMembers.length > 0">
+                        <h4>Selected Members ({{ selectedMembers.length }})</h4>
+                        <div class="selected-member-list">
+                            <div ng-repeat="email in selectedMembers" class="selected-member-chip">
+                                <span>{{ email }}</span>
+                                <button type="button" ng-click="toggleMember(email)">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" ng-click="createGroup()" ng-disabled="isLoading">Create Group</button>
-                    <button class="btn btn-secondary" ng-click="closeCreateGroupModal()">Cancel</button>
-                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-primary" 
+                        ng-click="createGroup()" 
+                        ng-disabled="isLoading || !newGroupName || selectedMembers.length === 0"
+                        type="button">
+                    <span ng-hide="isLoading">Create Group</span>
+                    <span ng-show="isLoading">Creating...</span>
+                </button>
+                <button class="btn btn-secondary" 
+                        ng-click="closeCreateGroupModal()"
+                        type="button">
+                    Cancel
+                </button>
             </div>
         </div>
     </div>
@@ -600,12 +643,10 @@
 }
 
 .status-online {
-    /* background: #28a745; */
     color: #28a745;
 }
 
 .status-offline {
-    /* background: #6c757d; */
     color: #6c757d;
 }
 
@@ -734,7 +775,7 @@
     font-size: 14px;
 }
 
- .partner-status.status-online {
+.partner-status.status-online {
     color: #28a745;
 }
 
@@ -893,47 +934,7 @@
     color: #999;
 }
 
-/* Modal Styles */
-.modal-overlay[ng-show="showCreateGroupModal"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.flash-message {
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    text-align: center;
-}
-.flash-message .success {
-    color: #155724;
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-}
-.flash-message .error {
-    color: #721c24;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-}
-
-/* Selected members styles */
-.selected-members {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-}
-.selected-members ul {
-    list-style: none;
-    padding: 0;
-}
-.selected-members li {
-    padding: 5px 0;
-}
-
-
-/* Ensure the modal appears above everything */
+/* FIXED MODAL STYLES - The main fixes are here */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -941,69 +942,82 @@
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 10000; /* Increased z-index to ensure modal is on top */
-    display: none;
+    z-index: 10000;
+    display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
 }
 
-.modal-overlay[ng-show="showCreateGroupModal"] {
-    display: flex;
-    opacity: 1;
+/* Show modal when ng-show is true */
+.modal-overlay[ng-show="true"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* AngularJS ng-hide class override */
+.modal-overlay:not(.ng-hide) {
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .modal-overlay.ng-hide {
-    opacity: 0;
-    display: none;
-}
-
-/* Force show when not hidden */
-.modal-overlay:not(.ng-hide) {
-    display: flex !important;
-}
-
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    opacity: 0 !important;
+    visibility: hidden !important;
 }
 
 .modal-content {
     background: white;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 0;
     max-width: 600px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    transform: translateY(-20px) scale(0.95);
+    transition: all 0.3s ease;
 }
 
-.debug-modal-state {
-    color: red !important;
-    font-weight: bold !important;
-    margin-bottom: 10px !important;
+.modal-overlay:not(.ng-hide) .modal-content {
+    transform: translateY(0) scale(1);
 }
 
-@keyframes slideIn {
-    from { transform: translateY(-20px) scale(0.95); }
-    to { transform: translateY(0) scale(1); }
+.flash-message {
+    padding: 12px 20px;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+    text-align: center;
+    font-weight: 500;
+}
+
+.flash-message .success {
+    color: #155724;
+    background-color: #d4edda;
+    border-bottom: 1px solid #c3e6cb;
+}
+
+.flash-message .error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-bottom: 1px solid #f5c6cb;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 24px 24px 0 24px;
     border-bottom: 1px solid #eee;
+    margin-bottom: 0;
 }
 
 .modal-header h3 {
     margin: 0;
     color: #333;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
 }
 
@@ -1012,14 +1026,15 @@
     border: none;
     cursor: pointer;
     color: #666;
-    padding: 5px;
+    padding: 8px;
     border-radius: 50%;
     transition: all 0.2s ease;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: -8px -8px 0 0;
 }
 
 .close-btn:hover {
@@ -1028,11 +1043,11 @@
 }
 
 .modal-body {
-    padding: 20px;
+    padding: 24px;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .form-group label {
@@ -1045,7 +1060,7 @@
 
 .form-input {
     width: 100%;
-    padding: 12px;
+    padding: 12px 16px;
     border: 2px solid #e1e5e9;
     border-radius: 8px;
     font-size: 14px;
@@ -1063,7 +1078,7 @@
     color: #999;
 }
 
-/* Member Selection */
+/* Member Selection Styles */
 .member-selection {
     border: 2px solid #e1e5e9;
     border-radius: 8px;
@@ -1071,10 +1086,79 @@
     overflow-y: auto;
 }
 
-.selected-members {
-    padding: 16px;
-    border-bottom: 1px solid #eee;
+.member-search {
+    margin-bottom: 16px;
+}
+
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 12px;
+    border: 2px solid transparent;
+}
+
+.member-item:hover {
     background: #f8f9fa;
+}
+
+.member-item.selected {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.member-email {
+    font-size: 12px;
+    color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.member-checkbox {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 2px solid #ddd;
+    flex-shrink: 0;
+}
+
+.member-item.selected .member-checkbox {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.selected-members {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
 }
 
 .selected-members h4 {
@@ -1126,78 +1210,14 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-.available-members {
-    padding: 16px;
-}
-
-.available-members h4 {
-    margin: 0 0 16px 0;
-    color: #333;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.member-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.member-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    gap: 12px;
-    border: 2px solid transparent;
-}
-
-.member-item:hover {
-    background: #f8f9fa;
-}
-
-.member-item.selected {
-    background: #e3f2fd;
-    border-color: #667eea;
-}
-
-.member-info {
-    flex: 1;
-}
-
-.member-name {
-    font-weight: 600;
-    color: #333;
-    font-size: 14px;
-}
-
-.member-email {
-    font-size: 12px;
-    color: #666;
-    margin-top: 2px;
-}
-
-.member-checkbox {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.member-checkbox svg {
-    color: #28a745;
-}
-
 .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 20px;
+    padding: 24px;
     border-top: 1px solid #eee;
     background: #fafafa;
+    border-radius: 0 0 12px 12px;
 }
 
 .btn {
@@ -1208,6 +1228,7 @@
     transition: all 0.2s ease;
     border: none;
     font-size: 14px;
+    min-width: 120px;
 }
 
 .btn-secondary {
@@ -1217,6 +1238,7 @@
 
 .btn-secondary:hover {
     background: #5a6268;
+    transform: translateY(-1px);
 }
 
 .btn-primary {
@@ -1233,6 +1255,22 @@
     opacity: 0.6;
     cursor: not-allowed;
     transform: none !important;
+}
+
+/* Animation for new messages */
+.message-wrapper {
+    animation: messageIn 0.3s ease;
+}
+
+@keyframes messageIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Responsive Design */
@@ -1293,22 +1331,6 @@
     background: #a8a8a8;
 }
 
-/* Animation for new messages */
-.message-wrapper {
-    animation: messageIn 0.3s ease;
-}
-
-@keyframes messageIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* Focus styles for accessibility */
 .action-btn:focus,
 .search-input:focus,
@@ -1324,4 +1346,3 @@
     outline: 2px solid #667eea;
     outline-offset: -2px;
 }
-</style>

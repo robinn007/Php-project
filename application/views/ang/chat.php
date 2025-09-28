@@ -56,26 +56,43 @@
             </div>
 
             <!-- Conversations List -->
-            <div ng-repeat="student in filteredConversations track by student.id" 
-                 ng-if="student && student.email"
+            <div ng-repeat="item in filteredConversations track by (item.group_id || item.id)" 
+                 ng-if="item && (item.email || item.group_id)"
                  class="chat-item" 
-                 ng-class="{ 'active': isStudentSelected(student) }"
-                 ng-click="selectStudent(student)">
-                <div class="chat-avatar">
-                    <span>{{ student.name ? student.name.charAt(0).toUpperCase() : '?' }}</span>
-                    <div class="status-indicator" ng-class="getStatusClass(student)"></div>
+                 ng-class="{ 
+                     'active': (isGroup(item) && isGroupSelected(item)) || (!isGroup(item) && isStudentSelected(item)),
+                     'group-chat': isGroup(item)
+                 }"
+                 ng-click="isGroup(item) ? selectGroup(item) : selectStudent(item)">
+                
+                <!-- Group Chat Item -->
+                <div ng-if="isGroup(item)" class="chat-avatar group-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"/>
+                    </svg>
+                    <div class="group-indicator"></div>
                 </div>
+                
+                <!-- Direct Chat Item -->
+                <div ng-if="!isGroup(item)" class="chat-avatar">
+                    <span>{{ item.name ? item.name.charAt(0).toUpperCase() : '?' }}</span>
+                    <div class="status-indicator" ng-class="getStatusClass(item)"></div>
+                </div>
+                
                 <div class="chat-content">
                     <div class="chat-header">
-                        <h4 class="chat-name">{{ student.name || 'Unknown' }}</h4>
-                        <span class="chat-time" ng-show="getLastMessageTime(student)">
-                            {{ getLastMessageTime(student) }}
+                        <h4 class="chat-name">{{ isGroup(item) ? item.name : (item.name || 'Unknown') }}</h4>
+                        <span class="chat-time" ng-show="getLastMessageTime(item)">
+                            {{ getLastMessageTime(item) }}
                         </span>
                     </div>
                     <div class="chat-preview-row">
-                        <p class="chat-preview">{{ getLastMessagePreview(student) }}</p>
-                        <span class="chat-status-small" ng-class="getStatusClass(student)">
-                            <div class="status-dot" ng-class="getStatusClass(student)"></div>
+                        <p class="chat-preview">{{ getLastMessagePreview(item) }}</p>
+                        <span class="chat-status-small" ng-if="!isGroup(item)" ng-class="getStatusClass(item)">
+                            <div class="status-dot" ng-class="getStatusClass(item)"></div>
+                        </span>
+                        <span class="group-member-count" ng-if="isGroup(item)">
+                            {{ item.member_count }} members
                         </span>
                     </div>
                 </div>
@@ -86,7 +103,7 @@
     <!-- Main Chat Area -->
     <div class="chat-main">
         <!-- Welcome State -->
-        <div ng-show="!selectedStudent" class="welcome-screen">
+        <div ng-show="!selectedStudent && !selectedGroup" class="welcome-screen">
             <div class="welcome-content">
                 <svg class="welcome-icon" width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9V7H18V9H6M14,11V13H6V11H14M16,15V17H6V15H16Z"/>
@@ -97,18 +114,21 @@
         </div>
 
         <!-- Chat Interface -->
-        <div ng-show="selectedStudent" class="chat-interface">
+        <div ng-show="selectedStudent || selectedGroup" class="chat-interface">
             <!-- Chat Header -->
-            <div class="chat-header-bar" ng-show="selectedStudent">
+            <div class="chat-header-bar">
                 <div class="chat-partner-info">
-                    <div class="partner-avatar">
-                        <span>{{ selectedStudent.name ? selectedStudent.name.charAt(0).toUpperCase() : '?' }}</span>
-                        <div class="status-indicator" ng-class="getStatusClass(selectedStudent)"></div>
+                    <div class="partner-avatar" ng-class="{ 'group-avatar': isGroupChat() }">
+                        <span ng-if="!isGroupChat()">{{ getCurrentChatName().charAt(0).toUpperCase() }}</span>
+                        <svg ng-if="isGroupChat()" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"/>
+                        </svg>
+                        <div class="status-indicator" ng-if="!isGroupChat()" ng-class="getCurrentChatStatusClass()"></div>
                     </div>
                     <div class="partner-details">
-                        <h3>{{ selectedStudent.name || 'Unknown User' }}</h3>
-                        <p class="partner-status" ng-class="getStatusClass(selectedStudent)">
-                            {{ getStatusDisplay(selectedStudent) }}
+                        <h3>{{ getCurrentChatName() }}</h3>
+                        <p class="partner-status" ng-class="getCurrentChatStatusClass()">
+                            {{ getCurrentChatStatus() }}
                         </p>
                     </div>
                 </div>
@@ -134,16 +154,21 @@
             <!-- Messages Area -->
             <div class="messages-container">
                 <div ng-show="messages.length === 0" class="no-messages">
-                    <p>No messages yet. Start a conversation with {{ selectedStudent.name }}!</p>
+                    <p ng-if="isGroupChat()">No messages yet in {{ getCurrentChatName() }}. Start the conversation!</p>
+                    <p ng-if="!isGroupChat()">No messages yet. Start a conversation with {{ getCurrentChatName() }}!</p>
                 </div>
                 
                 <div ng-repeat="message in messages" class="message-wrapper">
-                    <div class="message" ng-class="{ 'sent': isMyMessage(message), 'received': !isMyMessage(message) }">
+                    <div class="message" ng-class="{ 
+                        'sent': isMyMessage(message), 
+                        'received': !isMyMessage(message),
+                        'group-message': isGroupChat()
+                    }">
                         <div class="message-content">
                             <p>{{ message.message }}</p>
                         </div>
                         <div class="message-info">
-                            <span class="message-sender">{{ getSenderName(message) }}</span>
+                            <span class="message-sender" ng-if="isGroupChat() || !isMyMessage(message)">{{ getSenderName(message) }}</span>
                             <span class="message-time">{{ message.created_at | date:'short' }}</span>
                         </div>
                     </div>
@@ -181,15 +206,21 @@
         </div>
     </div>
 
-    <!-- Right Sidebar - All Students -->
+    <!-- Right Sidebar - All Students with Group Creation -->
     <div class="students-sidebar">
-        <!-- Header -->
+        <!-- Header with Group Creation Button -->
         <div class="sidebar-header">
             <div class="user-info">
                 <h3>All Students</h3>
                 <p class="user-status">{{ filteredAllStudents.length }} contacts</p>
             </div>
             <div class="sidebar-actions">
+                <button class="action-btn create-group-btn" ng-click="openCreateGroupModal()" title="Create Group" data-debug="create-group-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"/>
+                        <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+                    </svg>
+                </button>
                 <button class="action-btn" title="Refresh">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
@@ -239,11 +270,11 @@
                 </div>
                 <div class="student-info">
                     <div class="student-name">{{ student.name || 'Unknown' }}</div>
-                    <div class="student-location" ng-show="student.location">
+                    <div class="student-location" ng-show="student.state">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
                         </svg>
-                        {{ student.location }}
+                        {{ student.state }}
                     </div>
                     <div class="student-status" ng-class="getStatusClass(student)">
                         <div class="status-dot" ng-class="getStatusClass(student)"></div>
@@ -255,43 +286,144 @@
     </div>
 </div>
 
-<style>
+<!-- Create Group Modal -->
+<div class="modal-overlay" ng-show="showCreateGroupModal" ng-click="closeCreateGroupModal()">
+    <div class="modal-content create-group-modal" ng-click="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Create New Group</h3>
+            <button class="close-btn" ng-click="closeCreateGroupModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Group Name -->
+            <div class="form-group">
+                <label for="groupName">Group Name *</label>
+                <input 
+                    type="text" 
+                    id="groupName"
+                    ng-model="newGroupName"
+                    placeholder="Enter group name"
+                    class="form-input"
+                    required
+                >
+            </div>
 
+            <!-- Group Description -->
+            <div class="form-group">
+                <label for="groupDescription">Description (Optional)</label>
+                <textarea 
+                    id="groupDescription"
+                    ng-model="newGroupDescription"
+                    placeholder="Enter group description"
+                    class="form-input"
+                    rows="3"
+                ></textarea>
+            </div>
+
+            <!-- Member Selection -->
+            <div class="form-group">
+                <label>Select Members *</label>
+                <div class="member-selection">
+                    <div class="selected-members" ng-show="selectedMembers.length > 0">
+                        <h4>Selected ({{ selectedMembers.length }})</h4>
+                        <div class="selected-member-list">
+                            <div ng-repeat="email in selectedMembers" class="selected-member-chip">
+                                <span>{{ (allStudents | filter:{email: email})[0].name }}</span>
+                                <button type="button" ng-click="toggleMemberSelection((allStudents | filter:{email: email})[0])">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="available-members">
+                        <h4>Available Students</h4>
+                        <div class="member-list">
+                            <div ng-repeat="student in filteredAllStudents track by student.id" 
+                                 class="member-item"
+                                 ng-class="{ 'selected': isMemberSelected(student) }"
+                                 ng-click="toggleMemberSelection(student)">
+                                <div class="member-avatar">
+                                    <span>{{ student.name.charAt(0).toUpperCase() }}</span>
+                                    <div class="status-indicator" ng-class="getStatusClass(student)"></div>
+                                </div>
+                                <div class="member-info">
+                                    <div class="member-name">{{ student.name }}</div>
+                                    <div class="member-email">{{ student.email }}</div>
+                                </div>
+                                <div class="member-checkbox">
+                                    <svg ng-show="isMemberSelected(student)" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" ng-click="closeCreateGroupModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" ng-click="createGroup()" ng-disabled="!newGroupName || selectedMembers.length === 0">
+                Create Group
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Chat App Layout */
 .chat-app-three-panel {
     display: flex;
-    height: calc(100vh - 120px);
-    min-height: 600px;
-    background: #f0f2f5;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    height: 100vh;
+    background: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 /* Left Sidebar - Conversations */
 .chat-conversations-sidebar {
-    width: 300px;
-    background: #ffffff;
-    border-right: 1px solid #e4e6ea;
+    width: 350px;
+    background: white;
+    border-right: 1px solid #e1e5e9;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
-/* Right Sidebar - All Students */
+/* Main Chat Area */
+.chat-main {
+    flex: 1;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Right Sidebar - Students */
 .students-sidebar {
-    width: 280px;
-    background: #ffffff;
-    border-left: 1px solid #e4e6ea;
+    width: 300px;
+    background: white;
+    border-left: 1px solid #e1e5e9;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
-/* Common Sidebar Styles */
+/* Sidebar Headers */
 .sidebar-header {
-    padding: 16px;
-    border-bottom: 1px solid #e4e6ea;
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #e1e5e9;
+    background: #fafafa;
 }
 
 .user-profile {
@@ -300,30 +432,31 @@
     gap: 12px;
 }
 
-.user-avatar {
+.user-avatar, .chat-avatar, .student-avatar, .partner-avatar, .member-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     font-weight: 600;
     font-size: 16px;
+    position: relative;
 }
 
-.user-info h3 {
+.user-info h3, .partner-details h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #1c1e21;
+    color: #333;
 }
 
-.user-status {
-    margin: 0;
+.user-status, .partner-status {
+    margin: 2px 0 0 0;
     font-size: 12px;
-    color: #65676b;
+    color: #666;
 }
 
 .sidebar-actions {
@@ -335,24 +468,35 @@
     width: 36px;
     height: 36px;
     border: none;
-    background: #f0f2f5;
     border-radius: 50%;
+    background: #f0f0f0;
+    color: #666;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    color: #65676b;
     transition: all 0.2s ease;
 }
 
 .action-btn:hover {
-    background: #e4e6ea;
-    color: #1c1e21;
+    background: #e0e0e0;
+    color: #333;
 }
 
+.create-group-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+}
+
+.create-group-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: scale(1.05);
+}
+
+/* Search Containers */
 .search-container {
-    padding: 8px 16px;
-    border-bottom: 1px solid #e4e6ea;
+    padding: 16px;
+    border-bottom: 1px solid #e1e5e9;
 }
 
 .search-input-wrapper {
@@ -364,49 +508,185 @@
 .search-icon {
     position: absolute;
     left: 12px;
-    color: #65676b;
-    z-index: 1;
+    color: #999;
+    z-index: 2;
 }
 
 .search-input {
     width: 100%;
-    padding: 8px 12px 8px 40px;
-    border: 1px solid #e4e6ea;
+    padding: 10px 12px 10px 40px;
+    border: 2px solid #e1e5e9;
     border-radius: 20px;
-    background: #f0f2f5;
     font-size: 14px;
     outline: none;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease;
 }
 
 .search-input:focus {
-    background: #ffffff;
-    border-color: #1877f2;
+    border-color: #667eea;
 }
 
-.chat-list,
-.students-list {
+/* Chat Lists */
+.chat-list, .students-list {
     flex: 1;
     overflow-y: auto;
+    padding: 8px 0;
 }
 
-.loading-state {
+.chat-item, .student-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 12px;
+    border-left: 3px solid transparent;
+}
+
+.chat-item:hover, .student-item:hover {
+    background: #f8f9fa;
+}
+
+.chat-item.active {
+    background: #e3f2fd;
+    border-left-color: #667eea;
+}
+
+.chat-item.group-chat {
+    border-left: 3px solid #667eea;
+}
+
+.chat-content, .student-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.chat-name, .student-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-time {
+    font-size: 11px;
+    color: #999;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.chat-preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-preview {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.student-location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #999;
+    margin: 2px 0;
+}
+
+.student-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+/* Status Indicators */
+.status-indicator, .status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-online {
+    /* background: #28a745; */
+    color: #28a745;
+}
+
+.status-offline {
+    /* background: #6c757d; */
+    color: #6c757d;
+}
+
+.status-dot.status-online {
+    background: #28a745;
+}
+
+.status-dot.status-offline {
+    background: #6c757d;
+}
+
+/* Group Specific Styles */
+.group-avatar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.group-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.group-member-count {
+    font-size: 11px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+/* Loading and Empty States */
+.loading-state, .empty-state, .no-messages {
     padding: 40px 20px;
-    color: #65676b;
+    text-align: center;
+    color: #666;
 }
 
 .loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #f0f2f5;
-    border-top: 3px solid #1877f2;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 12px;
+    margin: 0 auto 16px;
 }
 
 @keyframes spin {
@@ -414,225 +694,12 @@
     100% { transform: rotate(360deg); }
 }
 
-.empty-state {
-    padding: 40px 20px;
-    text-align: center;
-    color: #65676b;
-}
-
-.empty-state small {
-    display: block;
-    margin-top: 8px;
-    font-size: 11px;
-    color: #8a8d91;
-}
-
-/* Chat Item Styles */
-.chat-item {
-    display: flex;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f0f2f5;
-}
-
-.chat-item:hover {
-    background: #f0f2f5;
-}
-
-.chat-item.active {
-    background: #e7f3ff;
-    border-right: 3px solid #1877f2;
-}
-
-.chat-avatar {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 600;
-    font-size: 18px;
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.status-indicator {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-}
-
-.status-indicator.status-online {
-    background: #42b883;
-}
-
-.status-indicator.status-offline {
-    background: #95a5a6;
-}
-
-.chat-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-}
-
-.chat-name {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1c1e21;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.chat-time {
-    font-size: 11px;
-    color: #65676b;
-    margin-left: 8px;
-    white-space: nowrap;
-}
-
-.chat-preview-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.chat-preview {
-    margin: 0;
-    font-size: 12px;
-    color: #65676b;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    line-height: 1.3;
-}
-
-.chat-status-small {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.status-dot.status-online {
-    background: #42b883;
-}
-
-.status-dot.status-offline {
-    background: #95a5a6;
-}
-
-/* Student Item Styles */
-.student-item {
-    display: flex;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f0f2f5;
-}
-
-.student-item:hover {
-    background: #f0f2f5;
-}
-
-.student-avatar {
-    position: relative;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.student-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.student-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1c1e21;
-    margin-bottom: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.student-location {
-    font-size: 11px;
-    color: #65676b;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.student-status {
-    font-size: 11px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.student-status.status-online {
-    color: #42b883;
-}
-
-.student-status.status-offline {
-    color: #95a5a6;
-}
-
-/* Main Chat Area */
-.chat-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: #ffffff;
-}
-
+/* Welcome Screen */
 .welcome-screen {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 100%;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
@@ -643,38 +710,39 @@
 }
 
 .welcome-icon {
-    color: #65676b;
-    margin-bottom: 20px;
+    color: #667eea;
+    margin-bottom: 24px;
 }
 
 .welcome-content h2 {
-    margin: 0 0 12px 0;
     font-size: 24px;
     font-weight: 600;
-    color: #1c1e21;
+    color: #333;
+    margin: 0 0 16px 0;
 }
 
 .welcome-content p {
-    margin: 0;
+    color: #666;
     font-size: 16px;
-    color: #65676b;
     line-height: 1.5;
+    margin: 0;
 }
 
+/* Chat Interface */
 .chat-interface {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100vh;
 }
 
 .chat-header-bar {
-    padding: 16px 20px;
-    border-bottom: 1px solid #e4e6ea;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    background: #ffffff;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e1e5e9;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .chat-partner-info {
@@ -683,39 +751,28 @@
     gap: 12px;
 }
 
-.partner-avatar {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-}
-
 .partner-details h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #1c1e21;
+    color: #333;
 }
 
 .partner-status {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 500;
+    margin: 2px 0 0 0;
+    font-size: 14px;
 }
 
-.partner-status.status-online {
-    color: #42b883;
+ .partner-status.status-online {
+    color: #28a745;
 }
 
 .partner-status.status-offline {
-    color: #95a5a6;
+    color: #6c757d;
+} 
+
+.partner-status.group-status {
+    color: #667eea;
 }
 
 .chat-actions {
@@ -723,27 +780,21 @@
     gap: 8px;
 }
 
+/* Messages Container */
 .messages-container {
     flex: 1;
     overflow-y: auto;
     padding: 16px 20px;
-    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
-}
-
-.no-messages {
-    text-align: center;
-    padding: 40px 20px;
-    color: #65676b;
+    background: #fafafa;
 }
 
 .message-wrapper {
     margin-bottom: 16px;
-    animation: fadeInUp 0.3s ease-out;
 }
 
 .message {
     max-width: 70%;
-    margin-bottom: 4px;
+    word-wrap: break-word;
 }
 
 .message.sent {
@@ -755,48 +806,51 @@
 }
 
 .message-content {
+    background: white;
     padding: 12px 16px;
     border-radius: 18px;
-    word-wrap: break-word;
-    line-height: 1.4;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .message.sent .message-content {
-    background: linear-gradient(135deg, #1877f2, #0d8bf2);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-}
-
-.message.received .message-content {
-    background: #f0f2f5;
-    color: #1c1e21;
 }
 
 .message-content p {
     margin: 0;
     font-size: 14px;
+    line-height: 1.4;
 }
 
 .message-info {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
     margin-top: 4px;
+    padding: 0 8px;
     font-size: 11px;
-    color: #65676b;
+    color: #999;
 }
 
 .message.sent .message-info {
-    justify-content: flex-end;
+    flex-direction: row-reverse;
 }
 
-.message.received .message-info {
-    justify-content: flex-start;
+.message-sender {
+    font-weight: 600;
+    color: #667eea;
 }
 
+.message.group-message .message-sender {
+    color: #667eea;
+}
+
+/* Message Input */
 .message-input-container {
     padding: 16px 20px;
-    border-top: 1px solid #e4e6ea;
-    background: #ffffff;
+    background: white;
+    border-top: 1px solid #e1e5e9;
 }
 
 .message-form {
@@ -806,76 +860,434 @@
 .input-wrapper {
     display: flex;
     align-items: flex-end;
-    gap: 12px;
-    background: #f0f2f5;
-    border-radius: 20px;
+    gap: 8px;
+    background: #f8f9fa;
+    border-radius: 24px;
     padding: 8px;
 }
 
-.attachment-btn {
-    width: 36px;
-    height: 36px;
+.attachment-btn, .send-btn {
+    width: 40px;
+    height: 40px;
     border: none;
-    background: transparent;
     border-radius: 50%;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    color: #65676b;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.attachment-btn {
+    background: none;
+    color: #666;
 }
 
 .attachment-btn:hover {
-    background: rgba(0,0,0,0.05);
-    color: #1c1e21;
+    background: #e9ecef;
+    color: #333;
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.send-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: scale(1.05);
+}
+
+.send-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .message-input {
     flex: 1;
     border: none;
-    background: transparent;
+    background: none;
     resize: none;
     outline: none;
     font-size: 14px;
-    color: #1c1e21;
-    line-height: 1.4;
+    font-family: inherit;
     max-height: 100px;
-    overflow-y: auto;
-    padding: 8px 0;
+    padding: 8px 12px;
+    line-height: 1.4;
 }
 
 .message-input::placeholder {
-    color: #65676b;
+    color: #999;
 }
 
-.send-btn {
-    width: 36px;
-    height: 36px;
+/* Modal Styles */
+.modal-overlay[ng-show="showCreateGroupModal"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure the modal appears above everything */
+.modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+
+.modal-overlay.ng-hide {
+    display: none !important;
+}
+
+/* Force show when not hidden */
+.modal-overlay:not(.ng-hide) {
+    display: flex !important;
+}
+
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+   background: white !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+    max-width: 600px !important;
+    width: 90% !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+.debug-modal-state {
+    color: red !important;
+    font-weight: bold !important;
+    margin-bottom: 10px !important;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px) scale(0.95); }
+    to { transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
     border: none;
-    background: #1877f2;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
     border-radius: 50%;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+}
+
+.close-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-input::placeholder {
+    color: #999;
+}
+
+/* Member Selection */
+.member-selection {
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.selected-members {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+}
+
+.selected-members h4 {
+    margin: 0 0 12px 0;
+    color: #667eea;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.selected-member-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-member-chip {
+    background: #667eea;
     color: white;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: chipIn 0.2s ease;
+}
+
+@keyframes chipIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.selected-member-chip button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.selected-member-chip button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.available-members {
+    padding: 16px;
+}
+
+.available-members h4 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
     transition: all 0.2s ease;
+    gap: 12px;
+    border: 2px solid transparent;
 }
 
-.send-btn:hover:not(:disabled) {
-    background: #166fe5;
-    transform: scale(1.05);
+.member-item:hover {
+    background: #f8f9fa;
 }
 
-.send-btn:disabled {
-    background: #e4e6ea;
-    color: #bcc0c4;
+.member-item.selected {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.member-email {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.member-checkbox {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.member-checkbox svg {
+    color: #28a745;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 14px;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
+    transform: none !important;
 }
 
-@keyframes fadeInUp {
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chat-app-three-panel {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .chat-conversations-sidebar,
+    .students-sidebar {
+        width: 100%;
+        height: 300px;
+    }
+    
+    .chat-main {
+        height: calc(100vh - 600px);
+        min-height: 400px;
+    }
+    
+    .message {
+        max-width: 85%;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+}
+
+/* Scrollbar Styling */
+.chat-list::-webkit-scrollbar,
+.students-list::-webkit-scrollbar,
+.messages-container::-webkit-scrollbar,
+.member-selection::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-list::-webkit-scrollbar-track,
+.students-list::-webkit-scrollbar-track,
+.messages-container::-webkit-scrollbar-track,
+.member-selection::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.chat-list::-webkit-scrollbar-thumb,
+.students-list::-webkit-scrollbar-thumb,
+.messages-container::-webkit-scrollbar-thumb,
+.member-selection::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.chat-list::-webkit-scrollbar-thumb:hover,
+.students-list::-webkit-scrollbar-thumb:hover,
+.messages-container::-webkit-scrollbar-thumb:hover,
+.member-selection::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Animation for new messages */
+.message-wrapper {
+    animation: messageIn 0.3s ease;
+}
+
+@keyframes messageIn {
     from {
         opacity: 0;
         transform: translateY(10px);
@@ -886,143 +1298,19 @@
     }
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .students-sidebar {
-        width: 260px;
-    }
-    
-    .chat-conversations-sidebar {
-        width: 280px;
-    }
-}
-
-@media (max-width: 992px) {
-    .chat-app-three-panel {
-        height: calc(100vh - 60px);
-    }
-    
-    .students-sidebar {
-        width: 240px;
-    }
-    
-    .chat-conversations-sidebar {
-        width: 260px;
-    }
-    
-    .message {
-        max-width: 80%;
-    }
-}
-
-@media (max-width: 768px) {
-    .students-sidebar {
-        display: none;
-    }
-    
-    .chat-conversations-sidebar {
-        width: 300px;
-    }
-    
-    .message {
-        max-width: 85%;
-    }
-    
-    .chat-header-bar {
-        padding: 12px 16px;
-    }
-    
-    .messages-container {
-        padding: 12px 16px;
-    }
-    
-    .message-input-container {
-        padding: 12px 16px;
-    }
-}
-
-@media (max-width: 640px) {
-    .chat-conversations-sidebar {
-        width: 100%;
-        position: absolute;
-        z-index: 10;
-        height: 100%;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-    
-    .chat-conversations-sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .chat-main {
-        width: 100%;
-    }
-    
-    .welcome-content {
-        padding: 20px;
-    }
-    
-    .welcome-content h2 {
-        font-size: 20px;
-    }
-}
-
-/* Scrollbar Styling */
-.chat-list::-webkit-scrollbar,
-.students-list::-webkit-scrollbar,
-.messages-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-list::-webkit-scrollbar-track,
-.students-list::-webkit-scrollbar-track,
-.messages-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.chat-list::-webkit-scrollbar-thumb,
-.students-list::-webkit-scrollbar-thumb,
-.messages-container::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.2);
-    border-radius: 3px;
-}
-
-.chat-list::-webkit-scrollbar-thumb:hover,
-.students-list::-webkit-scrollbar-thumb:hover,
-.messages-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(0,0,0,0.3);
-}
-
-/* Focus states for accessibility */
-.search-input:focus,
-.message-input:focus {
-    outline: 2px solid #1877f2;
-    outline-offset: 1px;
-}
-
+/* Focus styles for accessibility */
 .action-btn:focus,
-.send-btn:focus,
-.attachment-btn:focus {
-    outline: 2px solid #1877f2;
+.search-input:focus,
+.form-input:focus,
+.btn:focus {
+    outline: 2px solid #667eea;
     outline-offset: 2px;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .chat-item:hover,
-    .student-item:hover {
-        background: #000000;
-        color: #ffffff;
-    }
-    
-    .status-dot.status-online {
-        background: #00ff00;
-    }
-    
-    .status-dot.status-offline {
-        background: #ff0000;
-    }
+.chat-item:focus,
+.student-item:focus,
+.member-item:focus {
+    outline: 2px solid #667eea;
+    outline-offset: -2px;
 }
-
 </style>

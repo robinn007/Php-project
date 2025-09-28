@@ -5,21 +5,6 @@
 angular.module('myApp').factory('AjaxHelper', ['$http', '$q', '$timeout', function($http, $q, $timeout) {
     console.log('AjaxHelper initialized');
 
-    // Custom function to serialize object to application/x-www-form-urlencoded
-    function serializeData(data) {
-        if (!data) return '';
-        var pairs = [];
-        for (var key in data) {
-            if (data.hasOwnProperty(key)) {
-                var value = data[key];
-                if (value !== null && value !== undefined) {
-                    pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
-                }
-            }
-        }
-        return pairs.join('&');
-    }
-
     var requestCancellers = {};
 
     var ajaxRequest = function(method, url, data, config) {
@@ -47,23 +32,28 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$q', '$timeout', functi
             timeout: 30000, // 30-second timeout
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': method === 'POST' || method === 'PUT' ? 'application/x-www-form-urlencoded; charset=UTF-8' : 'application/json',
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0'
             }
         }, config || {});
 
-        if (currentCanceller) {
-            requestConfig.timeout = currentCanceller.promise;
-        }
-
-        if (method === 'GET' && data) {
-            requestConfig.params = data;
-            console.log('AjaxHelper: GET params:', data);
-        } else if (data && (method === 'POST' || method === 'PUT')) {
+        // Use JSON for /auth/create_group, URL-encoded for others
+        if (url === '/auth/create_group' && (method === 'POST' || method === 'PUT')) {
+            requestConfig.headers['Content-Type'] = 'application/json';
+            requestConfig.data = data; // Send raw JSON data
+            console.log('AjaxHelper: POST data (JSON):', JSON.stringify(data));
+        } else if (method === 'POST' || method === 'PUT') {
+            requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
             requestConfig.data = serializeData(data);
             console.log('AjaxHelper: POST data (URL-encoded):', requestConfig.data);
+        } else if (method === 'GET' && data) {
+            requestConfig.params = data;
+            console.log('AjaxHelper: GET params:', data);
+        }
+
+        if (currentCanceller) {
+            requestConfig.timeout = currentCanceller.promise;
         }
 
         console.log('AjaxHelper: Request headers:', requestConfig.headers);
@@ -196,6 +186,27 @@ angular.module('myApp').factory('AjaxHelper', ['$http', '$q', '$timeout', functi
 
         return deferred.promise;
     };
+
+    // Custom function to serialize object to application/x-www-form-urlencoded
+    function serializeData(data) {
+        if (!data) return '';
+        var pairs = [];
+        for (var key in data) {
+            if (data.hasOwnProperty(key)) {
+                var value = data[key];
+                if (value !== null && value !== undefined) {
+                    if (Array.isArray(value)) {
+                        value.forEach(function(item, index) {
+                            pairs.push(encodeURIComponent(key + '[]') + '=' + encodeURIComponent(item));
+                        });
+                    } else {
+                        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+                    }
+                }
+            }
+        }
+        return pairs.join('&');
+    }
 
     return {
         ajaxRequest: ajaxRequest

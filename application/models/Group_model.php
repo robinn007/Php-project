@@ -11,8 +11,11 @@ class Group_model extends CI_Model {
     /**
      * Create a new group
      */
+
     public function create_group($name, $description, $created_by, $members = array()) {
         try {
+            log_message('debug', 'Group_model::create_group - Name: ' . $name . ', Created by: ' . $created_by . ', Members: ' . print_r($members, true));
+            
             $this->db->trans_start();
             
             // Create the group
@@ -20,36 +23,61 @@ class Group_model extends CI_Model {
                 'name' => $name,
                 'description' => $description,
                 'created_by' => $created_by,
-                'created_at' => date('Y-m-d H:i:s')
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             );
             
+            log_message('debug', 'Group_model::create_group - Inserting group: ' . print_r($group_data, true));
             $this->db->insert('groups', $group_data);
             $group_id = $this->db->insert_id();
             
+            log_message('debug', 'Group_model::create_group - Last query: ' . $this->db->last_query());
+            
             if (!$group_id) {
-                throw new Exception('Failed to create group');
+                throw new Exception('Failed to create group - no ID returned: ' . $this->db->error()['message']);
             }
+            
+            log_message('debug', 'Group_model::create_group - Group created with ID: ' . $group_id);
             
             // Add creator as admin member
             $creator_member = array(
                 'group_id' => $group_id,
-                'member_email' => $created_by,
-                'role' => 'admin',
-                'joined_at' => date('Y-m-d H:i:s')
+                'email' => $created_by, // Changed from member_email to email
+                 'role' => 'admin',
+                'joined_at' => date('Y-m-d H:i:s'),
+                'is_active' => 1
             );
-            $this->db->insert('group_members', $creator_member);
+            
+            log_message('debug', 'Group_model::create_group - Inserting creator member: ' . print_r($creator_member, true));
+            $insert_result = $this->db->insert('group_members', $creator_member);
+            log_message('debug', 'Group_model::create_group - Creator insert query: ' . $this->db->last_query());
+            
+            if (!$insert_result) {
+                throw new Exception('Failed to add creator as admin member: ' . $this->db->error()['message']);
+            }
+            
+            log_message('debug', 'Group_model::create_group - Creator added as admin');
             
             // Add other members
             if (!empty($members)) {
                 foreach ($members as $member_email) {
-                    if ($member_email !== $created_by) { // Don't add creator again
+                    if ($member_email !== $created_by) {
                         $member_data = array(
                             'group_id' => $group_id,
-                            'member_email' => $member_email,
-                            'role' => 'member',
-                            'joined_at' => date('Y-m-d H:i:s')
+                            'email' => $member_email, // Changed from member_email to email
+                             'role' => 'member',
+                            'joined_at' => date('Y-m-d H:i:s'),
+                            'is_active' => 1
                         );
-                        $this->db->insert('group_members', $member_data);
+                        
+                        log_message('debug', 'Group_model::create_group - Inserting member: ' . $member_email . ', Data: ' . print_r($member_data, true));
+                        $member_insert = $this->db->insert('group_members', $member_data);
+                        log_message('debug', 'Group_model::create_group - Member insert query: ' . $this->db->last_query());
+                        
+                        if (!$member_insert) {
+                            throw new Exception('Failed to add member ' . $member_email . ': ' . $this->db->error()['message']);
+                        }
+                        log_message('debug', 'Group_model::create_group - Added member: ' . $member_email);
                     }
                 }
             }
@@ -57,17 +85,20 @@ class Group_model extends CI_Model {
             $this->db->trans_complete();
             
             if ($this->db->trans_status() === FALSE) {
-                throw new Exception('Transaction failed');
+                throw new Exception('Transaction failed during group creation: ' . $this->db->error()['message']);
             }
             
-            log_message('debug', 'Group created successfully: ID ' . $group_id);
+            log_message('debug', 'Group_model::create_group - Group created successfully with ID: ' . $group_id);
             return $group_id;
             
         } catch (Exception $e) {
-            log_message('error', 'Error creating group: ' . $e->getMessage());
+            log_message('error', 'Group_model::create_group - Error: ' . $e->getMessage());
+            log_message('error', 'Group_model::create_group - Last query: ' . $this->db->last_query());
+            $this->db->trans_rollback();
             return false;
         }
     }
+
 
     /**
      * Get groups for a user
@@ -161,7 +192,7 @@ class Group_model extends CI_Model {
             $member_data = array(
                 'group_id' => $group_id,
                 'member_email' => $member_email,
-                'role' => $role,
+                 'role' => $role,
                 'joined_at' => date('Y-m-d H:i:s')
             );
             

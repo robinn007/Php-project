@@ -1,7 +1,7 @@
 <!-- <ng-include src="'/partials/header'" ng-init="showBreadcrumb=true"></ng-include> -->
 <ng-include src="'/partials/flash-message'"></ng-include>
 
-<div class="chat-app-three-panel" ng-controller="ChatController">
+<div class="chat-app-three-panel" ng-controller="ChatController" data-debug="chat-controller">
     <!-- Left Sidebar - Conversations Only -->
     <div class="chat-conversations-sidebar">
         <!-- Sidebar Header -->
@@ -215,11 +215,16 @@
                 <p class="user-status">{{ filteredAllStudents.length }} contacts</p>
             </div>
             <div class="sidebar-actions">
-                <button class="action-btn create-group-btn" ng-click="openCreateGroupModal()" title="Create Group" data-debug="create-group-button">
+                <button class="action-btn create-group-btn" 
+                        ng-click="openCreateGroupModal()" 
+                        title="Create Group" 
+                        data-debug="create-group-button"
+                        ng-disabled="isLoading">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"/>
                         <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
                     </svg>
+                    Create Group
                 </button>
                 <button class="action-btn" title="Refresh">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -287,93 +292,59 @@
 </div>
 
 <!-- Create Group Modal -->
-<div class="modal-overlay" ng-show="showCreateGroupModal" ng-click="closeCreateGroupModal()">
+        <div class="modal-overlay" ng-show="showCreateGroupModal" ng-click="closeCreateGroupModal()">
     <div class="modal-content create-group-modal" ng-click="$event.stopPropagation()">
-        <div class="modal-header">
-            <h3>Create New Group</h3>
-            <button class="close-btn" ng-click="closeCreateGroupModal()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                </svg>
-            </button>
-        </div>
-        
-        <div class="modal-body">
-            <!-- Group Name -->
-            <div class="form-group">
-                <label for="groupName">Group Name *</label>
-                <input 
-                    type="text" 
-                    id="groupName"
-                    ng-model="newGroupName"
-                    placeholder="Enter group name"
-                    class="form-input"
-                    required
-                >
-            </div>
-
-            <!-- Group Description -->
-            <div class="form-group">
-                <label for="groupDescription">Description (Optional)</label>
-                <textarea 
-                    id="groupDescription"
-                    ng-model="newGroupDescription"
-                    placeholder="Enter group description"
-                    class="form-input"
-                    rows="3"
-                ></textarea>
-            </div>
-
-            <!-- Member Selection -->
-            <div class="form-group">
-                <label>Select Members *</label>
-                <div class="member-selection">
-                    <div class="selected-members" ng-show="selectedMembers.length > 0">
-                        <h4>Selected ({{ selectedMembers.length }})</h4>
-                        <div class="selected-member-list">
-                            <div ng-repeat="email in selectedMembers" class="selected-member-chip">
-                                <span>{{ (allStudents | filter:{email: email})[0].name }}</span>
-                                <button type="button" ng-click="toggleMemberSelection((allStudents | filter:{email: email})[0])">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                                    </svg>
-                                </button>
+                <!-- Flash Message Display -->
+                <div class="flash-message" ng-show="flashMessage">
+                    <span class="{{ flashType }}">{{ flashMessage }}</span>
+                </div>
+                <div class="modal-header">
+                    <h3>Create New Group</h3>
+                    <button class="close-btn" ng-click="closeCreateGroupModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="groupName">Group Name</label>
+                        <input type="text" id="groupName" ng-model="newGroupName" placeholder="Enter group name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="groupDescription">Description (Optional)</label>
+                        <textarea id="groupDescription" ng-model="newGroupDescription" placeholder="Enter group description" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Members</label>
+                        <div class="member-selection">
+                            <input type="text" ng-model="studentSearchQuery" placeholder="Search students" class="form-control">
+                            <div class="member-list">
+                                <div ng-repeat="student in filteredAllStudents | filter:studentSearchQuery" class="member-item">
+                                    <label>
+                                        <input type="checkbox" 
+                                               ng-model="student.selected" 
+                                               ng-change="toggleMember(student.email)" 
+                                               ng-checked="student.selected">
+                                        {{ student.name }} ({{ student.email }})
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="available-members">
-                        <h4>Available Students</h4>
-                        <div class="member-list">
-                            <div ng-repeat="student in filteredAllStudents track by student.id" 
-                                 class="member-item"
-                                 ng-class="{ 'selected': isMemberSelected(student) }"
-                                 ng-click="toggleMemberSelection(student)">
-                                <div class="member-avatar">
-                                    <span>{{ student.name.charAt(0).toUpperCase() }}</span>
-                                    <div class="status-indicator" ng-class="getStatusClass(student)"></div>
-                                </div>
-                                <div class="member-info">
-                                    <div class="member-name">{{ student.name }}</div>
-                                    <div class="member-email">{{ student.email }}</div>
-                                </div>
-                                <div class="member-checkbox">
-                                    <svg ng-show="isMemberSelected(student)" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                                    </svg>
-                                </div>
-                            </div>
+                        <!-- Display selected members -->
+                        <div class="selected-members" ng-show="selectedMembers.length > 0">
+                            <p><strong>Selected Members ({{ selectedMembers.length }}):</strong></p>
+                            <ul>
+                                <li ng-repeat="email in selectedMembers">{{ email }}</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" ng-click="createGroup()" ng-disabled="isLoading">Create Group</button>
+                    <button class="btn btn-secondary" ng-click="closeCreateGroupModal()">Cancel</button>
+                </div>
             </div>
-        </div>
-        
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" ng-click="closeCreateGroupModal()">Cancel</button>
-            <button type="button" class="btn btn-primary" ng-click="createGroup()" ng-disabled="!newGroupName || selectedMembers.length === 0">
-                Create Group
-            </button>
         </div>
     </div>
 </div>
@@ -929,23 +900,62 @@
     opacity: 1 !important;
 }
 
-/* Ensure the modal appears above everything */
-.modal-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    z-index: 9999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+.flash-message {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    text-align: center;
+}
+.flash-message .success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+.flash-message .error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* Selected members styles */
+.selected-members {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+.selected-members ul {
+    list-style: none;
+    padding: 0;
+}
+.selected-members li {
+    padding: 5px 0;
 }
 
 
+/* Ensure the modal appears above everything */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000; /* Increased z-index to ensure modal is on top */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay[ng-show="showCreateGroupModal"] {
+    display: flex;
+    opacity: 1;
+}
+
 .modal-overlay.ng-hide {
-    display: none !important;
+    opacity: 0;
+    display: none;
 }
 
 /* Force show when not hidden */
@@ -960,14 +970,15 @@
 }
 
 .modal-content {
-   background: white !important;
-    border-radius: 8px !important;
-    padding: 0 !important;
-    max-width: 600px !important;
-    width: 90% !important;
-    max-height: 80vh !important;
-    overflow-y: auto !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    background: white;
+    border-radius: 8px;
+    padding: 0;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
 }
 
 .debug-modal-state {

@@ -432,97 +432,153 @@ class Auth extends CI_Controller {
     }
 }
 
-    // Group management methods
-     public function create_group() {
+   public function create_group() {
         $this->output->set_content_type('application/json');
-        
-        if (!$this->session->userdata('user_id')) {
-            $this->output->set_output(json_encode(array(
-                'success' => false,
-                'message' => 'Please log in to perform this action.'
-            )));
-            return;
-        }
 
-        if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
-            $this->output->set_status_header(405)->set_output(json_encode(array(
+        if (!$this->session->userdata('user_id')) {
+            $response = array(
                 'success' => false,
-                'message' => 'Method not allowed'
-            )));
+                'message' => 'Please log in to perform this action',
+                'flashMessage' => 'Please log in to perform this action',
+                'flashType' => 'error'
+            );
+            log_message('error', 'create_group: User not logged in');
+            $this->output->set_status_header(401)->set_output(json_encode($response));
             return;
         }
 
         try {
-            // Get JSON input
-            $json_input = json_decode(file_get_contents('php://input'), true);
+            // Get raw JSON input
+            $raw_input = file_get_contents('php://input');
+            log_message('debug', 'create_group: Raw input received: ' . $raw_input);
             
-            $name = isset($json_input['name']) ? $this->security->xss_clean($json_input['name']) : null;
-            $description = isset($json_input['description']) ? $this->security->xss_clean($json_input['description']) : null;
-            $members = isset($json_input['members']) ? $json_input['members'] : array();
-            
-            log_message('debug', 'Create group request - Name: ' . $name . ', Members: ' . json_encode($members));
-            
-            if (!$name) {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Group name is required',
-                    'flashMessage' => 'Group name is required',
-                    'flashType' => 'error'
-                )));
-                return;
+            if (empty($raw_input)) {
+                throw new Exception('No input data received');
             }
 
-            if (!is_array($members) || count($members) == 0) {
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'At least one member is required',
-                    'flashMessage' => 'Please select at least one member',
-                    'flashType' => 'error'
-                )));
-                return;
+            $data = json_decode($raw_input, true);
+
+            // Check for JSON decode errors
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Invalid JSON payload: ' . json_last_error_msg());
             }
 
-            $created_by = $this->session->userdata('email');
-            $group_id = $this->Group_model->create_group($name, $description, $created_by, $members);
-            
+            log_message('debug', 'create_group: Decoded data: ' . print_r($data, true));
+
+            // Extract and validate input data
+            $group_name = isset($data['name']) ? trim($data['name']) : '';
+            $description = isset($data['description']) ? trim($data['description']) : '';
+            $members = isset($data['members']) && is_array($data['members']) ? $data['members'] : array();
+
+            log_message('debug', 'create_group: Extracted values - Name: "' . $group_name . '", Description: "' . $description . '", Members count: ' . count($members));
+
+            // Manual validation
+            if (empty($group_name)) {
+                throw new Exception('Group name is required');
+            }
+
+            if (strlen($group_name) < 3) {
+                throw new Exception('Group name must be at least 3 characters long');
+            }
+
+            if (strlen($group_name) > 100) {
+                throw new Exception('Group name must not exceed 100 characters');
+            }
+
+            if (!empty($description) && strlen($description) > 500) {
+                throw new Exception('Description must not exceed 500 characters');
+            }
+
+            if (empty($members)) {
+                throw new Exception('At least one member must be selected');
+            }
+
+            // Get current user info
+            $current_user_email = $this->session->userdata('email');
+            if (empty($current_user_email)) {
+                throw new Exception('User email not found in session');
+            }
+
+            log_message('debug', 'create_group: Current user email: ' . $current_user_email);
+
+            // Validate members exist in database
+            $valid_members = array();
+            foreach ($members as $email) {
+                if (!empty($email) && $email !== $current_user_email) {
+                    $this->db->select('email');
+                    $this->db->from('students');
+                    $this->db->where('email', $email);
+                    $this->db->where('is_deleted', 0);
+                    $query = $this->db->get();
+                    log_message('debug', 'create_group: Member validation query: ' . $this->db->last_query());
+                    
+                    if ($query->num_rows() > 0) {
+                        $valid_members[] = $email;
+                        log_message('debug', 'create_group: Valid member found: ' . $email);
+                    } else {
+                        log_message('debug', 'create_group: Invalid member: ' . $email);
+                    }
+                }
+            }
+
+            if (empty($valid_members)) {
+                throw new Exception('No valid members found. Please ensure all member emails exist in the system.');
+            }
+
+            log_message('debug', 'create_group: Valid members: ' . print_r($valid_members, true));
+
+            // Check if tables exist
+            if (!$this->db->table_exists('groups') || !$this->db->table_exists('group_members')) {
+                throw new Exception('Required database tables (groups or group_members) not found');
+            }
+
+            // Create the group
+            log_message('debug', 'create_group: Calling Group_model->create_group');
+            $group_id = $this->Group_model->create_group($group_name, $description, $current_user_email, $valid_members);
+
             if ($group_id) {
-                log_message('debug', 'Group created successfully with ID: ' . $group_id);
+                log_message('debug', 'create_group: Group created with ID: ' . $group_id);
                 
-                // Emit Socket.IO event
-                $this->emit_socket_group_created($group_id, $name, $description, $created_by, $members);
+                // Emit Socket.IO event for group creation
+                try {
+                    $this->emit_socket_group_created($group_id, $group_name, $description, $current_user_email, $valid_members);
+                } catch (Exception $socket_error) {
+                    log_message('error', 'create_group: Socket emission failed: ' . $socket_error->getMessage());
+                }
                 
-                $this->output->set_output(json_encode(array(
+                // Return success response
+                $response = array(
                     'success' => true,
+                    'group_id' => $group_id,
                     'message' => 'Group created successfully',
-                    'flashMessage' => 'Group "' . $name . '" created successfully!',
-                    'flashType' => 'success',
-                    'group_id' => $group_id
-                )));
+                    'flashMessage' => 'Group "' . $group_name . '" created successfully',
+                    'flashType' => 'success'
+                );
+                
+                log_message('debug', 'create_group: Success response: ' . json_encode($response));
+                $this->output->set_status_header(200)->set_output(json_encode($response));
             } else {
-                log_message('error', 'Failed to create group');
-                $this->output->set_output(json_encode(array(
-                    'success' => false,
-                    'message' => 'Failed to create group',
-                    'flashMessage' => 'Failed to create group. Please try again.',
-                    'flashType' => 'error'
-                )));
+                throw new Exception('Failed to create group - Group_model returned false');
             }
 
         } catch (Exception $e) {
-            log_message('error', 'Error creating group: ' . $e->getMessage());
-            $this->output->set_output(json_encode(array(
+            log_message('error', 'create_group: Exception caught: ' . $e->getMessage());
+            log_message('error', 'create_group: Stack trace: ' . $e->getTraceAsString());
+            log_message('error', 'create_group: Last DB query: ' . $this->db->last_query());
+            
+            $response = array(
                 'success' => false,
-                'message' => 'Error creating group: ' . $e->getMessage(),
-                'flashMessage' => 'An error occurred while creating the group',
+                'message' => $e->getMessage(),
+                'flashMessage' => $e->getMessage(),
                 'flashType' => 'error'
-            )));
+            );
+            
+            $this->output->set_status_header(400)->set_output(json_encode($response));
         }
     }
-    
-     // Helper method to emit Socket.IO group created event
+
     private function emit_socket_group_created($group_id, $name, $description, $created_by, $members) {
         try {
-            // Connect to Socket.IO server (assuming it's running on the same server)
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, 'http://localhost:3000/emit_group_created');
             curl_setopt($ch, CURLOPT_POST, 1);
@@ -532,15 +588,22 @@ class Auth extends CI_Controller {
                 'description' => $description,
                 'created_by' => $created_by,
                 'members' => $members,
-                'member_count' => count($members) + 1 // Include creator
+                'member_count' => count($members) + 1
             )));
             curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+            
+            if ($http_code !== 200) {
+                throw new Exception('Socket.IO server returned status ' . $http_code . ': ' . $response);
+            }
+            
             log_message('debug', 'Socket.IO group_created event emitted: ' . $response);
         } catch (Exception $e) {
             log_message('error', 'Error emitting group_created event: ' . $e->getMessage());
+            throw $e;
         }
     }
 

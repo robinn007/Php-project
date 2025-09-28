@@ -29,6 +29,17 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
     $scope.newGroupName = '';
     $scope.newGroupDescription = '';
     $scope.selectedMembers = [];
+    $scope.flashMessage = '';
+    $scope.flashType = '';
+
+    // Initialize allStudents with selected property
+    function initializeStudents() {
+        $scope.allStudents = $scope.allStudents.map(function(student) {
+            student.selected = $scope.selectedMembers.includes(student.email);
+            return student;
+        });
+        console.log('initializeStudents: allStudents initialized with selected property', $scope.allStudents);
+    }
 
     // Check if user is logged in with error handling
     try {
@@ -369,7 +380,7 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
                 console.error('Error fetching students (attempt ' + (retryCount + 1) + '):', error);
                 
                 if (retryCount < 2 && error.status === 0) {
-                    var delay = Math.pow(2, retryCount) * 1000;
+                    var delay = Math.pow(2, retryCount) * 10000;
                     console.log('Retrying in', delay, 'ms');
                     
                     $timeout(function() {
@@ -534,16 +545,30 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         });
     };
 
-    // Modified openCreateGroupModal function with logging
+    $scope.debugOpenModal = function() {
+        console.log('debugOpenModal called from console or button');
+        $scope.openCreateGroupModal();
+    };
+
     $scope.openCreateGroupModal = function() {
-        console.log('openCreateGroupModal called');
+        console.log('openCreateGroupModal called at', new Date().toISOString());
+        console.log('Current scope state:', {
+            showCreateGroupModal: $scope.showCreateGroupModal,
+            isLoading: $scope.isLoading,
+            studentsLoaded: $scope.studentsLoaded,
+            allStudentsCount: $scope.allStudents.length
+        });
         try {
             $scope.showCreateGroupModal = true;
             $scope.newGroupName = '';
             $scope.newGroupDescription = '';
             $scope.selectedMembers = [];
+            $scope.flashMessage = '';
+            $scope.flashType = '';
+            initializeStudents();
             console.log('Modal state set to:', $scope.showCreateGroupModal);
-            $scope.$applyAsync(); // Force digest cycle
+            $scope.$applyAsync();
+            console.log('Digest cycle triggered for modal display');
         } catch (error) {
             console.error('Error in openCreateGroupModal:', error);
             $scope.flashMessage = 'Failed to open group creation modal';
@@ -552,6 +577,7 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
                 message: $scope.flashMessage, 
                 type: $scope.flashType 
             });
+            $scope.$applyAsync();
         }
     };
 
@@ -561,6 +587,26 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
         $scope.newGroupName = '';
         $scope.newGroupDescription = '';
         $scope.selectedMembers = [];
+        $scope.flashMessage = '';
+        $scope.flashType = '';
+        $scope.$applyAsync();
+    };
+
+    $scope.toggleMember = function(email) {
+        console.log('toggleMember called for email:', email);
+        var index = $scope.selectedMembers.indexOf(email);
+        if (index === -1) {
+            $scope.selectedMembers.push(email);
+            console.log('toggleMember: Added', email, 'to selectedMembers');
+        } else {
+            $scope.selectedMembers.splice(index, 1);
+            console.log('toggleMember: Removed', email, 'from selectedMembers');
+        }
+        $scope.allStudents = $scope.allStudents.map(function(student) {
+            student.selected = $scope.selectedMembers.includes(student.email);
+            return student;
+        });
+        console.log('toggleMember: Current selectedMembers:', $scope.selectedMembers);
         $scope.$applyAsync();
     };
 
@@ -580,71 +626,139 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
     };
 
     $scope.createGroup = function() {
-        console.log('createGroup called');
-        if (!$scope.newGroupName) {
-            $scope.flashMessage = 'Group name is required';
-            $scope.flashType = 'error';
-            $rootScope.$emit('flashMessage', { 
-                message: $scope.flashMessage, 
-                type: $scope.flashType 
-            });
-            return;
-        }
+    console.log('createGroup called at:', new Date().toISOString());
+    console.log('createGroup: Form values before validation:', {
+        newGroupName: $scope.newGroupName,
+        newGroupDescription: $scope.newGroupDescription,
+        selectedMembers: $scope.selectedMembers
+    });
+    
+    // Clear previous flash messages
+    $scope.flashMessage = '';
+    $scope.flashType = '';
 
-        if ($scope.selectedMembers.length === 0) {
-            $scope.flashMessage = 'Please select at least one member';
-            $scope.flashType = 'error';
-            $rootScope.$emit('flashMessage', { 
-                message: $scope.flashMessage, 
-                type: $scope.flashType 
-            });
-            return;
-        }
+    // Client-side validation
+    var trimmedName = ($scope.newGroupName || '').trim();
+    var trimmedDescription = ($scope.newGroupDescription || '').trim();
+    
+    if (!trimmedName) {
+        console.log('createGroup: Group name is empty');
+        $scope.flashMessage = 'Group name is required';
+        $scope.flashType = 'error';
+        $rootScope.$emit('flashMessage', { 
+            message: $scope.flashMessage, 
+            type: $scope.flashType 
+        });
+        $scope.$applyAsync();
+        return;
+    }
 
-        var groupData = {
-            name: $scope.newGroupName,
-            description: $scope.newGroupDescription,
-            members: $scope.selectedMembers
-        };
+    if (trimmedName.length < 3) {
+        console.log('createGroup: Group name too short');
+        $scope.flashMessage = 'Group name must be at least 3 characters long';
+        $scope.flashType = 'error';
+        $rootScope.$emit('flashMessage', { 
+            message: $scope.flashMessage, 
+            type: $scope.flashType 
+        });
+        $scope.$applyAsync();
+        return;
+    }
 
-        AjaxHelper.ajaxRequest('POST', '/auth/create_group', groupData, {
-            headers: { 'Content-Type': 'application/json' }
-        })
-            .then(function(response) {
-                console.log('Group created successfully:', response);
-                $scope.closeCreateGroupModal();
-                $scope.flashMessage = 'Group created successfully!';
-                $scope.flashType = 'success';
-                $rootScope.$emit('flashMessage', { 
-                    message: $scope.flashMessage, 
-                    type: $scope.flashType 
-                });
-                
-                if (response.data.group_id) {
-                    var newGroup = {
-                        group_id: response.data.group_id,
-                        name: $scope.newGroupName,
-                        description: $scope.newGroupDescription,
-                        member_count: $scope.selectedMembers.length + 1,
-                        type: 'group'
-                    };
-                    $scope.conversationStudents.unshift(newGroup);
-                    $scope.selectGroup(newGroup);
-                    sortConversationsByLastMessage();
-                }
-                
-                loadConversationSummary();
-            })
-            .catch(function(error) {
-                console.error('Error creating group:', error);
-                $scope.flashMessage = error.flashMessage || 'Failed to create group';
-                $scope.flashType = error.flashType || 'error';
-                $rootScope.$emit('flashMessage', { 
-                    message: $scope.flashMessage, 
-                    type: $scope.flashType 
-                });
-            });
+    if (!$scope.selectedMembers || $scope.selectedMembers.length === 0) {
+        console.log('createGroup: No members selected');
+        $scope.flashMessage = 'At least one member must be selected';
+        $scope.flashType = 'error';
+        $rootScope.$emit('flashMessage', { 
+            message: $scope.flashMessage, 
+            type: $scope.flashType 
+        });
+        $scope.$applyAsync();
+        return;
+    }
+
+    // Prepare data object
+    var groupData = {
+        name: trimmedName,
+        description: trimmedDescription,
+        members: $scope.selectedMembers
     };
+
+    console.log('createGroup: Sending validated group data:', JSON.stringify(groupData, null, 2));
+
+    // Set loading state
+    $scope.isLoading = true;
+    
+    // Make AJAX request
+    AjaxHelper.ajaxRequest('POST', '/auth/create_group', groupData)
+        .then(function(response) {
+            console.log('createGroup: Success response received:', response);
+            
+            if (response.data && response.data.success === true) {
+                console.log('createGroup: Group created successfully with ID:', response.data.group_id);
+                
+                // Add group to local groups array
+                if (!$scope.groups) {
+                    $scope.groups = [];
+                }
+                $scope.groups.push({
+                    group_id: response.data.group_id,
+                    name: trimmedName,
+                    description: trimmedDescription,
+                    members: $scope.selectedMembers,
+                    member_count: $scope.selectedMembers.length + 1 // Include creator
+                });
+                
+                // Close modal and reset form
+                $scope.showCreateGroupModal = false;
+                $scope.newGroupName = '';
+                $scope.newGroupDescription = '';
+                $scope.selectedMembers = [];
+                
+                // Show success message
+                $scope.flashMessage = response.data.flashMessage || 'Group created successfully';
+                $scope.flashType = response.data.flashType || 'success';
+                $rootScope.$emit('flashMessage', { 
+                    message: $scope.flashMessage, 
+                    type: $scope.flashType 
+                });
+                
+                // Reset students selection state
+                initializeStudents();
+                
+                // Reload conversation summary to include new group
+                loadConversationSummary();
+                
+            } else {
+                console.error('createGroup: Server returned failure:', response.data);
+                $scope.flashMessage = response.data.message || response.data.flashMessage || 'Failed to create group';
+                $scope.flashType = response.data.flashType || 'error';
+                $rootScope.$emit('flashMessage', { 
+                    message: $scope.flashMessage, 
+                    type: $scope.flashType 
+                });
+            }
+            
+            $scope.isLoading = false;
+            $scope.$applyAsync();
+            
+        })
+        .catch(function(error) {
+            console.error('createGroup: Error occurred:', error);
+            
+            $scope.isLoading = false;
+            $scope.flashMessage = error.response && error.response.data && error.response.data.message 
+                ? error.response.data.message 
+                : 'Failed to create group. Please ensure all member emails are valid and try again.';
+            $scope.flashType = 'error';
+            $rootScope.$emit('flashMessage', { 
+                message: $scope.flashMessage, 
+                type: $scope.flashType 
+            });
+            $scope.$applyAsync();
+        });
+};
+
 
     SocketService.on('chat_message', function(data) {
         console.log('Received chat message:', data);
@@ -785,6 +899,10 @@ angular.module('myApp').controller('ChatController', ['$scope', '$rootScope', 'A
             loadStudents();
         }, 500);
     }
+
+    window.debugOpenModal = function() {
+        $scope.debugOpenModal();
+    };
 
     initializeWithDelay();
 }]);

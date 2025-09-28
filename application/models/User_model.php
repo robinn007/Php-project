@@ -225,4 +225,29 @@ class User_model extends CI_Model {
         }
         return true;
     }
+
+    public function user_exists($email) {
+    try {
+        if (empty($email)) {
+            return false;
+        }
+        
+        $this->db->select('1');
+        $this->db->from('students'); // Assuming students table contains user data
+        $this->db->where('email', $email);
+        $this->db->where('is_deleted', 0);
+        $this->db->limit(1);
+        
+        $query = $this->db->get();
+        $exists = $query->num_rows() > 0;
+        
+        log_message('debug', 'User_model::user_exists - Email: ' . $email . ' exists: ' . ($exists ? 'yes' : 'no'));
+        
+        return $exists;
+        
+    } catch (Exception $e) {
+        log_message('error', 'User_model::user_exists - Error checking user: ' . $e->getMessage());
+        return false;
+    }
+}
 }

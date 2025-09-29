@@ -138,7 +138,9 @@
                             <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
                         </svg>
                     </button>
-                    <button class="action-btn" title="Video Call">
+                    <button class="action-btn" title="Video Call" 
+                    ng-click="startVideoCall()"  
+                    ng-disabled="!selectedStudent || selectedStudent.status !== 'online' || isGroupChat()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
                         </svg>
@@ -302,6 +304,77 @@
             </div>
         </div>
     </div>
+
+    <!-- Video Call Modal -->
+<div class="video-call-modal" ng-show="isVideoCallActive">
+    <div class="video-call-container">
+        <div class="video-call-header">
+            <h3>{{ callStatus }}</h3>
+            <span>{{ selectedStudent.name }}</span>
+        </div>
+        
+        <div class="video-streams">
+            <video id="remoteVideo" autoplay playsinline class="remote-video"></video>
+            <video id="localVideo" autoplay playsinline muted class="local-video"></video>
+        </div>
+        
+        <div class="video-call-controls">
+            <button class="call-control-btn" 
+                    ng-click="toggleAudio()"
+                    ng-class="{'muted': isAudioMuted}">
+                <svg ng-show="!isAudioMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                </svg>
+                <svg ng-show="isAudioMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,11C19,12.19 18.66,13.3 18.1,14.28L16.87,13.05C17.14,12.43 17.3,11.74 17.3,11H19M15,11.16L9,5.18V5A3,3 0 0,1 12,2A3,3 0 0,1 15,5V11L15,11.16M4.27,3L21,19.73L19.73,21L15.54,16.81C14.77,17.27 13.91,17.58 13,17.72V21H11V17.72C7.72,17.23 5,14.41 5,11H7C7,13.76 9.24,16 12,16L11.91,16C11.65,16 11.4,15.96 11.16,15.9L3,7.73L4.27,3Z"/>
+                </svg>
+            </button>
+            
+            <button class="call-control-btn end-call-btn" ng-click="endCall()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,9C10.4,9 8.85,9.25 7.4,9.72V12.82C7.4,13.22 7.17,13.56 6.84,13.72C5.86,14.21 4.97,14.84 4.17,15.57C4,15.75 3.75,15.86 3.5,15.86C3.2,15.86 2.95,15.74 2.77,15.56L0.29,13.08C0.11,12.9 0,12.65 0,12.38C0,12.1 0.11,11.85 0.29,11.67C3.34,8.78 7.46,7 12,7C16.54,7 20.66,8.78 23.71,11.67C23.89,11.85 24,12.1 24,12.38C24,12.65 23.89,12.9 23.71,13.08L21.23,15.56C21.05,15.74 20.8,15.86 20.5,15.86C20.25,15.86 20,15.75 19.82,15.57C19.03,14.84 18.14,14.21 17.16,13.72C16.83,13.56 16.6,13.22 16.6,12.82V9.72C15.15,9.25 13.6,9 12,9Z"/>
+                </svg>
+            </button>
+            
+            <button class="call-control-btn" 
+                    ng-click="toggleVideo()"
+                    ng-class="{'muted': isVideoMuted}">
+                <svg ng-show="!isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
+                </svg>
+                <svg ng-show="isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3.27,2L2,3.27L4.73,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16C16.2,18 16.39,17.92 16.54,17.82L19.73,21L21,19.73M21,6.5L17,10.5V7A1,1 0 0,0 16,6H9.82L21,17.18V6.5Z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Incoming Call Modal -->
+<div class="incoming-call-modal" ng-show="showIncomingCall">
+    <div class="incoming-call-container">
+        <div class="incoming-call-avatar">
+            <span>{{ incomingCallName ? incomingCallName.charAt(0).toUpperCase() : '?' }}</span>
+        </div>
+        <h3>{{ incomingCallName }}</h3>
+        <p>Incoming video call...</p>
+        
+        <div class="incoming-call-actions">
+            <button class="call-action-btn accept-btn" ng-click="answerCall()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.5,15.84C20.25,15.84 20,15.75 19.82,15.57C19.03,14.84 18.14,14.21 17.16,13.72C16.83,13.56 16.6,13.22 16.6,12.82V9.72C15.15,9.25 13.6,9 12,9C10.4,9 8.85,9.25 7.4,9.72V12.82C7.4,13.22 7.17,13.56 6.84,13.72C5.86,14.21 4.97,14.84 4.17,15.57C4,15.75 3.75,15.84 3.5,15.84C3.2,15.84 2.95,15.74 2.77,15.56L0.29,13.08C0.11,12.9 0,12.65 0,12.38C0,12.1 0.11,11.85 0.29,11.67C3.34,8.78 7.46,7 12,7C16.54,7 20.66,8.78 23.71,11.67C23.89,11.85 24,12.1 24,12.38C24,12.65 23.89,12.9 23.71,13.08L21.23,15.56C21.05,15.74 20.8,15.84 20.5,15.84Z"/>
+                </svg>
+                Accept
+            </button>
+            <button class="call-action-btn reject-btn" ng-click="rejectCall()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,9C10.4,9 8.85,9.25 7.4,9.72V12.82C7.4,13.22 7.17,13.56 6.84,13.72C5.86,14.21 4.97,14.84 4.17,15.57C4,15.75 3.75,15.86 3.5,15.86C3.2,15.86 2.95,15.74 2.77,15.56L0.29,13.08C0.11,12.9 0,12.65 0,12.38C0,12.1 0.11,11.85 0.29,11.67C3.34,8.78 7.46,7 12,7C16.54,7 20.66,8.78 23.71,11.67C23.89,11.85 24,12.1 24,12.38C24,12.65 23.89,12.9 23.71,13.08L21.23,15.56C21.05,15.74 20.8,15.86 20.5,15.86C20.25,15.86 20,15.75 19.82,15.57C19.03,14.84 18.14,14.21 17.16,13.72C16.83,13.56 16.6,13.22 16.6,12.82V9.72C15.15,9.25 13.6,9 12,9Z"/>
+                </svg>
+                Reject
+            </button>
+        </div>
+    </div>
+</div>
 
     <!-- Create Group Modal - FIXED VERSION -->
     <div class="modal-overlay" ng-show="showCreateGroupModal" id="createGroupModal">
@@ -1430,6 +1503,246 @@
 .chat-interface .messages-container {
     /* Add transition for smooth height adjustment */
     transition: height 0.3s ease;
+}
+
+
+/* Video Call Modal */
+.video-call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-call-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.video-call-header {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    text-align: center;
+    color: white;
+}
+
+.video-call-header h3 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+}
+
+.video-call-header span {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.video-streams {
+    flex: 1;
+    position: relative;
+    background: #000;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.local-video {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.video-call-controls {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content:center;
+    gap: 20px;
+}
+
+.call-control-btn {
+width: 60px;
+height: 60px;
+border-radius: 50%;
+border: none;
+background: rgba(255, 255, 255, 0.2);
+color: white;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.3s ease;
+}
+
+
+.call-control-btn:hover {
+background: rgba(255, 255, 255, 0.3);
+transform: scale(1.1);
+}
+
+
+.call-control-btn.muted {
+background: rgba(255, 59, 48, 0.8);
+}
+
+
+.end-call-btn {
+background: #ff3b30;
+width: 70px;
+height: 70px;
+}
+
+
+.end-call-btn:hover {
+background: #ff1f10;
+}
+/* Incoming Call Modal */
+.incoming-call-modal {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.9);
+z-index: 10001;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+
+.incoming-call-container {
+background: white;
+border-radius: 20px;
+padding: 40px;
+text-align: center;
+max-width: 400px;
+animation: slideUp 0.3s ease;
+}
+
+
+@keyframes slideUp {
+from {
+transform: translateY(50px);
+opacity: 0;
+}
+to {
+transform: translateY(0);
+opacity: 1;
+}
+}
+
+
+.incoming-call-avatar {
+width: 100px;
+height: 100px;
+border-radius: 50%;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+display: flex;
+align-items: center;
+justify-content: center;
+margin: 0 auto 20px;
+font-size: 40px;
+color: white;
+font-weight: bold;
+}
+
+.incoming-call-container h3 {
+margin: 0 0 10px 0;
+font-size: 24px;
+color: #333;
+}
+
+
+.incoming-call-container p {
+color: #666;
+margin: 0 0 30px 0;
+}
+
+
+.incoming-call-actions {
+display: flex;
+gap: 20px;
+justify-content: center;
+}
+
+
+.call-action-btn {
+width: 70px;
+height: 70px;
+border-radius: 50%;
+border: none;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-size: 12px;
+font-weight: 600;
+transition: all 0.3s ease;
+color: white;
+}
+
+
+.accept-btn {
+background: #34c759;
+}
+
+
+.accept-btn:hover {
+background: #2fb350;
+transform: scale(1.1);
+}
+
+
+.reject-btn {
+background: #ff3b30;
+}
+
+
+.reject-btn:hover {
+background: #ff1f10;
+transform: scale(1.1);
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+.local-video {
+width: 120px;
+height: 90px;
+bottom: 10px;
+right: 10px;
+}
+.video-call-controls {
+    padding: 15px;
+}
+
+.call-control-btn {
+    width: 50px;
+    height: 50px;
+}
+
+.end-call-btn {
+    width: 60px;
+    height: 60px;
+}
 }
 
 </style>

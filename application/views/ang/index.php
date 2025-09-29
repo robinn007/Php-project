@@ -66,5 +66,7 @@ if (function_exists('spl_autoload_register')) {
      <script src="http://localhost:3000/socket.io/socket.io.js"></script> 
      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js" integrity="sha512-8BHxHDLsOHx+flIrQ0DrZcea7MkHqRU5GbTHmbdzMRnAaoCIkZ97PqZcXJkKZckMMhqfoeaJE+DNUVuyoQsO3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/ang/services/SocketService.js"></script>
+<script src="/ang/services\VideoCallService.js"></script>
+
 </body>
 </html>

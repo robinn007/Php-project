@@ -291,7 +291,8 @@ class Group_model extends CI_Model {
     /**
      * Get last group message for each group (for conversation list)
      */
-   public function get_group_last_messages($email) {
+
+    public function get_group_last_messages($email) {
     try {
         $sql = "
             SELECT 
@@ -302,7 +303,7 @@ class Group_model extends CI_Model {
                 m.sender_email,
                 m.created_at,
                 s.name as sender_name,
-                COUNT(gm.id) as member_count
+                (SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND is_active = 1) as member_count
             FROM groups g
             INNER JOIN group_members gm ON g.id = gm.group_id
             LEFT JOIN messages m ON g.id = m.group_id AND m.id = (
@@ -312,8 +313,9 @@ class Group_model extends CI_Model {
             )
             LEFT JOIN students s ON m.sender_email = s.email
             WHERE gm.email = ?
+            AND gm.is_active = 1
             AND g.is_active = 1
-            GROUP BY g.id
+            GROUP BY g.id, g.name, g.description, m.message, m.sender_email, m.created_at, s.name
             ORDER BY m.created_at DESC
         ";
         

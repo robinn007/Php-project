@@ -109,7 +109,7 @@ class Group_model extends CI_Model {
             $this->db->from('groups g');
             $this->db->join('group_members gm', 'g.id = gm.group_id');
             $this->db->join('group_members gm2', 'g.id = gm2.group_id', 'left');
-            $this->db->where('gm.member_email', $email);
+             $this->db->where('gm.email', $email);
             $this->db->where('gm.is_active', 1);
             $this->db->where('g.is_active', 1);
             $this->db->group_by('g.id');
@@ -131,7 +131,7 @@ class Group_model extends CI_Model {
         try {
             $this->db->select('gm.*, s.name, s.status');
             $this->db->from('group_members gm');
-            $this->db->join('students s', 'gm.member_email = s.email', 'left');
+             $this->db->join('students s', 'gm.email = s.email', 'left');
             $this->db->where('gm.group_id', $group_id);
             $this->db->where('gm.is_active', 1);
             $this->db->order_by('gm.role', 'ASC'); // Admins first
@@ -174,7 +174,7 @@ class Group_model extends CI_Model {
         try {
             // Check if member already exists
             $this->db->where('group_id', $group_id);
-            $this->db->where('member_email', $member_email);
+            $this->db->where('email', $member_email);
             $existing = $this->db->get('group_members');
             
             if ($existing->num_rows() > 0) {
@@ -191,7 +191,7 @@ class Group_model extends CI_Model {
             // Add new member
             $member_data = array(
                 'group_id' => $group_id,
-                'member_email' => $member_email,
+                'email' => $member_email,
                  'role' => $role,
                 'joined_at' => date('Y-m-d H:i:s')
             );
@@ -210,7 +210,7 @@ class Group_model extends CI_Model {
     public function remove_member($group_id, $member_email) {
         try {
             $this->db->where('group_id', $group_id);
-            $this->db->where('member_email', $member_email);
+             $this->db->where('email', $member_email);
             return $this->db->update('group_members', array('is_active' => 0));
             
         } catch (Exception $e) {
@@ -225,7 +225,7 @@ class Group_model extends CI_Model {
     public function is_group_member($group_id, $email) {
         try {
             $this->db->where('group_id', $group_id);
-            $this->db->where('member_email', $email);
+             $this->db->where('email', $email);
             $this->db->where('is_active', 1);
             $query = $this->db->get('group_members');
             

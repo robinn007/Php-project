@@ -151,6 +151,19 @@
                 </div>
             </div>
 
+            <div class="typing-indicator-bar" ng-show="getTypingIndicator() || getGroupTypingIndicator()">
+    <div class="typing-indicator-content">
+        <span class="typing-text">
+            {{ chatType === 'group' ? getGroupTypingIndicator() : getTypingIndicator() }}
+        </span>
+        <div class="typing-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+    </div>
+</div>
+
             <!-- Messages Area -->
             <div class="messages-container">
                 <div ng-show="messages.length === 0" class="no-messages">
@@ -1346,3 +1359,77 @@
     outline: 2px solid #667eea;
     outline-offset: -2px;
 }
+
+.typing-indicator-bar {
+    padding: 8px 20px;
+    background-color: #f5f7fa;
+    border-bottom: 1px solid #e2e8f0;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.typing-indicator-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.typing-text {
+    font-style: italic;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 3px;
+}
+
+.typing-dots .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #64748b;
+    animation: typingBounce 1.4s infinite;
+}
+
+.typing-dots .dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-dots .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.7;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* Optional: Adjust messages-container to account for typing indicator */
+.chat-interface .messages-container {
+    /* Add transition for smooth height adjustment */
+    transition: height 0.3s ease;
+}
+
+</style>

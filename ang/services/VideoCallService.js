@@ -1,15 +1,17 @@
 /**
  * @file VideoCallService.js
- * @description Service for managing WebRTC video calls
+ * @description Service for managing WebRTC video calls (1-on-1 and group)
  */
 angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketService', 'AuthService', function($rootScope, SocketService, AuthService) {
-    var peerConnection = null;
+    var peerConnections = {}; // { email: RTCPeerConnection }
     var localStream = null;
-    var remoteStream = null;
+    var remoteStreams = {}; // { email: MediaStream }
     var isCallActive = false;
-    var currentCallEmail = null;
+    var currentCallEmails = []; // Array of emails in current call
+    var isGroupCall = false;
+    var currentGroupId = null;
     
-    // ICE servers configuration (using public STUN servers)
+    // ICE servers configuration
     var iceServers = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -17,42 +19,59 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
         ]
     };
     
-    function createPeerConnection() {
-        peerConnection = new RTCPeerConnection(iceServers);
+    function createPeerConnection(email) {
+        var pc = new RTCPeerConnection(iceServers);
         
         // Handle ICE candidates
-        peerConnection.onicecandidate = function(event) {
-            if (event.candidate && currentCallEmail) {
-                console.log('Sending ICE candidate');
+        pc.onicecandidate = function(event) {
+            if (event.candidate) {
+                console.log('Sending ICE candidate to', email);
                 SocketService.emit('ice_candidate', {
                     sender_email: AuthService.getCurrentUserEmail(),
-                    receiver_email: currentCallEmail,
+                    receiver_email: email,
+                    group_id: currentGroupId,
                     candidate: event.candidate
                 });
             }
         };
         
         // Handle remote stream
-        peerConnection.ontrack = function(event) {
-            console.log('Received remote track');
-            if (!remoteStream) {
-                remoteStream = new MediaStream();
+        pc.ontrack = function(event) {
+            console.log('Received remote track from', email);
+            if (!remoteStreams[email]) {
+                remoteStreams[email] = new MediaStream();
             }
-            remoteStream.addTrack(event.track);
-            $rootScope.$broadcast('remote_stream_added', remoteStream);
+            remoteStreams[email].addTrack(event.track);
+            $rootScope.$broadcast('remote_stream_added', { email: email, stream: remoteStreams[email] });
         };
         
         // Handle connection state changes
-        peerConnection.onconnectionstatechange = function() {
-            console.log('Connection state:', peerConnection.connectionState);
-            if (peerConnection.connectionState === 'disconnected' || 
-                peerConnection.connectionState === 'failed' ||
-                peerConnection.connectionState === 'closed') {
-                endCall();
+        pc.onconnectionstatechange = function() {
+            console.log('Connection state with', email, ':', pc.connectionState);
+            if (pc.connectionState === 'disconnected' || 
+                pc.connectionState === 'failed' ||
+                pc.connectionState === 'closed') {
+                removePeerConnection(email);
             }
         };
         
-        return peerConnection;
+        return pc;
+    }
+    
+    function removePeerConnection(email) {
+        if (peerConnections[email]) {
+            peerConnections[email].close();
+            delete peerConnections[email];
+        }
+        if (remoteStreams[email]) {
+            delete remoteStreams[email];
+        }
+        currentCallEmails = currentCallEmails.filter(e => e !== email);
+        $rootScope.$broadcast('peer_disconnected', email);
+        
+        if (currentCallEmails.length === 0 && isCallActive) {
+            endCall();
+        }
     }
     
     async function getLocalStream() {
@@ -69,9 +88,43 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
         }
     }
     
+    // Start group video call
+    async function startGroupCall(groupId, members) {
+        try {
+            isGroupCall = true;
+            currentGroupId = groupId;
+            currentCallEmails = members;
+            isCallActive = true;
+            
+            // Get local stream
+            localStream = await getLocalStream();
+            $rootScope.$broadcast('local_stream_ready', localStream);
+            
+            console.log('Starting group call with members:', members);
+            
+            // Notify all members about the group call
+            SocketService.emit('group_video_call_start', {
+                caller_email: AuthService.getCurrentUserEmail(),
+                caller_name: AuthService.getCurrentUser(),
+                group_id: groupId,
+                members: members
+            });
+            
+            $rootScope.$broadcast('call_initiated', { groupId: groupId, members: members });
+            
+        } catch (error) {
+            console.error('Error starting group call:', error);
+            endCall();
+            throw error;
+        }
+    }
+    
+    // Start 1-on-1 video call
     async function startCall(receiverEmail, receiverName) {
         try {
-            currentCallEmail = receiverEmail;
+            isGroupCall = false;
+            currentGroupId = null;
+            currentCallEmails = [receiverEmail];
             isCallActive = true;
             
             // Get local stream
@@ -79,16 +132,17 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
             $rootScope.$broadcast('local_stream_ready', localStream);
             
             // Create peer connection
-            peerConnection = createPeerConnection();
+            var pc = createPeerConnection(receiverEmail);
+            peerConnections[receiverEmail] = pc;
             
             // Add local tracks to peer connection
             localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, localStream);
+                pc.addTrack(track, localStream);
             });
             
             // Create and send offer
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+            var offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
             
             console.log('Sending call offer to', receiverEmail);
             SocketService.emit('video_call_offer', {
@@ -107,34 +161,105 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
         }
     }
     
-    async function answerCall(callerEmail, offer) {
+    // Join group call
+    async function joinGroupCall(groupId, members, initiatorEmail) {
         try {
-            currentCallEmail = callerEmail;
+            isGroupCall = true;
+            currentGroupId = groupId;
+            currentCallEmails = members.filter(e => e !== AuthService.getCurrentUserEmail());
             isCallActive = true;
             
             // Get local stream
             localStream = await getLocalStream();
             $rootScope.$broadcast('local_stream_ready', localStream);
             
+            console.log('Joining group call, will connect to:', currentCallEmails);
+            
+            // Notify that we've joined
+            SocketService.emit('group_video_call_joined', {
+                joiner_email: AuthService.getCurrentUserEmail(),
+                joiner_name: AuthService.getCurrentUser(),
+                group_id: groupId
+            });
+            
+            // Create offers to all existing members
+            for (var email of currentCallEmails) {
+                await createOfferToPeer(email);
+            }
+            
+            $rootScope.$broadcast('call_answered');
+            
+        } catch (error) {
+            console.error('Error joining group call:', error);
+            endCall();
+            throw error;
+        }
+    }
+    
+    async function createOfferToPeer(email) {
+        var pc = createPeerConnection(email);
+        peerConnections[email] = pc;
+        
+        // Add local tracks
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
+        });
+        
+        // Create and send offer
+        var offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        console.log('Sending peer offer to', email);
+        SocketService.emit('video_call_offer', {
+            caller_email: AuthService.getCurrentUserEmail(),
+            receiver_email: email,
+            caller_name: AuthService.getCurrentUser(),
+            group_id: currentGroupId,
+            offer: offer
+        });
+    }
+    
+    // Answer call (1-on-1 or from group member)
+    async function answerCall(callerEmail, offer, groupId) {
+        try {
+            if (groupId) {
+                currentGroupId = groupId;
+                isGroupCall = true;
+            }
+            
+            if (!currentCallEmails.includes(callerEmail)) {
+                currentCallEmails.push(callerEmail);
+            }
+            
+            // Get local stream if not already obtained
+            if (!localStream) {
+                localStream = await getLocalStream();
+                $rootScope.$broadcast('local_stream_ready', localStream);
+            }
+            
+            isCallActive = true;
+            
             // Create peer connection
-            peerConnection = createPeerConnection();
+            var pc = createPeerConnection(callerEmail);
+            peerConnections[callerEmail] = pc;
             
             // Add local tracks
             localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, localStream);
+                pc.addTrack(track, localStream);
             });
             
             // Set remote description
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
             
             // Create and send answer
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
+            var answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
             
             console.log('Sending call answer to', callerEmail);
             SocketService.emit('video_call_answer', {
                 caller_email: callerEmail,
                 answerer_email: AuthService.getCurrentUserEmail(),
+                group_id: currentGroupId,
                 answer: answer
             });
             
@@ -147,35 +272,47 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
         }
     }
     
-    async function handleAnswer(answer) {
+    async function handleAnswer(email, answer) {
         try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            console.log('Remote description set');
-            $rootScope.$broadcast('call_connected');
+            var pc = peerConnections[email];
+            if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                console.log('Remote description set for', email);
+                $rootScope.$broadcast('call_connected', email);
+            }
         } catch (error) {
-            console.error('Error handling answer:', error);
+            console.error('Error handling answer from', email, ':', error);
         }
     }
     
-    async function handleIceCandidate(candidate) {
+    async function handleIceCandidate(email, candidate) {
         try {
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                console.log('ICE candidate added');
+            var pc = peerConnections[email];
+            if (pc) {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log('ICE candidate added for', email);
             }
         } catch (error) {
-            console.error('Error adding ICE candidate:', error);
+            console.error('Error adding ICE candidate for', email, ':', error);
         }
     }
     
     function endCall() {
         console.log('Ending call');
         
-        if (currentCallEmail) {
-            SocketService.emit('video_call_ended', {
-                sender_email: AuthService.getCurrentUserEmail(),
-                receiver_email: currentCallEmail
+        // Notify others
+        if (isGroupCall && currentGroupId) {
+            SocketService.emit('group_video_call_left', {
+                leaver_email: AuthService.getCurrentUserEmail(),
+                group_id: currentGroupId
             });
+        } else if (currentCallEmails.length > 0) {
+            for (var email of currentCallEmails) {
+                SocketService.emit('video_call_ended', {
+                    sender_email: AuthService.getCurrentUserEmail(),
+                    receiver_email: email
+                });
+            }
         }
         
         // Stop local stream
@@ -184,15 +321,17 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
             localStream = null;
         }
         
-        // Close peer connection
-        if (peerConnection) {
-            peerConnection.close();
-            peerConnection = null;
+        // Close all peer connections
+        for (var email in peerConnections) {
+            peerConnections[email].close();
         }
         
-        remoteStream = null;
+        peerConnections = {};
+        remoteStreams = {};
         isCallActive = false;
-        currentCallEmail = null;
+        currentCallEmails = [];
+        isGroupCall = false;
+        currentGroupId = null;
         
         $rootScope.$broadcast('call_ended');
     }
@@ -223,6 +362,8 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
     
     return {
         startCall: startCall,
+        startGroupCall: startGroupCall,
+        joinGroupCall: joinGroupCall,
         answerCall: answerCall,
         handleAnswer: handleAnswer,
         handleIceCandidate: handleIceCandidate,
@@ -231,6 +372,8 @@ angular.module('myApp').factory('VideoCallService', ['$rootScope', 'SocketServic
         toggleAudio: toggleAudio,
         toggleVideo: toggleVideo,
         isCallActive: function() { return isCallActive; },
-        getCurrentCallEmail: function() { return currentCallEmail; }
+        getCurrentCallEmails: function() { return currentCallEmails; },
+        isGroupCall: function() { return isGroupCall; },
+        getRemoteStreams: function() { return remoteStreams; }
     };
 }]);

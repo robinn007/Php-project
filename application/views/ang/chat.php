@@ -139,8 +139,8 @@
                         </svg>
                     </button>
                     <button class="action-btn" title="Video Call" 
-                    ng-click="startVideoCall()"  
-                    ng-disabled="!selectedStudent || selectedStudent.status !== 'online' || isGroupChat()">
+                     ng-click="isGroupChat() ? startGroupVideoCall() : startVideoCall()"
+                     ng-disabled="(!selectedStudent && !selectedGroup) || (!isGroupChat() && selectedStudent.status !== 'online')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
                         </svg>
@@ -310,12 +310,29 @@
     <div class="video-call-container">
         <div class="video-call-header">
             <h3>{{ callStatus }}</h3>
-            <span>{{ selectedStudent.name }}</span>
+            <span ng-if="!isGroupChat()">{{ selectedStudent.name }}</span>
+            <span ng-if="isGroupChat()">{{ selectedGroup.name }} ({{ groupCallParticipants.length + 1 }} participants)</span>
         </div>
         
-        <div class="video-streams">
-            <video id="remoteVideo" autoplay playsinline class="remote-video"></video>
-            <video id="localVideo" autoplay playsinline muted class="local-video"></video>
+        <div class="video-streams" ng-class="{'group-call-layout': isGroupChat()}">
+            <!-- For direct calls -->
+            <video id="remoteVideo" 
+                   ng-if="!isGroupChat()" 
+                   autoplay 
+                   playsinline 
+                   class="remote-video"></video>
+            
+            <!-- For group calls -->
+            <div id="groupVideoContainer" 
+                 ng-if="isGroupChat()" 
+                 class="group-video-grid"></div>
+            
+            <!-- Local video (always shown) -->
+            <video id="localVideo" 
+                   autoplay 
+                   playsinline 
+                   muted 
+                   class="local-video"></video>
         </div>
         
         <div class="video-call-controls">
@@ -331,33 +348,34 @@
             </button>
             
             <button class="call-control-btn end-call-btn" ng-click="endCall()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12,9C10.4,9 8.85,9.25 7.4,9.72V12.82C7.4,13.22 7.17,13.56 6.84,13.72C5.86,14.21 4.97,14.84 4.17,15.57C4,15.75 3.75,15.86 3.5,15.86C3.2,15.86 2.95,15.74 2.77,15.56L0.29,13.08C0.11,12.9 0,12.65 0,12.38C0,12.1 0.11,11.85 0.29,11.67C3.34,8.78 7.46,7 12,7C16.54,7 20.66,8.78 23.71,11.67C23.89,11.85 24,12.1 24,12.38C24,12.65 23.89,12.9 23.71,13.08L21.23,15.56C21.05,15.74 20.8,15.86 20.5,15.86C20.25,15.86 20,15.75 19.82,15.57C19.03,14.84 18.14,14.21 17.16,13.72C16.83,13.56 16.6,13.22 16.6,12.82V9.72C15.15,9.25 13.6,9 12,9Z"/>
                 </svg>
             </button>
             
-            <button class="call-control-btn" 
-                    ng-click="toggleVideo()"
-                    ng-class="{'muted': isVideoMuted}">
-                <svg ng-show="!isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
-                </svg>
-                <svg ng-show="isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3.27,2L2,3.27L4.73,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16C16.2,18 16.39,17.92 16.54,17.82L19.73,21L21,19.73M21,6.5L17,10.5V7A1,1 0 0,0 16,6H9.82L21,17.18V6.5Z"/>
-                </svg>
-            </button>
-        </div>
+           <button class="call-control-btn" 
+                ng-click="toggleVideo()"
+                ng-class="{'muted': isVideoMuted}">
+            <svg ng-show="!isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
+            </svg>
+            <svg ng-show="isVideoMuted" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3.27,2L2,3.27L4.73,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16C16.2,18 16.39,17.92 16.54,17.82L19.73,21L21,19.73M21,6.5L17,10.5V7A1,1 0 0,0 16,6H9.82L21,17.18V6.5Z"/>
+            </svg>
+        </button>
     </div>
 </div>
 
 <!-- Incoming Call Modal -->
+<!-- Replace the incoming call modal -->
 <div class="incoming-call-modal" ng-show="showIncomingCall">
     <div class="incoming-call-container">
         <div class="incoming-call-avatar">
             <span>{{ incomingCallName ? incomingCallName.charAt(0).toUpperCase() : '?' }}</span>
         </div>
         <h3>{{ incomingCallName }}</h3>
-        <p>Incoming video call...</p>
+        <p ng-if="!incomingCallGroupId">Incoming video call...</p>
+        <p ng-if="incomingCallGroupId">Incoming group video call...</p>
         
         <div class="incoming-call-actions">
             <button class="call-action-btn accept-btn" ng-click="answerCall()">
@@ -1743,6 +1761,88 @@ right: 10px;
     width: 60px;
     height: 60px;
 }
+}
+
+/* Group video call styles */
+.group-call-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.group-video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.group-remote-video {
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #000;
+}
+
+/* Adjust grid for different participant counts */
+.group-video-grid:has(.group-remote-video:nth-child(1):last-child) {
+    grid-template-columns: 1fr;
+}
+
+.group-video-grid:has(.group-remote-video:nth-child(2)) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.group-video-grid:has(.group-remote-video:nth-child(3)) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.group-video-grid:has(.group-remote-video:nth-child(4)) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Local video positioning in group calls */
+.group-call-layout .local-video {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    height: 112px;
+    z-index: 10;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .group-video-grid {
+        grid-template-columns: 1fr;
+        padding: 10px;
+    }
+    
+    .group-remote-video {
+        min-height: 200px;
+        max-height: 300px;
+    }
+    
+    .group-call-layout .local-video {
+        width: 100px;
+        height: 75px;
+        bottom: 10px;
+        right: 10px;
+    }
+}
+
+/* Participant count indicator */
+.video-call-header span {
+    display: block;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 5px;
 }
 
 </style>

@@ -10,7 +10,7 @@ angular.module("myApp").controller("ChatController", [
   "AuthService",
   "$location",
   "$timeout",
-  "VideoCallService",  
+  "VideoCallService",
   function (
     $scope,
     $rootScope,
@@ -54,11 +54,11 @@ angular.module("myApp").controller("ChatController", [
     $scope.typingTimeout = null;
     $scope.isTyping = false;
 
-     $scope.isVideoCallActive = false;
+    $scope.isVideoCallActive = false;
     $scope.showIncomingCall = false;
     $scope.incomingCallFrom = null;
     $scope.incomingCallName = null;
-    $scope.callStatus = '';
+    $scope.callStatus = "";
     $scope.isAudioMuted = false;
     $scope.isVideoMuted = false;
 
@@ -1268,178 +1268,418 @@ angular.module("myApp").controller("ChatController", [
     };
 
     // Video call function
-    $scope.startVideoCall = function() {
-        if (!$scope.selectedStudent || $scope.selectedStudent.status !== 'online') {
-            $scope.flashMessage = 'Cannot call. User is offline.';
-            $scope.flashType = 'error';
-            $rootScope.$emit('flashMessage', {
-                message: $scope.flashMessage,
-                type: $scope.flashType
-            });
-            return;
-        }
-        
-        if ($scope.chatType === 'group') {
-            $scope.flashMessage = 'Video calls are only available for direct chats';
-            $scope.flashType = 'error';
-            $rootScope.$emit('flashMessage', {
-                message: $scope.flashMessage,
-                type: $scope.flashType
-            });
-            return;
-        }
-        
-        console.log('Starting video call with:', $scope.selectedStudent.email);
-        $scope.isVideoCallActive = true;
-        $scope.callStatus = 'Calling...';
-        
-        VideoCallService.startCall($scope.selectedStudent.email, $scope.selectedStudent.name)
-            .catch(function(error) {
-                console.error('Failed to start call:', error);
-                $scope.isVideoCallActive = false;
-                $scope.flashMessage = 'Failed to start call. Please check camera/microphone permissions.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', {
-                    message: $scope.flashMessage,
-                    type: $scope.flashType
-                });
-                $scope.$applyAsync();
-            });
-    };
-    
-    $scope.answerCall = function() {
-        console.log('Answering call from:', $scope.incomingCallFrom);
-        $scope.showIncomingCall = false;
-        $scope.isVideoCallActive = true;
-        $scope.callStatus = 'Connecting...';
-        
-        VideoCallService.answerCall($scope.incomingCallFrom, $scope.incomingCallOffer)
-            .catch(function(error) {
-                console.error('Failed to answer call:', error);
-                $scope.isVideoCallActive = false;
-                $scope.flashMessage = 'Failed to answer call. Please check camera/microphone permissions.';
-                $scope.flashType = 'error';
-                $rootScope.$emit('flashMessage', {
-                    message: $scope.flashMessage,
-                    type: $scope.flashType
-                });
-                $scope.$applyAsync();
-            });
-    };
-    
-    $scope.rejectCall = function() {
-        console.log('Rejecting call from:', $scope.incomingCallFrom);
-        VideoCallService.rejectCall($scope.incomingCallFrom);
-        $scope.showIncomingCall = false;
-        $scope.incomingCallFrom = null;
-        $scope.incomingCallName = null;
-        $scope.incomingCallOffer = null;
-    };
-    
-    $scope.endCall = function() {
-        console.log('Ending call');
-        VideoCallService.endCall();
+    $scope.startVideoCall = function () {
+      if (
+        !$scope.selectedStudent ||
+        $scope.selectedStudent.status !== "online"
+      ) {
+        $scope.flashMessage = "Cannot call. User is offline.";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        return;
+      }
+
+      if ($scope.chatType === "group") {
+        $scope.flashMessage = "Video calls are only available for direct chats";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        return;
+      }
+
+      console.log("Starting video call with:", $scope.selectedStudent.email);
+      $scope.isVideoCallActive = true;
+      $scope.callStatus = "Calling...";
+
+      VideoCallService.startCall(
+        $scope.selectedStudent.email,
+        $scope.selectedStudent.name
+      ).catch(function (error) {
+        console.error("Failed to start call:", error);
         $scope.isVideoCallActive = false;
-        $scope.callStatus = '';
-        $scope.isAudioMuted = false;
-        $scope.isVideoMuted = false;
+        $scope.flashMessage =
+          "Failed to start call. Please check camera/microphone permissions.";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        $scope.$applyAsync();
+      });
     };
-    
-    $scope.toggleAudio = function() {
-        $scope.isAudioMuted = !$scope.isAudioMuted;
-        VideoCallService.toggleAudio(!$scope.isAudioMuted);
+
+    $scope.answerCall = function () {
+      console.log("Answering call from:", $scope.incomingCallFrom);
+      $scope.showIncomingCall = false;
+      $scope.isVideoCallActive = true;
+      $scope.callStatus = "Connecting...";
+
+      VideoCallService.answerCall(
+        $scope.incomingCallFrom,
+        $scope.incomingCallOffer
+      ).catch(function (error) {
+        console.error("Failed to answer call:", error);
+        $scope.isVideoCallActive = false;
+        $scope.flashMessage =
+          "Failed to answer call. Please check camera/microphone permissions.";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        $scope.$applyAsync();
+      });
     };
-    
-    $scope.toggleVideo = function() {
-        $scope.isVideoMuted = !$scope.isVideoMuted;
-        VideoCallService.toggleVideo(!$scope.isVideoMuted);
+
+    $scope.rejectCall = function () {
+      console.log("Rejecting call from:", $scope.incomingCallFrom);
+      VideoCallService.rejectCall($scope.incomingCallFrom);
+      $scope.showIncomingCall = false;
+      $scope.incomingCallFrom = null;
+      $scope.incomingCallName = null;
+      $scope.incomingCallOffer = null;
     };
-    
+
+    $scope.endCall = function () {
+      console.log("Ending call");
+      VideoCallService.endCall();
+      $scope.isVideoCallActive = false;
+      $scope.callStatus = "";
+      $scope.isAudioMuted = false;
+      $scope.isVideoMuted = false;
+    };
+
+    $scope.toggleAudio = function () {
+      $scope.isAudioMuted = !$scope.isAudioMuted;
+      VideoCallService.toggleAudio(!$scope.isAudioMuted);
+    };
+
+    $scope.toggleVideo = function () {
+      $scope.isVideoMuted = !$scope.isVideoMuted;
+      VideoCallService.toggleVideo(!$scope.isVideoMuted);
+    };
+
     // Socket event listeners for video calls
-    SocketService.on('video_call_incoming', function(data) {
-        console.log('Incoming call from:', data.caller_email);
+    SocketService.on("video_call_incoming", function (data) {
+      console.log("Incoming call from:", data.caller_email);
+      $scope.showIncomingCall = true;
+      $scope.incomingCallFrom = data.caller_email;
+      $scope.incomingCallName = data.caller_name;
+      $scope.incomingCallOffer = data.offer;
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("video_call_answered", function (data) {
+      console.log("Call answered by:", data.answerer_email);
+      $scope.callStatus = "Connected";
+      VideoCallService.handleAnswer(data.answer);
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("ice_candidate", function (data) {
+      console.log("Received ICE candidate");
+      VideoCallService.handleIceCandidate(data.candidate);
+    });
+
+    SocketService.on("video_call_rejected", function (data) {
+      console.log("Call rejected by:", data.receiver_email);
+      $scope.isVideoCallActive = false;
+      $scope.callStatus = "";
+      $scope.flashMessage = "Call was rejected";
+      $scope.flashType = "info";
+      $rootScope.$emit("flashMessage", {
+        message: $scope.flashMessage,
+        type: $scope.flashType,
+      });
+      VideoCallService.endCall();
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("video_call_ended", function (data) {
+      console.log("Call ended by:", data.sender_email);
+      $scope.isVideoCallActive = false;
+      $scope.callStatus = "";
+      VideoCallService.endCall();
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("video_call_failed", function (data) {
+      console.log("Call failed:", data.message);
+      $scope.isVideoCallActive = false;
+      $scope.callStatus = "";
+      $scope.flashMessage = data.message;
+      $scope.flashType = "error";
+      $rootScope.$emit("flashMessage", {
+        message: $scope.flashMessage,
+        type: $scope.flashType,
+      });
+      VideoCallService.endCall();
+      $scope.$applyAsync();
+    });
+
+    // Video stream handlers
+    $scope.$on("local_stream_ready", function (event, stream) {
+      console.log("Local stream ready");
+      $timeout(function () {
+        var localVideo = document.getElementById("localVideo");
+        if (localVideo) {
+          localVideo.srcObject = stream;
+        }
+      }, 100);
+    });
+
+    $scope.$on("remote_stream_added", function (event, stream) {
+      console.log("Remote stream added");
+      $scope.callStatus = "Connected";
+      $timeout(function () {
+        var remoteVideo = document.getElementById("remoteVideo");
+        if (remoteVideo) {
+          remoteVideo.srcObject = stream;
+        }
+      }, 100);
+    });
+
+    $scope.$on("call_ended", function () {
+      console.log("Call ended event received");
+      $scope.isVideoCallActive = false;
+      $scope.callStatus = "";
+      $scope.$applyAsync();
+    });
+
+    // Group video call function
+    $scope.startGroupVideoCall = function () {
+      if (!$scope.selectedGroup) {
+        $scope.flashMessage = "Please select a group first";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        return;
+      }
+
+      console.log(
+        "Starting group video call for group:",
+        $scope.selectedGroup.group_id
+      );
+      $scope.isVideoCallActive = true;
+      $scope.callStatus = "Starting call...";
+      $scope.groupCallParticipants = [];
+
+      // Get group members
+      AjaxHelper.ajaxRequest(
+        "GET",
+        "/auth/get_group_members/" + $scope.selectedGroup.group_id
+      )
+        .then(function (response) {
+          var members = response.data.members.map(function (m) {
+            return m.email;
+          });
+          members = members.filter(function (email) {
+            return email !== $scope.senderEmail;
+          });
+
+          VideoCallService.startGroupCall(
+            $scope.selectedGroup.group_id,
+            members
+          ).catch(function (error) {
+            console.error("Failed to start group call:", error);
+            $scope.isVideoCallActive = false;
+            $scope.flashMessage =
+              "Failed to start group call. Please check permissions.";
+            $scope.flashType = "error";
+            $rootScope.$emit("flashMessage", {
+              message: $scope.flashMessage,
+              type: $scope.flashType,
+            });
+            $scope.$applyAsync();
+          });
+        })
+        .catch(function (error) {
+          console.error("Failed to get group members:", error);
+          $scope.isVideoCallActive = false;
+        });
+    };
+
+    $scope.joinGroupVideoCall = function () {
+      console.log("Joining group video call");
+      $scope.showIncomingCall = false;
+      $scope.isVideoCallActive = true;
+      $scope.callStatus = "Joining...";
+      $scope.groupCallParticipants = [];
+
+      VideoCallService.joinGroupCall(
+        $scope.incomingCallGroupId,
+        $scope.incomingCallMembers,
+        $scope.incomingCallFrom
+      ).catch(function (error) {
+        console.error("Failed to join group call:", error);
+        $scope.isVideoCallActive = false;
+        $scope.flashMessage =
+          "Failed to join group call. Please check permissions.";
+        $scope.flashType = "error";
+        $rootScope.$emit("flashMessage", {
+          message: $scope.flashMessage,
+          type: $scope.flashType,
+        });
+        $scope.$applyAsync();
+      });
+    };
+
+    // Update answerCall to handle group calls
+    var originalAnswerCall = $scope.answerCall;
+    $scope.answerCall = function () {
+      if ($scope.incomingCallGroupId) {
+        $scope.joinGroupVideoCall();
+      } else {
+        originalAnswerCall();
+      }
+    };
+
+    // Socket event listeners for group video calls
+    SocketService.on("group_video_call_incoming", function (data) {
+      console.log("Incoming group video call from:", data.caller_email);
+      $scope.showIncomingCall = true;
+      $scope.incomingCallFrom = data.caller_email;
+      $scope.incomingCallName = data.caller_name;
+      $scope.incomingCallGroupId = data.group_id;
+      $scope.incomingCallMembers = data.members;
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("video_call_incoming", function (data) {
+      console.log(
+        "Incoming call from:",
+        data.caller_email,
+        "Group ID:",
+        data.group_id
+      );
+
+      // If already in a call, answer automatically for group calls
+      if (
+        data.group_id &&
+        VideoCallService.isCallActive() &&
+        VideoCallService.isGroupCall()
+      ) {
+        VideoCallService.answerCall(
+          data.caller_email,
+          data.offer,
+          data.group_id
+        );
+      } else if (!data.group_id) {
+        // Regular 1-on-1 call
         $scope.showIncomingCall = true;
         $scope.incomingCallFrom = data.caller_email;
         $scope.incomingCallName = data.caller_name;
         $scope.incomingCallOffer = data.offer;
+        $scope.incomingCallGroupId = null;
         $scope.$applyAsync();
-    });
-    
-    SocketService.on('video_call_answered', function(data) {
-        console.log('Call answered by:', data.answerer_email);
-        $scope.callStatus = 'Connected';
-        VideoCallService.handleAnswer(data.answer);
-        $scope.$applyAsync();
-    });
-    
-    SocketService.on('ice_candidate', function(data) {
-        console.log('Received ICE candidate');
-        VideoCallService.handleIceCandidate(data.candidate);
-    });
-    
-    SocketService.on('video_call_rejected', function(data) {
-        console.log('Call rejected by:', data.receiver_email);
-        $scope.isVideoCallActive = false;
-        $scope.callStatus = '';
-        $scope.flashMessage = 'Call was rejected';
-        $scope.flashType = 'info';
-        $rootScope.$emit('flashMessage', {
-            message: $scope.flashMessage,
-            type: $scope.flashType
-        });
-        VideoCallService.endCall();
-        $scope.$applyAsync();
-    });
-    
-    SocketService.on('video_call_ended', function(data) {
-        console.log('Call ended by:', data.sender_email);
-        $scope.isVideoCallActive = false;
-        $scope.callStatus = '';
-        VideoCallService.endCall();
-        $scope.$applyAsync();
-    });
-    
-    SocketService.on('video_call_failed', function(data) {
-        console.log('Call failed:', data.message);
-        $scope.isVideoCallActive = false;
-        $scope.callStatus = '';
-        $scope.flashMessage = data.message;
-        $scope.flashType = 'error';
-        $rootScope.$emit('flashMessage', {
-            message: $scope.flashMessage,
-            type: $scope.flashType
-        });
-        VideoCallService.endCall();
-        $scope.$applyAsync();
-    });
-    
-    // Video stream handlers
-    $scope.$on('local_stream_ready', function(event, stream) {
-        console.log('Local stream ready');
-        $timeout(function() {
-            var localVideo = document.getElementById('localVideo');
-            if (localVideo) {
-                localVideo.srcObject = stream;
-            }
-        }, 100);
-    });
-    
-    $scope.$on('remote_stream_added', function(event, stream) {
-        console.log('Remote stream added');
-        $scope.callStatus = 'Connected';
-        $timeout(function() {
-            var remoteVideo = document.getElementById('remoteVideo');
-            if (remoteVideo) {
-                remoteVideo.srcObject = stream;
-            }
-        }, 100);
+      }
     });
 
-    $scope.$on('call_ended', function() {
-        console.log('Call ended event received');
-        $scope.isVideoCallActive = false;
-        $scope.callStatus = '';
-        $scope.$applyAsync();
+    SocketService.on("video_call_answered", function (data) {
+      console.log("Call answered by:", data.answerer_email);
+      $scope.callStatus = "Connected";
+      VideoCallService.handleAnswer(data.answerer_email, data.answer);
+
+      if (VideoCallService.isGroupCall()) {
+        if (!$scope.groupCallParticipants) {
+          $scope.groupCallParticipants = [];
+        }
+        if (!$scope.groupCallParticipants.includes(data.answerer_email)) {
+          $scope.groupCallParticipants.push(data.answerer_email);
+        }
+      }
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("ice_candidate", function (data) {
+      console.log("Received ICE candidate from:", data.sender_email);
+      VideoCallService.handleIceCandidate(data.sender_email, data.candidate);
+    });
+
+    SocketService.on("group_video_call_peer_joined", function (data) {
+      console.log("Peer joined group call:", data.joiner_email);
+      if (!$scope.groupCallParticipants) {
+        $scope.groupCallParticipants = [];
+      }
+      if (!$scope.groupCallParticipants.includes(data.joiner_email)) {
+        $scope.groupCallParticipants.push(data.joiner_email);
+      }
+      $scope.$applyAsync();
+    });
+
+    SocketService.on("group_video_call_peer_left", function (data) {
+      console.log("Peer left group call:", data.leaver_email);
+      if ($scope.groupCallParticipants) {
+        $scope.groupCallParticipants = $scope.groupCallParticipants.filter(
+          function (email) {
+            return email !== data.leaver_email;
+          }
+        );
+      }
+      $scope.$applyAsync();
+    });
+
+    // Update remote stream handler for group calls
+    $scope.$on("remote_stream_added", function (event, data) {
+      console.log("Remote stream added from:", data.email);
+      $scope.callStatus = "Connected";
+
+      $timeout(function () {
+        if (VideoCallService.isGroupCall()) {
+          // For group calls, create/update video element for this peer
+          var container = document.getElementById("groupVideoContainer");
+          if (container) {
+            var videoId = "remoteVideo_" + data.email.replace(/[@.]/g, "_");
+            var videoEl = document.getElementById(videoId);
+
+            if (!videoEl) {
+              videoEl = document.createElement("video");
+              videoEl.id = videoId;
+              videoEl.autoplay = true;
+              videoEl.playsinline = true;
+              videoEl.className = "group-remote-video";
+              container.appendChild(videoEl);
+            }
+
+            videoEl.srcObject = data.stream;
+          }
+        } else {
+          // For 1-on-1 calls
+          var remoteVideo = document.getElementById("remoteVideo");
+          if (remoteVideo) {
+            remoteVideo.srcObject = data.stream;
+          }
+        }
+      }, 100);
+    });
+
+    $scope.$on("peer_disconnected", function (event, email) {
+      console.log("Peer disconnected:", email);
+
+      if (VideoCallService.isGroupCall()) {
+        // Remove video element for this peer
+        var videoId = "remoteVideo_" + email.replace(/[@.]/g, "_");
+        var videoEl = document.getElementById(videoId);
+        if (videoEl) {
+          videoEl.remove();
+        }
+
+        if ($scope.groupCallParticipants) {
+          $scope.groupCallParticipants = $scope.groupCallParticipants.filter(
+            function (e) {
+              return e !== email;
+            }
+          );
+        }
+      }
+      $scope.$applyAsync();
     });
 
     // Cleanup on controller destroy
